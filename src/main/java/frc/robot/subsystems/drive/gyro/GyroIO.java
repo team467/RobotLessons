@@ -1,4 +1,5 @@
 package frc.robot.subsystems.drive.gyro;
+
 import org.littletonrobotics.junction.AutoLog;
 
 public interface GyroIO {
@@ -28,6 +29,6 @@ public interface GyroIO {
    */
   default void updateInputs(GyroIOInputs inputs) {}
 
-  default void estimateFromMovement(double yawInRads) {};
-
+  default void estimateFromMovement(double yawInRads) {}
+  ;
 }

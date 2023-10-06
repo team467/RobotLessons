@@ -2,7 +2,6 @@ package frc.robot.subsystems.drive.gyro;
 
 import com.ctre.phoenix.ErrorCode;
 import com.ctre.phoenix.sensors.WPI_Pigeon2;
-
 import edu.wpi.first.math.util.Units;
 
 public class GyroIOPigeon2 implements GyroIO {
@@ -37,11 +36,9 @@ public class GyroIOPigeon2 implements GyroIO {
     } else {
       inputs.yaw = estimatedYaw;
     }
-
   }
 
   public void estimateFromMovement(double yawInRads) {
     estimatedYaw = Units.degreesToRadians(Units.radiansToDegrees(estimatedYaw) + yawInRads);
   }
-
 }

@@ -8,8 +8,7 @@ public class GyroIOSim implements GyroIO {
 
   private double estimatedYaw = 0.0;
 
-  public GyroIOSim() {
-  }
+  public GyroIOSim() {}
 
   @Override
   public void updateInputs(GyroIOInputs inputs) {
@@ -22,11 +21,9 @@ public class GyroIOSim implements GyroIO {
     inputs.pitchRate = rate[1];
     inputs.yawRate = rate[2];
     inputs.gravVector = gravVector;
-
   }
 
   public void estimateFromMovement(double yawInRads) {
     estimatedYaw = Units.degreesToRadians(Units.radiansToDegrees(estimatedYaw) + yawInRads);
   }
-
 }

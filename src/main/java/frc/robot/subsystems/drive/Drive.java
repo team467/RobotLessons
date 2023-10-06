@@ -39,8 +39,12 @@ public class Drive extends SubsystemBase {
   private boolean isCharacterizing = false;
   private double characterizationVolts = 0.0;
 
-  public Drive(GyroIO gyroIO,
-      WheelPodIO frontLeftWheelPodIO, WheelPodIO frontRightWheelPodIO, WheelPodIO backLeftWheelPodIO, WheelPodIO backRightWheelPodIO) {
+  public Drive(
+      GyroIO gyroIO,
+      WheelPodIO frontLeftWheelPodIO,
+      WheelPodIO frontRightWheelPodIO,
+      WheelPodIO backLeftWheelPodIO,
+      WheelPodIO backRightWheelPodIO) {
     gyro = new Gyro(gyroIO);
     wheelPods[0] = new WheelPod(frontLeftWheelPodIO, 0);
     wheelPods[1] = new WheelPod(frontRightWheelPodIO, 1);
@@ -78,7 +82,7 @@ public class Drive extends SubsystemBase {
       Logger.getInstance().recordOutput("SwerveStates/Setpoints", new double[] {});
       Logger.getInstance().recordOutput("SwerveStates/SetpointsOptimized", new double[] {});
 
-    } else  if (isCharacterizing) {
+    } else if (isCharacterizing) {
 
       // Run in characterization mode
       for (var wheelPod : wheelPods) {
@@ -132,7 +136,7 @@ public class Drive extends SubsystemBase {
     Logger.getInstance().recordOutput("Odometry", getPose());
   }
 
-    public void estimate() {
+  public void estimate() {
 
     SwerveModulePosition[] measuredPositions = new SwerveModulePosition[4];
     for (int i = 0; i < 4; i++) {
@@ -150,7 +154,6 @@ public class Drive extends SubsystemBase {
       previousYawInRad += kinematics.toChassisSpeeds(measuredStates).omegaRadiansPerSecond * 0.02;
       odometry.update(new Rotation2d(previousYawInRad), measuredPositions);
     }
-
   }
 
   public void runVelocity(ChassisSpeeds speeds) {
@@ -205,5 +208,4 @@ public class Drive extends SubsystemBase {
     }
     return driveVelocityAverage / 4.0;
   }
-
 }

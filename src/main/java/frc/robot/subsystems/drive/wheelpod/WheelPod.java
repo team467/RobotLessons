@@ -8,15 +8,14 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.RobotConstants;
 import org.littletonrobotics.junction.Logger;
 
-public class WheelPod  extends SubsystemBase {
+public class WheelPod extends SubsystemBase {
   private final WheelPodIO io;
   private final WheelPodIOInputsAutoLogged inputs = new WheelPodIOInputsAutoLogged();
   private final int index;
 
   private final SimpleMotorFeedforward driveFF =
       RobotConstants.get().moduleDriveFF.getFeedforward();
-  private final SimpleMotorFeedforward turnFF =
-      RobotConstants.get().moduleTurnFF.getFeedforward();
+  private final SimpleMotorFeedforward turnFF = RobotConstants.get().moduleTurnFF.getFeedforward();
   private final ProfiledPIDController turnFB =
       RobotConstants.get()
           .moduleTurnFB
@@ -80,5 +79,4 @@ public class WheelPod  extends SubsystemBase {
   public WheelPodIOInputsAutoLogged inputs() {
     return inputs;
   }
-
 }

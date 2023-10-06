@@ -1,11 +1,10 @@
 package frc.robot.subsystems.drive.wheelpod;
 
-import org.littletonrobotics.junction.AutoLog;
-
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import frc.robot.RobotConstants;
+import org.littletonrobotics.junction.AutoLog;
 
 public interface WheelPodIO {
   @AutoLog
@@ -38,5 +37,4 @@ public interface WheelPodIO {
   default void setDriveBrakeMode(boolean brake) {}
 
   default void setTurnBrakeMode(boolean brake) {}
-
 }

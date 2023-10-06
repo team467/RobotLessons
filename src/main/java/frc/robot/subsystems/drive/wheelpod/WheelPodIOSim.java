@@ -31,8 +31,10 @@ public class WheelPodIOSim implements WheelPodIO {
       turnAbsolutePosition -= 2.0 * Math.PI;
     }
 
-    inputs.drivePositionInMeters += driveSim.getAngularVelocityRadPerSec() * 0.02 * inputs.wheelRadius;
-    inputs.driveVelocityInMetersPerSec = driveSim.getAngularVelocityRadPerSec() * inputs.wheelRadius;
+    inputs.drivePositionInMeters +=
+        driveSim.getAngularVelocityRadPerSec() * 0.02 * inputs.wheelRadius;
+    inputs.driveVelocityInMetersPerSec =
+        driveSim.getAngularVelocityRadPerSec() * inputs.wheelRadius;
     inputs.driveAppliedVolts = driveAppliedVolts;
     inputs.driveCurrentAmps = new double[] {Math.abs(driveSim.getCurrentDrawAmps())};
 
@@ -44,7 +46,6 @@ public class WheelPodIOSim implements WheelPodIO {
     inputs.angle = new Rotation2d(MathUtil.angleModulus(inputs.turnPositionAbsoluteRad));
     inputs.position = new SwerveModulePosition(inputs.drivePositionInMeters, inputs.angle);
     inputs.state = new SwerveModuleState(inputs.driveVelocityInMetersPerSec, inputs.angle);
-  
   }
 
   @Override
