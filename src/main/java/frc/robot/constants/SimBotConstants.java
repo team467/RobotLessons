@@ -7,5 +7,4 @@ public class SimBotConstants extends Constants {
   public final String logFolder = "";
 
   public final double driveMaxCoastVelocity = 0.0;
-
 }
