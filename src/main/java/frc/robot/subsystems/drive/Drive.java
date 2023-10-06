@@ -8,18 +8,21 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.RobotConstants;
+import frc.robot.subsystems.drive.gyro.Gyro;
+import frc.robot.subsystems.drive.gyro.GyroIO;
 import frc.robot.subsystems.drive.wheelpod.WheelPod;
 import frc.robot.subsystems.drive.wheelpod.WheelPodIO;
 import org.littletonrobotics.junction.Logger;
 
 public class Drive extends SubsystemBase {
+  private final Gyro gyro;
   private final WheelPod[] wheelPods = new WheelPod[4];
   private final SwerveDriveKinematics kinematics = RobotConstants.get().kinematics();
 
-  private DriveMode driveMode = DriveMode.NORMAL;
   private ChassisSpeeds setpoint = new ChassisSpeeds();
   private SwerveModuleState[] lastSetpointStates =
       new SwerveModuleState[] {
@@ -31,14 +34,18 @@ public class Drive extends SubsystemBase {
 
   private final SwerveModulePosition[] modulePositions;
   private SwerveDrivePoseEstimator odometry;
-  private double simGyro = 0.0;
+  private double previousYawInRad = 0.0;
 
-  public Drive(
-      WheelPodIO flModuleIO, WheelPodIO frModuleIO, WheelPodIO blModuleIO, WheelPodIO brModuleIO) {
-    wheelPods[0] = new WheelPod(flModuleIO, 0);
-    wheelPods[1] = new WheelPod(frModuleIO, 1);
-    wheelPods[2] = new WheelPod(blModuleIO, 2);
-    wheelPods[3] = new WheelPod(brModuleIO, 3);
+  private boolean isCharacterizing = false;
+  private double characterizationVolts = 0.0;
+
+  public Drive(GyroIO gyroIO,
+      WheelPodIO frontLeftWheelPodIO, WheelPodIO frontRightWheelPodIO, WheelPodIO backLeftWheelPodIO, WheelPodIO backRightWheelPodIO) {
+    gyro = new Gyro(gyroIO);
+    wheelPods[0] = new WheelPod(frontLeftWheelPodIO, 0);
+    wheelPods[1] = new WheelPod(frontRightWheelPodIO, 1);
+    wheelPods[2] = new WheelPod(backLeftWheelPodIO, 2);
+    wheelPods[3] = new WheelPod(backRightWheelPodIO, 3);
     for (var wheelPod : wheelPods) {
       wheelPod.setBrakeMode(true);
       wheelPod.periodic();
@@ -46,12 +53,15 @@ public class Drive extends SubsystemBase {
 
     modulePositions = new SwerveModulePosition[4];
     for (int i = 0; i < 4; i++) {
-      modulePositions[i] = wheelPods[i].getPosition();
+      modulePositions[i] = wheelPods[i].inputs().position;
     }
   }
 
   @Override
   public void periodic() {
+
+    // Update inputs
+    gyro.periodic();
     for (var wheelPod : wheelPods) {
       wheelPod.periodic();
     }
@@ -68,138 +78,88 @@ public class Drive extends SubsystemBase {
       Logger.getInstance().recordOutput("SwerveStates/Setpoints", new double[] {});
       Logger.getInstance().recordOutput("SwerveStates/SetpointsOptimized", new double[] {});
 
+    } else  if (isCharacterizing) {
+
+      // Run in characterization mode
+      for (var wheelPod : wheelPods) {
+        wheelPod.runCharacterization(characterizationVolts);
+      }
+
+      // Clear setpoint logs
+      Logger.getInstance().recordOutput("SwerveStates/Setpoints", new double[] {});
+      Logger.getInstance().recordOutput("SwerveStates/SetpointsOptimized", new double[] {});
+
     } else {
-      switch (driveMode) {
-        case NORMAL -> {
-          Twist2d setpointTwist =
-              new Pose2d()
-                  .log(
-                      new Pose2d(
-                          setpoint.vxMetersPerSecond * 0.020,
-                          setpoint.vyMetersPerSecond * 0.020,
-                          new Rotation2d(setpoint.omegaRadiansPerSecond * 0.020)));
-          ChassisSpeeds adjustedSpeeds =
-              new ChassisSpeeds(
-                  setpointTwist.dx / 0.020, setpointTwist.dy / 0.020, setpointTwist.dtheta / 0.020);
-          // In normal mode, run the controllers for turning and driving based on the current
-          // setpoint
-          SwerveModuleState[] setpointStates =
-              RobotConstants.get().kinematics().toSwerveModuleStates(adjustedSpeeds);
-          SwerveDriveKinematics.desaturateWheelSpeeds(
-              setpointStates, RobotConstants.get().maxLinearSpeed());
+      Twist2d setpointTwist =
+          new Pose2d()
+              .log(
+                  new Pose2d(
+                      setpoint.vxMetersPerSecond * 0.020,
+                      setpoint.vyMetersPerSecond * 0.020,
+                      new Rotation2d(setpoint.omegaRadiansPerSecond * 0.020)));
+      ChassisSpeeds adjustedSpeeds =
+          new ChassisSpeeds(
+              setpointTwist.dx / 0.020, setpointTwist.dy / 0.020, setpointTwist.dtheta / 0.020);
+      // In normal mode, run the controllers for turning and driving based on the current
+      // setpoint
+      SwerveModuleState[] setpointStates =
+          RobotConstants.get().kinematics().toSwerveModuleStates(adjustedSpeeds);
+      SwerveDriveKinematics.desaturateWheelSpeeds(
+          setpointStates, RobotConstants.get().maxLinearSpeed());
 
-          // Set to last angles if zero
-          if (adjustedSpeeds.vxMetersPerSecond == 0.0
-              && adjustedSpeeds.vyMetersPerSecond == 0.0
-              && adjustedSpeeds.omegaRadiansPerSecond == 0) {
-            for (int i = 0; i < 4; i++) {
-              setpointStates[i] = new SwerveModuleState(0.0, lastSetpointStates[i].angle);
-            }
-          }
-          lastSetpointStates = setpointStates;
-
-          boolean isStationary = false;
-          SwerveModuleState[] optimizedStates = new SwerveModuleState[4];
-          for (int i = 0; i < 4; i++) {
-            optimizedStates[i] = wheelPods[i].runSetpoint(setpointStates[i], isStationary);
-          }
-
-          // Log setpoint states
-          Logger.getInstance().recordOutput("SwerveStates/Setpoints", setpointStates);
-          Logger.getInstance().recordOutput("SwerveStates/SetpointsOptimized", optimizedStates);
+      // Set to last angles if zero
+      if (adjustedSpeeds.vxMetersPerSecond == 0.0
+          && adjustedSpeeds.vyMetersPerSecond == 0.0
+          && adjustedSpeeds.omegaRadiansPerSecond == 0) {
+        for (int i = 0; i < 4; i++) {
+          setpointStates[i] = new SwerveModuleState(0.0, lastSetpointStates[i].angle);
         }
       }
+      lastSetpointStates = setpointStates;
+
+      boolean isStationary = false;
+      SwerveModuleState[] optimizedStates = new SwerveModuleState[4];
+      for (int i = 0; i < 4; i++) {
+        optimizedStates[i] = wheelPods[i].runSetpoint(setpointStates[i], isStationary);
+      }
+
+      // Log setpoint states
+      Logger.getInstance().recordOutput("SwerveStates/Setpoints", setpointStates);
+      Logger.getInstance().recordOutput("SwerveStates/SetpointsOptimized", optimizedStates);
     }
 
-    // Log measured states
-    SwerveModuleState[] measuredStates = new SwerveModuleState[4];
-    for (int i = 0; i < 4; i++) {
-      measuredStates[i] = wheelPods[i].getState();
-    }
-    Logger.getInstance().recordOutput("SwerveStates/Measured", measuredStates);
-
-    // Update odometry
-    SwerveModulePosition[] measuredPositions = new SwerveModulePosition[4];
-    for (int i = 0; i < 4; i++) {
-      measuredPositions[i] = wheelPods[i].getPosition();
-    }
-    // for (int i = 0; i < aprilTagCameraIO.size(); i++) {
-    //   aprilTagCameraIO.get(i).updateInputs(aprilTagCameraInputs.get(i));
-    // }
-
-    // if (gyroInputs.connected) {
-    //   odometry.update(Rotation2d.fromDegrees(gyroInputs.yaw), measuredPositions);
-    //   simGyro = Units.degreesToRadians(gyroInputs.yaw);
-    // } else {
-    //   simGyro += kinematics.toChassisSpeeds(measuredStates).omegaRadiansPerSecond * 0.02;
-    //   odometry.update(new Rotation2d(simGyro), measuredPositions);
-    // }
-
-    // for (VisionIOInputs aprilTagCameraInput : aprilTagCameraInputs) {
-    //   //      aprilTagCameraInput.estimatedPose.ifPresent(
-    //   //          estimatedRobotPose -> {
-    //   //            Logger.getInstance()
-    //   //                .recordOutput(
-    //   //                    "Odometry/VisionPose/" +
-    //   // aprilTagCameraInputs.indexOf(aprilTagCameraInput),
-    //   //                    estimatedRobotPose.estimatedPose.toPose2d());
-    //   //
-    //   //            Vector<N3> std =
-    //   //                switch (aprilTagCameraInputs.indexOf(aprilTagCameraInput)) {
-    //   //                  case 0 -> VecBuilder.fill(0.1, 0.1, 0.1); // TODO: Tune these
-    //   //                  case 1 -> VecBuilder.fill(0.1, 0.1, 0.1); // TODO: Tune these
-    //   //                  default -> VecBuilder.fill(1.0, 1.0, 1.0);
-    //   //                };
-    //   //
-    //   //            odometry.addVisionMeasurement(
-    //   //                estimatedRobotPose.estimatedPose.toPose2d(),
-    //   //                estimatedRobotPose.timestampSeconds,
-    //   //                std);
-    //   //          });
-    //   if (aprilTagCameraInput.estimatedPose.isPresent()) {
-    //     EstimatedRobotPose estimatedRobotPose = aprilTagCameraInput.estimatedPose.get();
-    //     Logger.getInstance()
-    //         .recordOutput(
-    //             "Odometry/VisionPose/" + aprilTagCameraInputs.indexOf(aprilTagCameraInput),
-    //             estimatedRobotPose.estimatedPose.toPose2d());
-
-    //     Vector<N3> std =
-    //         switch (aprilTagCameraInputs.indexOf(aprilTagCameraInput)) {
-    //           case 0 -> VecBuilder.fill(0.001, 0.001, 0.001); // TODO: Tune these
-    //           case 1 -> VecBuilder.fill(0.001, 0.001, 0.001); // TODO: Tune these
-    //           default -> VecBuilder.fill(1.0, 1.0, 1.0);
-    //         };
-
-    //     odometry.addVisionMeasurement(
-    //         estimatedRobotPose.estimatedPose.toPose2d(), estimatedRobotPose.timestampSeconds,
-    // std);
-    // }
-    // }
-
+    this.estimate();
     Logger.getInstance().recordOutput("Odometry", getPose());
   }
 
-  // Checks if the robot is upright within a certain threshold (checks if it will be considered
-  // balanced by the charge station)
-  // public boolean isUpright() {
-  // return (Math.abs(
-  //         getPose().getRotation().getCos() * getPitch().getDegrees()
-  //             + getPose().getRotation().getSin() * getRoll().getDegrees())
-  //     < 2.3);
+    public void estimate() {
 
-  // double pitch = getPitch().getDegrees();
-  // double roll = getRoll().getDegrees();
+    SwerveModulePosition[] measuredPositions = new SwerveModulePosition[4];
+    for (int i = 0; i < 4; i++) {
+      measuredPositions[i] = wheelPods[i].inputs().position;
+    }
 
-  //   return Math.abs(roll) < 2.3 && Math.abs(pitch) < 2.3;
-  // }
+    if (gyro.isConnected()) {
+      odometry.update(Rotation2d.fromDegrees(gyro.yaw()), measuredPositions);
+      previousYawInRad = Units.degreesToRadians(gyro.yaw());
+    } else {
+      SwerveModuleState[] measuredStates = new SwerveModuleState[4];
+      for (int i = 0; i < 4; i++) {
+        measuredStates[i] = wheelPods[i].inputs().state;
+      }
+      previousYawInRad += kinematics.toChassisSpeeds(measuredStates).omegaRadiansPerSecond * 0.02;
+      odometry.update(new Rotation2d(previousYawInRad), measuredPositions);
+    }
+
+  }
 
   public void runVelocity(ChassisSpeeds speeds) {
-    driveMode = DriveMode.NORMAL;
+    isCharacterizing = false;
     setpoint = speeds;
   }
 
   public void stop() {
-    driveMode = DriveMode.NORMAL;
+    isCharacterizing = false;
     runVelocity(new ChassisSpeeds());
   }
 
@@ -220,9 +180,9 @@ public class Drive extends SubsystemBase {
   public void setPose(Pose2d pose) {
     SwerveModulePosition[] modulePositions = new SwerveModulePosition[4];
     for (int i = 0; i < 4; i++) {
-      modulePositions[i] = wheelPods[i].getPosition();
+      modulePositions[i] = wheelPods[i].inputs().position;
     }
-    // odometry.resetPosition(Rotation2d.fromDegrees(gyroInputs.yaw), modulePositions, pose);
+    odometry.resetPosition(Rotation2d.fromRadians(previousYawInRad), modulePositions, pose);
   }
 
   public void chassisDrive(double x, double y, double rot, boolean fieldRelative) {
@@ -233,25 +193,9 @@ public class Drive extends SubsystemBase {
     }
   }
 
-  // public Rotation2d getRoll() {
-  //   return Rotation2d.fromDegrees(gyroInputs.roll);
-  // }
-
-  // public Rotation2d getPitch() {
-  //   return Rotation2d.fromDegrees(gyroInputs.pitch);
-  // }
-
-  // public double getRollVelocity() {
-  //   return Units.degreesToRadians(gyroInputs.rollRate);
-  // }
-
-  // public double getPitchVelocity() {
-  //   return Units.degreesToRadians(gyroInputs.pitchRate);
-  // }
-
   public void runCharacterizationVolts(double volts) {
-    driveMode = DriveMode.CHARACTERIZATION;
-    // characterizationVolts = volts;
+    isCharacterizing = true;
+    characterizationVolts = volts;
   }
 
   public double getCharacterizationVelocity() {
@@ -262,8 +206,4 @@ public class Drive extends SubsystemBase {
     return driveVelocityAverage / 4.0;
   }
 
-  private enum DriveMode {
-    NORMAL,
-    CHARACTERIZATION
-  }
 }

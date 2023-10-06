@@ -1,6 +1,9 @@
 package frc.robot.subsystems.drive.wheelpod;
 
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.kinematics.SwerveModulePosition;
+import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj.simulation.FlywheelSim;
 
@@ -28,8 +31,8 @@ public class WheelPodIOSim implements WheelPodIO {
       turnAbsolutePosition -= 2.0 * Math.PI;
     }
 
-    inputs.drivePositionRad += driveSim.getAngularVelocityRadPerSec() * 0.02;
-    inputs.driveVelocityRadPerSec = driveSim.getAngularVelocityRadPerSec();
+    inputs.drivePositionInMeters += driveSim.getAngularVelocityRadPerSec() * 0.02 * inputs.wheelRadius;
+    inputs.driveVelocityInMetersPerSec = driveSim.getAngularVelocityRadPerSec() * inputs.wheelRadius;
     inputs.driveAppliedVolts = driveAppliedVolts;
     inputs.driveCurrentAmps = new double[] {Math.abs(driveSim.getCurrentDrawAmps())};
 
@@ -37,6 +40,11 @@ public class WheelPodIOSim implements WheelPodIO {
     inputs.turnPositionRad = turnRelativePosition;
     inputs.turnVelocityRadPerSec = turnSim.getAngularVelocityRadPerSec();
     inputs.turnCurrentAmps = new double[] {Math.abs(turnSim.getCurrentDrawAmps())};
+
+    inputs.angle = new Rotation2d(MathUtil.angleModulus(inputs.turnPositionAbsoluteRad));
+    inputs.position = new SwerveModulePosition(inputs.drivePositionInMeters, inputs.angle);
+    inputs.state = new SwerveModuleState(inputs.driveVelocityInMetersPerSec, inputs.angle);
+  
   }
 
   @Override

@@ -6,6 +6,8 @@ package frc.robot;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.drive.Drive;
+import frc.robot.subsystems.drive.gyro.GyroIO;
+import frc.robot.subsystems.drive.gyro.GyroIOSim;
 import frc.robot.subsystems.drive.wheelpod.WheelPodIOSim;
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 
@@ -31,8 +33,8 @@ public class RobotContainer {
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
     drive =
-        new Drive(
-            new WheelPodIOSim(), new WheelPodIOSim(), new WheelPodIOSim(), new WheelPodIOSim());
+        new Drive( new GyroIOSim(),
+        new WheelPodIOSim(), new WheelPodIOSim(), new WheelPodIOSim(), new WheelPodIOSim());
   }
 
   /**

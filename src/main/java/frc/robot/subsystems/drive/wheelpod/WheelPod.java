@@ -1,16 +1,14 @@
 package frc.robot.subsystems.drive.wheelpod;
 
-import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
-import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.RobotConstants;
 import org.littletonrobotics.junction.Logger;
 
-public class WheelPod {
+public class WheelPod  extends SubsystemBase {
   private final WheelPodIO io;
   private final WheelPodIOInputsAutoLogged inputs = new WheelPodIOInputsAutoLogged();
   private final int index;
@@ -23,8 +21,6 @@ public class WheelPod {
       RobotConstants.get()
           .moduleTurnFB()
           .getProfiledPIDController(new TrapezoidProfile.Constraints(550.6, 7585));
-
-  private final double wheelRadius = (RobotConstants.get().moduleWheelDiameter() / 2);
 
   public WheelPod(WheelPodIO io, int index) {
     this.io = io;
@@ -42,19 +38,19 @@ public class WheelPod {
 
   public SwerveModuleState runSetpoint(SwerveModuleState state, boolean isStationary) {
     // Optimize state based on current angle
-    SwerveModuleState optimizedState = SwerveModuleState.optimize(state, getAngle());
+    SwerveModuleState optimizedState = SwerveModuleState.optimize(state, inputs.angle);
 
     io.setTurnVoltage(
         isStationary
             ? 0.0
-            : turnFB.calculate(getAngle().getRadians(), optimizedState.angle.getRadians())
+            : turnFB.calculate(inputs.angle.getRadians(), optimizedState.angle.getRadians())
                 + turnFF.calculate(turnFB.getSetpoint().velocity));
 
     // Update velocity based on turn error
     optimizedState.speedMetersPerSecond *= Math.cos(turnFB.getPositionError());
 
     // Run drive controller
-    double velocityRadPerSec = optimizedState.speedMetersPerSecond / wheelRadius;
+    double velocityRadPerSec = optimizedState.speedMetersPerSecond / inputs.wheelRadius;
     io.setDriveVoltage(driveFF.calculate(velocityRadPerSec));
 
     return optimizedState;
@@ -62,7 +58,7 @@ public class WheelPod {
 
   public void runCharacterization(double volts) {
     io.setTurnVoltage(
-        turnFB.calculate(getAngle().getRadians(), 0.0)
+        turnFB.calculate(inputs.angle.getRadians(), 0.0)
             + turnFB.calculate(turnFB.getSetpoint().velocity));
     io.setDriveVoltage(volts);
   }
@@ -77,27 +73,12 @@ public class WheelPod {
     io.setTurnBrakeMode(enabled);
   }
 
-  public Rotation2d getAngle() {
-    return new Rotation2d(MathUtil.angleModulus(inputs.turnPositionAbsoluteRad));
-  }
-
-  public double getPositionMeters() {
-    return inputs.drivePositionRad * wheelRadius;
-  }
-
-  public double getVelocityMetersPerSec() {
-    return inputs.driveVelocityRadPerSec * wheelRadius;
-  }
-
-  public SwerveModulePosition getPosition() {
-    return new SwerveModulePosition(getPositionMeters(), getAngle());
-  }
-
-  public SwerveModuleState getState() {
-    return new SwerveModuleState(getVelocityMetersPerSec(), getAngle());
-  }
-
   public double getCharacterizationVelocity() {
-    return inputs.driveVelocityRadPerSec;
+    return inputs.driveVelocityInMetersPerSec;
   }
+
+  public WheelPodIOInputsAutoLogged inputs() {
+    return inputs;
+  }
+
 }
