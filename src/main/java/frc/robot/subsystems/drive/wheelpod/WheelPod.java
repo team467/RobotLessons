@@ -14,12 +14,12 @@ public class WheelPod  extends SubsystemBase {
   private final int index;
 
   private final SimpleMotorFeedforward driveFF =
-      RobotConstants.get().moduleDriveFF().getFeedforward();
+      RobotConstants.get().moduleDriveFF.getFeedforward();
   private final SimpleMotorFeedforward turnFF =
-      RobotConstants.get().moduleTurnFF().getFeedforward();
+      RobotConstants.get().moduleTurnFF.getFeedforward();
   private final ProfiledPIDController turnFB =
       RobotConstants.get()
-          .moduleTurnFB()
+          .moduleTurnFB
           .getProfiledPIDController(new TrapezoidProfile.Constraints(550.6, 7585));
 
   public WheelPod(WheelPodIO io, int index) {

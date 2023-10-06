@@ -21,7 +21,7 @@ import org.littletonrobotics.junction.Logger;
 public class Drive extends SubsystemBase {
   private final Gyro gyro;
   private final WheelPod[] wheelPods = new WheelPod[4];
-  private final SwerveDriveKinematics kinematics = RobotConstants.get().kinematics();
+  private final SwerveDriveKinematics kinematics = RobotConstants.get().kinematics;
 
   private ChassisSpeeds setpoint = new ChassisSpeeds();
   private SwerveModuleState[] lastSetpointStates =
@@ -103,9 +103,9 @@ public class Drive extends SubsystemBase {
       // In normal mode, run the controllers for turning and driving based on the current
       // setpoint
       SwerveModuleState[] setpointStates =
-          RobotConstants.get().kinematics().toSwerveModuleStates(adjustedSpeeds);
+          RobotConstants.get().kinematics.toSwerveModuleStates(adjustedSpeeds);
       SwerveDriveKinematics.desaturateWheelSpeeds(
-          setpointStates, RobotConstants.get().maxLinearSpeed());
+          setpointStates, RobotConstants.get().maxLinearSpeed);
 
       // Set to last angles if zero
       if (adjustedSpeeds.vxMetersPerSecond == 0.0
@@ -169,7 +169,7 @@ public class Drive extends SubsystemBase {
       lastSetpointStates[i] =
           new SwerveModuleState(
               lastSetpointStates[i].speedMetersPerSecond,
-              RobotConstants.get().moduleTranslations()[i].getAngle());
+              RobotConstants.get().moduleTranslations[i].getAngle());
     }
   }
 

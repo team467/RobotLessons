@@ -10,7 +10,7 @@ import frc.robot.RobotConstants;
 public interface WheelPodIO {
   @AutoLog
   class WheelPodIOInputs {
-    public final double wheelRadius = (RobotConstants.get().moduleWheelDiameter() / 2);
+    public final double wheelRadius = (RobotConstants.get().moduleWheelDiameter / 2);
 
     public double drivePositionInMeters = 0.0;
     public double driveVelocityInMetersPerSec = 0.0;

@@ -37,7 +37,7 @@ public class WheelPodIOSparkMax implements WheelPodIO {
     // Convert rotations to radians
     double rotsToRads =
         Units.rotationsToRadians(1)
-            * RobotConstants.get().moduleDriveGearRatio().getRotationsPerInput();
+            * RobotConstants.get().moduleDriveGearRatio.getRotationsPerInput();
     driveEncoder.setPositionConversionFactor(rotsToRads);
     turnEncoder.setPositionConversionFactor(rotsToRads);
 
@@ -77,7 +77,7 @@ public class WheelPodIOSparkMax implements WheelPodIO {
         resetCount = 0;
         turnEncoder.setPosition(
             Rotation2d.fromDegrees(turnEncoderAbsolute.getAbsolutePosition())
-                .minus(RobotConstants.get().absoluteAngleOffset()[index])
+                .minus(RobotConstants.get().absoluteAngleOffset[index])
                 .getRadians());
       }
     } else {
@@ -87,7 +87,7 @@ public class WheelPodIOSparkMax implements WheelPodIO {
 
     inputs.turnPositionAbsoluteRad =
         Rotation2d.fromDegrees(turnEncoderAbsolute.getAbsolutePosition())
-            .minus(RobotConstants.get().absoluteAngleOffset()[index])
+            .minus(RobotConstants.get().absoluteAngleOffset[index])
             .getRadians();
     inputs.turnAppliedVolts = turnMotor.getAppliedOutput() * RobotController.getBatteryVoltage();
     inputs.turnCurrentAmps = new double[] {turnMotor.getOutputCurrent()};
