@@ -6,7 +6,6 @@ package frc.robot;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.drive.Drive;
-import frc.robot.subsystems.drive.gyro.GyroIO;
 import frc.robot.subsystems.drive.gyro.GyroIOSim;
 import frc.robot.subsystems.drive.wheelpod.WheelPodIOSim;
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;

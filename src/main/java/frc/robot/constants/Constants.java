@@ -1,34 +1,17 @@
 package frc.robot.constants;
 
+import java.util.Arrays;
+
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
+import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.RobotBase;
 import frc.robot.constants.controls.FeedbackConstant;
 import frc.robot.constants.controls.GearRatio;
 import frc.robot.constants.controls.SimpleFeedforwardConstant;
 
-public interface Constants {
-  /**
-   * @return Robot type/name
-   */
-  RobotType robot();
-
-  /**
-   * @return Folder to put logs into (nullable)
-   */
-  String logFolder();
-
-  /**
-   * @return Check if robot is real, sim, or replay
-   */
-  default Mode mode() {
-    return switch (robot()) {
-      case ROBOT_COMP, ROBOT_BRIEFCASE -> RobotBase.isReal() ? Mode.REAL : Mode.REPLAY;
-      case ROBOT_SIMBOT -> Mode.SIM;
-      default -> Mode.REAL;
-    };
-  }
+public abstract class Constants {
 
   enum RobotType {
     ROBOT_COMP,
@@ -42,72 +25,110 @@ public interface Constants {
     SIM,
   }
 
-  // Drive constants
-  double driveMaxCoastVelocity();
+  // All values are defaults that may be overriden by the robot-specific constants
 
-  Translation2d[] moduleTranslations();
+  /**
+   * Robot Type is used for determining which versions of constants and subsystems to use
+   */
+  public final RobotType robot = null;
 
-  double maxLinearSpeed();
+  /**
+   * @return Check if robot is real, sim, or replay
+   */
+  public Mode mode() {
+    return switch (robot) {
+      case ROBOT_COMP, ROBOT_BRIEFCASE -> RobotBase.isReal() ? Mode.REAL : Mode.REPLAY;
+      case ROBOT_SIMBOT -> Mode.SIM;
+      default -> Mode.REAL;
+    };
+  }
 
-  double maxAngularSpeed();
+  /**
+   * @return Folder to put logs into (nullable)
+   */
+  public final String logFolder = "/media/sda1";
 
-  double moduleWheelDiameter();
+  public final double driveMaxCoastVelocity = 0.5;
+  
+  public final Translation2d[] moduleTranslations = new Translation2d[] {
+    new Translation2d(Units.inchesToMeters(12.75), Units.inchesToMeters(9.25)),
+    new Translation2d(Units.inchesToMeters(12.75), -Units.inchesToMeters(9.25)),
+    new Translation2d(-Units.inchesToMeters(12.75), Units.inchesToMeters(9.25)),
+    new Translation2d(-Units.inchesToMeters(12.75), -Units.inchesToMeters(9.25)),
+  };
 
-  GearRatio moduleDriveGearRatio();
+  public final double maxLinearSpeed = Units.feetToMeters(14.5);
 
-  GearRatio moduleTurnGearRatio();
+  public final double maxAngularSpeed = 
+      maxLinearSpeed / Arrays.stream(moduleTranslations)
+      .map(Translation2d::getNorm)
+      .max(Double::compare)
+      .get();
+  
+  public final double moduleWheelDiameter = Units.inchesToMeters(4);
 
-  SimpleFeedforwardConstant moduleDriveFF();
+  public final GearRatio moduleDriveGearRatio = new GearRatio(6.75, 1);
 
-  SimpleFeedforwardConstant moduleTurnFF();
+  public final GearRatio moduleTurnGearRatio = new GearRatio(12.8, 1);
 
-  FeedbackConstant moduleTurnFB();
+  public final SimpleFeedforwardConstant moduleDriveFF = new SimpleFeedforwardConstant(0.15026, 0.13682);
 
-  SwerveDriveKinematics kinematics();
+  public final SimpleFeedforwardConstant moduleTurnFF = new SimpleFeedforwardConstant(0.16302, 0.0089689, 0.00034929);
 
-  Rotation2d[] absoluteAngleOffset();
+  public final FeedbackConstant moduleTurnFB = new FeedbackConstant(3.2526, 0.05);
 
-  double chassisDriveMaxVelocity();
+  public final SwerveDriveKinematics kinematics = new SwerveDriveKinematics(moduleTranslations);
 
-  double chassisDriveMaxAcceleration();
+  public final Rotation2d[] absoluteAngleOffset = new Rotation2d[] {
+    Rotation2d.fromDegrees(24.3),
+    Rotation2d.fromDegrees(42.4),
+    Rotation2d.fromDegrees(169.7),
+    Rotation2d.fromDegrees(101.5),
+  };
 
-  double chassisTurnMaxVelocity();
+  public final double chassisDriveMaxVelocity = 2.0;
 
-  double chassisTurnMaxAcceleration();
+  public final double chassisDriveMaxAcceleration = 2.0;
 
-  FeedbackConstant chassisDriveFB();
+  public final double chassisTurnMaxVelocity = 0.4;
 
-  FeedbackConstant chassisTurnFB();
+  public final double chassisTurnMaxAcceleration = 0.4;
 
-  int intakeMotorID();
+  public final FeedbackConstant chassisDriveFB = new FeedbackConstant(0.1);;
 
-  int intakeCubeLimitSwitchID();
+  public final FeedbackConstant chassisTurnFB = new FeedbackConstant(0.5);;
 
-  public int ledChannel();
+  public final int intakeMotorID = 11;
 
-  public int led2023LedCount();
+  public final int intakeCubeLimitSwitchID = 1;
 
-  int armExtendMotorId();
+  public final int ledChannel = 0;
 
-  int armRotateMotorId();
+  public int led2023LedCount = 10;
 
-  double armExtendConversionFactor();
+  // Arm Subsystem Constants
 
-  double armExtendMaxMeters();
+  public final int armExtendMotorId = 10;
 
-  double armExtendMinMeters();
+  public final int armRotateMotorId = 9;
 
-  double armRotateMaxMeters();
+  public final double armExtendConversionFactor = 0.02;
 
-  double armRotateMinMeters();
+  public final double armExtendMaxMeters = 0.65;
 
-  int ratchetSolenoidId();
+  public final double armExtendMinMeters = 0.0;
 
-  int armRotateHighLimitSwitchId();
+  public final double armRotateMaxMeters = 0.18;
 
-  int armRotateLowLimitSwitchId();
+  public final double armRotateMinMeters = 0.0;
 
-  double armRotateConversionFactor();
+  public final int ratchetSolenoidId = 1;
 
-  double armExtendMinDown();
+  public final int armRotateHighLimitSwitchId = 4;
+
+  public final int armRotateLowLimitSwitchId = 5;
+
+  public final double armRotateConversionFactor = 0.00236706;
+
+  public final double armExtendMinDown = 0.2;
 }
