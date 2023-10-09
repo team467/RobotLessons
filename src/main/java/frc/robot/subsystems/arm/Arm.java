@@ -9,14 +9,11 @@ import frc.robot.subsystems.rotator.Rotator;
 import frc.robot.subsystems.rotator.RotatorIO;
 import frc.robot.subsystems.springloadedextender.SpringLoadedExtender;
 import frc.robot.subsystems.springloadedextender.SpringLoadedExtenderIO;
-import org.littletonrobotics.junction.Logger;
 
 public class Arm extends SubsystemBase {
 
   private static final double EXTEND_CALIBRATION_POSITION = 0.01;
   private static final double SAFE_RETRACT_NON_HOME = 0.05;
-
-  private final Logger logger = Logger.getInstance();
 
   private final SpringLoadedExtender extender;
   private final Rotator rotator;
