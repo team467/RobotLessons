@@ -57,7 +57,7 @@ public class Drive extends SubsystemBase {
 
     modulePositions = new SwerveModulePosition[4];
     for (int i = 0; i < 4; i++) {
-      modulePositions[i] = wheelPods[i].inputs().position;
+      modulePositions[i] = wheelPods[i].position();
     }
   }
 
@@ -140,7 +140,7 @@ public class Drive extends SubsystemBase {
 
     SwerveModulePosition[] measuredPositions = new SwerveModulePosition[4];
     for (int i = 0; i < 4; i++) {
-      measuredPositions[i] = wheelPods[i].inputs().position;
+      measuredPositions[i] = wheelPods[i].position();
     }
 
     if (gyro.isConnected()) {
@@ -149,7 +149,7 @@ public class Drive extends SubsystemBase {
     } else {
       SwerveModuleState[] measuredStates = new SwerveModuleState[4];
       for (int i = 0; i < 4; i++) {
-        measuredStates[i] = wheelPods[i].inputs().state;
+        measuredStates[i] = wheelPods[i].state();
       }
       previousYawInRad += kinematics.toChassisSpeeds(measuredStates).omegaRadiansPerSecond * 0.02;
       odometry.update(new Rotation2d(previousYawInRad), measuredPositions);
@@ -183,7 +183,7 @@ public class Drive extends SubsystemBase {
   public void setPose(Pose2d pose) {
     SwerveModulePosition[] modulePositions = new SwerveModulePosition[4];
     for (int i = 0; i < 4; i++) {
-      modulePositions[i] = wheelPods[i].inputs().position;
+      modulePositions[i] = wheelPods[i].position();
     }
     odometry.resetPosition(Rotation2d.fromRadians(previousYawInRad), modulePositions, pose);
   }

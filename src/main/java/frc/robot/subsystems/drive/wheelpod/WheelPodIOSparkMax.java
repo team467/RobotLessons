@@ -6,10 +6,7 @@ import com.revrobotics.CANSparkMax;
 import com.revrobotics.CANSparkMax.IdleMode;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 import com.revrobotics.RelativeEncoder;
-import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.kinematics.SwerveModulePosition;
-import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.RobotController;
 import frc.robot.RobotConstants;
@@ -90,10 +87,6 @@ public class WheelPodIOSparkMax implements WheelPodIO {
             .getRadians();
     inputs.turnAppliedVolts = turnMotor.getAppliedOutput() * RobotController.getBatteryVoltage();
     inputs.turnCurrentAmps = new double[] {turnMotor.getOutputCurrent()};
-
-    inputs.angle = new Rotation2d(MathUtil.angleModulus(inputs.turnPositionAbsoluteRad));
-    inputs.position = new SwerveModulePosition(inputs.drivePositionInMeters, inputs.angle);
-    inputs.state = new SwerveModuleState(inputs.driveVelocityInMetersPerSec, inputs.angle);
   }
 
   @Override

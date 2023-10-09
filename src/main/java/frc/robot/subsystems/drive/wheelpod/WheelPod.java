@@ -1,7 +1,10 @@
 package frc.robot.subsystems.drive.wheelpod;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -12,6 +15,11 @@ public class WheelPod extends SubsystemBase {
   private final WheelPodIO io;
   private final WheelPodIOInputsAutoLogged inputs = new WheelPodIOInputsAutoLogged();
   private final int index;
+
+  // Wheel Pod Derived Values
+  private Rotation2d angle = new Rotation2d(0.0);
+  private SwerveModulePosition position = new SwerveModulePosition();
+  private SwerveModuleState state = new SwerveModuleState();
 
   private final SimpleMotorFeedforward driveFF =
       RobotConstants.get().moduleDriveFF.getFeedforward();
@@ -33,16 +41,21 @@ public class WheelPod extends SubsystemBase {
   public void periodic() {
     io.updateInputs(inputs);
     Logger.getInstance().processInputs("Drive/Drive" + index, inputs);
+
+    // Updated derived values
+    angle = new Rotation2d(MathUtil.angleModulus(inputs.turnPositionAbsoluteRad));
+    position = new SwerveModulePosition(inputs.drivePositionInMeters, angle);
+    state = new SwerveModuleState(inputs.driveVelocityInMetersPerSec, angle);
   }
 
   public SwerveModuleState runSetpoint(SwerveModuleState state, boolean isStationary) {
     // Optimize state based on current angle
-    SwerveModuleState optimizedState = SwerveModuleState.optimize(state, inputs.angle);
+    SwerveModuleState optimizedState = SwerveModuleState.optimize(state, angle);
 
     io.setTurnVoltage(
         isStationary
             ? 0.0
-            : turnFB.calculate(inputs.angle.getRadians(), optimizedState.angle.getRadians())
+            : turnFB.calculate(angle.getRadians(), optimizedState.angle.getRadians())
                 + turnFF.calculate(turnFB.getSetpoint().velocity));
 
     // Update velocity based on turn error
@@ -57,7 +70,7 @@ public class WheelPod extends SubsystemBase {
 
   public void runCharacterization(double volts) {
     io.setTurnVoltage(
-        turnFB.calculate(inputs.angle.getRadians(), 0.0)
+        turnFB.calculate(angle.getRadians(), 0.0)
             + turnFB.calculate(turnFB.getSetpoint().velocity));
     io.setDriveVoltage(volts);
   }
@@ -72,11 +85,57 @@ public class WheelPod extends SubsystemBase {
     io.setTurnBrakeMode(enabled);
   }
 
+  // Readouts
+
   public double getCharacterizationVelocity() {
     return inputs.driveVelocityInMetersPerSec;
   }
 
-  public WheelPodIOInputsAutoLogged inputs() {
-    return inputs;
+  public double drivePositionInMeters() {
+    return inputs.drivePositionInMeters;
+  }
+
+  public double driveVelocityInMetersPerSec() {
+    return inputs.driveVelocityInMetersPerSec;
+  }
+
+  public double driveAppliedVolts() {
+    return inputs.driveAppliedVolts;
+  }
+
+  public double[] driveCurrentAmps() {
+    return inputs.driveCurrentAmps;
+  }
+
+  public double turnPositionAbsoluteRad() {
+    return inputs.turnPositionAbsoluteRad;
+  }
+
+  public double turnPositionRad() {
+    return inputs.turnPositionRad;
+  }
+
+  public double turnVelocityRadPerSec() {
+    return inputs.turnVelocityRadPerSec;
+  }
+
+  public double turnAppliedVolts() {
+    return inputs.turnAppliedVolts;
+  }
+
+  public double[] turnCurrentAmps() {
+    return inputs.turnCurrentAmps;
+  }
+
+  public Rotation2d angle() {
+    return angle;
+  }
+
+  public SwerveModulePosition position() {
+    return position;
+  }
+
+  public SwerveModuleState state() {
+    return state;
   }
 }
