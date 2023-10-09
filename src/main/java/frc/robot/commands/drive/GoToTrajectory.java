@@ -39,9 +39,9 @@ public class GoToTrajectory extends CommandBase {
 
     TrajectoryConfig config =
         new TrajectoryConfig(
-                RobotConstants.get().chassisDriveMaxVelocity(),
-                RobotConstants.get().chassisDriveMaxAcceleration())
-            .setKinematics(RobotConstants.get().kinematics())
+                RobotConstants.get().chassisDriveMaxVelocity,
+                RobotConstants.get().chassisDriveMaxAcceleration)
+            .setKinematics(drive.kinematics)
             .setStartVelocity(startVelocity)
             .setEndVelocity(endVelocity)
             .addConstraints(constraints);
@@ -57,14 +57,14 @@ public class GoToTrajectory extends CommandBase {
             customGenerator.getDriveTrajectory(),
             customGenerator.getHolonomicRotationSequence(),
             drive::getPose,
-            RobotConstants.get().chassisDriveFB().getPIDController(),
-            RobotConstants.get().chassisDriveFB().getPIDController(),
+            RobotConstants.get().chassisDriveFB.getPIDController(),
+            RobotConstants.get().chassisDriveFB.getPIDController(),
             RobotConstants.get()
-                .chassisTurnFB()
+                .chassisTurnFB
                 .getProfiledPIDController(
                     new Constraints(
-                        RobotConstants.get().chassisTurnMaxVelocity(),
-                        RobotConstants.get().chassisTurnMaxAcceleration())),
+                        RobotConstants.get().chassisTurnMaxVelocity,
+                        RobotConstants.get().chassisTurnMaxAcceleration)),
             drive::runVelocity,
             drive);
   }
