@@ -7,10 +7,9 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.RobotConstants;
-import frc.robot.subsystems.arm.extender.ArmPositionConstants.ArmPosition;
 import org.littletonrobotics.junction.Logger;
 
-public class ArmExtender extends SubsystemBase {
+public class SpringLoadedExtender extends SubsystemBase {
 
   private static final double EXTEND_TOLERANCE_METERS = 0.008;
 
@@ -18,6 +17,8 @@ public class ArmExtender extends SubsystemBase {
   private static final double HOLD_BACK_FORCE = -0.5;
   private static final double RETRACT_POSITION_CLOSE_TO_LIMIT = 0.1;
   private static final double RETRACT_VOLTAGE_CLOSE_TO_LIMIT = -0.7;
+
+  private static final double CALIBRATE_RETRACT_VOLTAGE = -1.5;
 
   private final Logger logger = Logger.getInstance();
 
@@ -36,41 +37,10 @@ public class ArmExtender extends SubsystemBase {
    *
    * @param armIO Arm IO
    */
-  public ArmExtender(ArmExtenderIO io) {
+  public SpringLoadedExtender(ArmExtenderIO io) {
     super();
     this.io = io;
     io.updateInputs(inputs);
-  }
-
-  public void stop() {
-    isHolding = false;
-    volts = 0.0;
-    io.setVoltage(0.0);
-  }
-
-  public void manual(double volts) {
-    isHolding = false;
-    if (isCalibrated && inputs.position < RETRACT_POSITION_CLOSE_TO_LIMIT && volts < 0) {
-      setVoltage(Math.max(volts, RETRACT_VOLTAGE_CLOSE_TO_LIMIT));
-    } else {
-      setVoltage(volts);
-    }
-  }
-
-  /** Zeros the positions of both motors, assuming that we're already at HOME position. */
-  public void setCalibratedAssumeHomePosition() {
-    io.resetEncoderPosition();
-    isCalibrated = true;
-  }
-
-  public void hold() {
-    isHolding = true;
-    setpoint = inputs.position;
-    setVoltage(calculateExtendPid(setpoint) + HOLD_BACK_FORCE);
-  }
-
-  public boolean isCalibrated() {
-    return isCalibrated;
   }
 
   @Override
@@ -93,7 +63,44 @@ public class ArmExtender extends SubsystemBase {
     }
   }
 
-  public void setTargetPosition(double setpoint) {
+  // Methods for use by commands
+
+  private void stop() {
+    isHolding = false;
+    volts = 0.0;
+    io.setVoltage(0.0);
+  }
+
+  private void manual(double volts) {
+    isHolding = false;
+    if (isCalibrated && inputs.position < RETRACT_POSITION_CLOSE_TO_LIMIT && volts < 0) {
+      setVoltage(Math.max(volts, RETRACT_VOLTAGE_CLOSE_TO_LIMIT));
+    } else {
+      setVoltage(volts);
+    }
+  }
+
+  /** Zeros the positions of both motors, assuming that we're already at HOME position. */
+  private void setCalibrated() {
+    io.resetEncoderPosition();
+    isCalibrated = true;
+  }
+
+  private boolean checkIfInCalibrationPosition() {
+    if (inputs.reverseLimitSwitch) {
+      setCalibrated();
+      return true;
+    }
+    return false;
+  }
+
+  private void hold() {
+    isHolding = true;
+    setpoint = inputs.position;
+    setVoltage(calculateExtendPid(setpoint) + HOLD_BACK_FORCE);
+  }
+
+  private void setTargetPosition(double setpoint) {
     isHolding = false;
     this.setpoint =
         MathUtil.clamp(
@@ -102,10 +109,6 @@ public class ArmExtender extends SubsystemBase {
             RobotConstants.get().armExtendMaxMeters);
     logger.recordOutput("Extender/Setpoint", setpoint);
     setVoltage(calculateExtendPid(this.setpoint));
-  }
-
-  public boolean isStopped() {
-    return volts == 0;
   }
 
   private void setVoltage(double volts) {
@@ -125,14 +128,50 @@ public class ArmExtender extends SubsystemBase {
   }
 
   private double calculateExtendPid(double targetPosition) {
-    boolean isSafe = isCalibrated && (targetPosition < inputs.position);
-    logger.recordOutput("Arm/IsExtendSafe", isSafe);
-    if (!isSafe) {
+    if (!isCalibrated) {
       return 0;
     }
     double pidValue = pid.calculate(inputs.position, targetPosition);
     logger.recordOutput("ArmExtender/FbOutput", pidValue);
     return pidValue;
+  }
+
+  // Readouts
+
+  public boolean isCalibrated() {
+    return isCalibrated;
+  }
+
+  public boolean isStopped() {
+    return volts == 0;
+  }
+
+  public double position() {
+    return inputs.position;
+  }
+
+  public double setpoint() {
+    return setpoint;
+  }
+
+  public double velocity() {
+    return inputs.velocity;
+  }
+
+  public double appliedVoltage() {
+    return inputs.appliedVolts;
+  }
+
+  public double current() {
+    return inputs.current;
+  }
+
+  public double temperature() {
+    return inputs.temp;
+  }
+
+  public boolean isRatchetLocked() {
+    return inputs.ratchetLocked;
   }
 
   // Commands
@@ -141,26 +180,18 @@ public class ArmExtender extends SubsystemBase {
         Commands.run(() -> this.manual(-2.0)).withTimeout(0.1), Commands.none(), this::isLatched);
   }
 
-  private Command extend(double setpoint) {
-    if (setpoint > this.setpoint) { // Need to release latch when moving out
+  public Command moveTo(double position) {
+    if (position > inputs.position && isRatchetLocked()) { // Need to release latch when moving out
       return releaseLatch()
           .andThen(
-              Commands.run(() -> this.setTargetPosition(setpoint), this)
+              Commands.run(() -> this.setTargetPosition(position), this)
                   .until(this::isExtendPositionNear))
           .andThen(this::hold);
     } else {
-      return Commands.run(() -> this.setTargetPosition(setpoint), this)
+      return Commands.run(() -> this.setTargetPosition(position), this)
           .until(this::isExtendPositionNear)
           .andThen(this::hold);
     }
-  }
-
-  public Command retract() {
-    return extend(0.05);
-  }
-
-  public Command moveTo(ArmPosition position) {
-    return extend(position.extendSetpoint);
   }
 
   public Command manualExtend() {
@@ -171,12 +202,18 @@ public class ArmExtender extends SubsystemBase {
     return Commands.runEnd(() -> this.manual(-1.5), this::hold, this);
   }
 
-  // Calibration Order
-  // 1. Retract arm until limit switch is hit
-  // 2. Set encoder position to 0
-  // 3. Extend arm until in position to lower arm
-  // 4. Lower arm until limit switch is hit
-  //   4.1 If the rotate posiition is more than 0.15, restart calibration
-  // 5. Retract arm some more
+  public Command calibrate() {
+    return Commands.run(() -> this.manual(CALIBRATE_RETRACT_VOLTAGE), this)
+        .until(this::checkIfInCalibrationPosition)
+        .andThen(this::hold);
+  }
+
+  public Command forceCalibrated() {
+    return Commands.run(this::setCalibrated, this);
+  }
+
+  public Command setUncalibrated() {
+    return Commands.run(() -> isCalibrated = false, this);
+  }
 
 }

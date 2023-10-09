@@ -1,4 +1,4 @@
-package frc.robot.subsystems.arm.extender;
+package frc.robot.subsystems.arm;
 
 public class ArmPositionConstants {
   public static class ArmPosition {

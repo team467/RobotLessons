@@ -7,7 +7,6 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.RobotConstants;
-import frc.robot.subsystems.arm.extender.ArmPositionConstants.ArmPosition;
 import org.littletonrobotics.junction.Logger;
 
 public class Rotator extends SubsystemBase {
@@ -38,21 +37,6 @@ public class Rotator extends SubsystemBase {
     io.updateInputs(inputs);
   }
 
-  public void stop() {
-    volts = 0.0;
-    io.setVoltage(0.0);
-  }
-
-  private void manual(double volts) {
-    this.volts = volts;
-  }
-
-  /** Zeros the positions of both motors, assuming that we're already at HOME position. */
-  public void setCalibrated() {
-    io.resetEncoderPosition();
-    isCalibrated = true;
-  }
-
   @Override
   public void periodic() {
     io.updateInputs(inputs);
@@ -65,6 +49,23 @@ public class Rotator extends SubsystemBase {
 
     logger.recordOutput("Rotator/IsCalibrated", isCalibrated);
     io.setVoltage(volts);
+  }
+
+  // Methods for use by commands
+
+  private void stop() {
+    volts = 0.0;
+    io.setVoltage(0.0);
+  }
+
+  private void manual(double volts) {
+    this.volts = volts;
+  }
+
+  /** Zeros the positions of both motors, assuming that we're already at HOME position. */
+  private void setCalibrated() {
+    io.resetEncoderPosition();
+    isCalibrated = true;
   }
 
   private void setTargetPosition(double position) {
@@ -81,14 +82,54 @@ public class Rotator extends SubsystemBase {
     logger.recordOutput("Rotator/FbOutput", volts);
   }
 
-  public boolean isFinished() {
+  private boolean isFinished() {
     return Math.abs(inputs.position - setpoint) <= ROTATE_TOLERANCE_METERS
         || (inputs.highLimitSwitch && inputs.position < setpoint)
         || (inputs.lowLimitSwitch && inputs.position > setpoint);
   }
 
-  public Command moveTo(ArmPosition position) {
-    return Commands.run(() -> this.setTargetPosition(position.rotateSetpoint), this)
+  // Readouts
+
+  public boolean isCalibrated() {
+    return isCalibrated;
+  }
+
+  public double position() {
+    return inputs.position;
+  }
+
+  public double setpoint() {
+    return setpoint;
+  }
+
+  public double velocity() {
+    return inputs.velocity;
+  }
+
+  public double appliedVoltage() {
+    return inputs.appliedVolts;
+  }
+
+  public double current() {
+    return inputs.current;
+  }
+
+  public double temperature() {
+    return inputs.temp;
+  }
+
+  public boolean highLimitSwitch() {
+    return inputs.highLimitSwitch;
+  }
+
+  public boolean lowLimitSwitch() {
+    return inputs.lowLimitSwitch;
+  }
+
+  // Commands
+
+  public Command rotate(double targetPosition) {
+    return Commands.run(() -> this.setTargetPosition(targetPosition), this)
         .until(this::isFinished)
         .andThen(this::stop);
   }
@@ -110,4 +151,21 @@ public class Rotator extends SubsystemBase {
     }
     return Commands.none();
   }
+
+  public Command forceCalibrated() {
+    return Commands.run(this::setCalibrated, this);
+  }
+
+  public Command checkCalibrated() {
+    if (inputs.lowLimitSwitch) {
+      return Commands.run(this::setCalibrated, this);
+    } else {
+      return Commands.none();
+    }
+  }
+
+  public Command setUncalibrated() {
+    return Commands.run(() -> isCalibrated = false, this);
+  }
+
 }
