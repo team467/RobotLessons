@@ -14,7 +14,7 @@ public class RotatorIOPhysical implements RotatorIO {
   private final SparkMaxLimitSwitch highLimitSwitch;
   private final SparkMaxLimitSwitch lowLimitSwitch;
 
-  public RotatorIOPhysical(int motorId, int ratchetSolenoidId) {
+  public RotatorIOPhysical(int motorId) {
     motor = new CANSparkMax(motorId, MotorType.kBrushless);
     motor.setInverted(true);
     motor.enableVoltageCompensation(11);
