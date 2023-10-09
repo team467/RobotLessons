@@ -9,13 +9,13 @@ import frc.robot.constants.controls.SimpleFeedforwardConstant;
 
 public abstract class Constants {
 
-  enum RobotType {
+  public static enum RobotType {
     ROBOT_COMP,
     ROBOT_SIMBOT,
     ROBOT_BRIEFCASE,
   }
 
-  enum Mode {
+  public static enum Mode {
     REAL,
     REPLAY,
     SIM,
