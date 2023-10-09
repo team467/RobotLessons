@@ -1,4 +1,4 @@
-package frc.robot.subsystems.arm.rotator;
+package frc.robot.subsystems.rotator;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
@@ -7,6 +7,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.RobotConstants;
+import frc.robot.subsystems.arm.rotator.RotatorIOInputsAutoLogged;
 import org.littletonrobotics.junction.Logger;
 
 public class Rotator extends SubsystemBase {
@@ -146,8 +147,8 @@ public class Rotator extends SubsystemBase {
     // Can only raise if not too high
     if (inputs.position < 0.1) {
       return Commands.run(() -> this.setTargetPosition(inputs.position + ROTATE_RAISE_METERS), this)
-        .until(this::isFinished)
-        .andThen(this::stop);
+          .until(this::isFinished)
+          .andThen(this::stop);
     }
     return Commands.none();
   }
@@ -167,5 +168,4 @@ public class Rotator extends SubsystemBase {
   public Command setUncalibrated() {
     return Commands.run(() -> isCalibrated = false, this);
   }
-
 }

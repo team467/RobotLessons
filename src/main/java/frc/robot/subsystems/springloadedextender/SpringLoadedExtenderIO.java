@@ -1,11 +1,11 @@
-package frc.robot.subsystems.arm.extender;
+package frc.robot.subsystems.springloadedextender;
 
 import org.littletonrobotics.junction.AutoLog;
 
-public interface ArmExtenderIO {
+public interface SpringLoadedExtenderIO {
 
   @AutoLog
-  class ArmExtenderIOInputs {
+  class SpringLoadedExtenderIOInputs {
     public double position = 0.0;
     public double velocity = 0.0;
     public double appliedVolts = 0.0;
@@ -16,7 +16,7 @@ public interface ArmExtenderIO {
     public boolean ratchetLocked = false;
   }
 
-  default void updateInputs(ArmExtenderIOInputs inputs) {}
+  default void updateInputs(SpringLoadedExtenderIOInputs inputs) {}
 
   default void setVoltage(double volts) {}
 

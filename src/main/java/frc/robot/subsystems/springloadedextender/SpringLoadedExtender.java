@@ -1,4 +1,4 @@
-package frc.robot.subsystems.arm.extender;
+package frc.robot.subsystems.springloadedextender;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
@@ -22,8 +22,8 @@ public class SpringLoadedExtender extends SubsystemBase {
 
   private final Logger logger = Logger.getInstance();
 
-  private final ArmExtenderIO io;
-  private final ArmExtenderIOInputsAutoLogged inputs = new ArmExtenderIOInputsAutoLogged();
+  private final SpringLoadedExtenderIO io;
+  private final SpringLoadedExtenderIOInputsAutoLogged inputs = new SpringLoadedExtenderIOInputsAutoLogged();
 
   private boolean isHolding = false;
   private boolean isCalibrated = false;
@@ -37,7 +37,7 @@ public class SpringLoadedExtender extends SubsystemBase {
    *
    * @param armIO Arm IO
    */
-  public SpringLoadedExtender(ArmExtenderIO io) {
+  public SpringLoadedExtender(SpringLoadedExtenderIO io) {
     super();
     this.io = io;
     io.updateInputs(inputs);
@@ -215,5 +215,4 @@ public class SpringLoadedExtender extends SubsystemBase {
   public Command setUncalibrated() {
     return Commands.run(() -> isCalibrated = false, this);
   }
-
 }

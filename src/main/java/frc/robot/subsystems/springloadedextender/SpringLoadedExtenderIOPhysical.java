@@ -1,4 +1,4 @@
-package frc.robot.subsystems.arm.extender;
+package frc.robot.subsystems.springloadedextender;
 
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.CANSparkMax.IdleMode;
@@ -10,7 +10,7 @@ import edu.wpi.first.wpilibj.Relay.Direction;
 import edu.wpi.first.wpilibj.Relay.Value;
 import frc.robot.RobotConstants;
 
-public class ArmExtenderIOPhysical implements ArmExtenderIO {
+public class SpringLoadedExtenderIOPhysical implements SpringLoadedExtenderIO {
 
   private final CANSparkMax motor;
   private final RelativeEncoder encoder;
@@ -18,7 +18,7 @@ public class ArmExtenderIOPhysical implements ArmExtenderIO {
   private final Relay ratchetSolenoid;
   private boolean ratchetLocked = false;
 
-  public ArmExtenderIOPhysical(int motorId, int ratchetSolenoidId) {
+  public SpringLoadedExtenderIOPhysical(int motorId, int ratchetSolenoidId) {
     ratchetSolenoid = new Relay(ratchetSolenoidId, Direction.kForward);
     motor = new CANSparkMax(motorId, MotorType.kBrushless);
     reverseLimitSwitch = motor.getReverseLimitSwitch(SparkMaxLimitSwitch.Type.kNormallyOpen);
@@ -33,7 +33,7 @@ public class ArmExtenderIOPhysical implements ArmExtenderIO {
   }
 
   @Override
-  public void updateInputs(ArmExtenderIOInputs inputs) {
+  public void updateInputs(SpringLoadedExtenderIOInputs inputs) {
     inputs.velocity = encoder.getVelocity();
     inputs.position = encoder.getPosition();
     inputs.appliedVolts = motor.getBusVoltage() * motor.getAppliedOutput();
