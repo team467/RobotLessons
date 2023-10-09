@@ -23,7 +23,8 @@ public class SpringLoadedExtender extends SubsystemBase {
   private final Logger logger = Logger.getInstance();
 
   private final SpringLoadedExtenderIO io;
-  private final SpringLoadedExtenderIOInputsAutoLogged inputs = new SpringLoadedExtenderIOInputsAutoLogged();
+  private final SpringLoadedExtenderIOInputsAutoLogged inputs =
+      new SpringLoadedExtenderIOInputsAutoLogged();
 
   private boolean isHolding = false;
   private boolean isCalibrated = false;
