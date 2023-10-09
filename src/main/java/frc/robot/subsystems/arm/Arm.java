@@ -91,4 +91,21 @@ public class Arm extends SubsystemBase {
         .andThen(rotator.rotate(position.rotateSetpoint))
         .andThen(extender.moveTo(position.extendSetpoint));
   }
+
+  public Command manualExtend() {
+    return extender.manualExtend();
+  }
+
+  public Command manualRetract() {
+    return extender.manualRetract();
+  }
+
+  public Command manualUp() {
+    return rotator.manualUp();
+  }
+
+  public Command manualDown() {
+    return rotator.manualDown();
+  }
+  
 }
