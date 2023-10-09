@@ -1,14 +1,11 @@
 package frc.robot.constants;
 
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.RobotBase;
 import frc.robot.constants.controls.FeedbackConstant;
 import frc.robot.constants.controls.GearRatio;
 import frc.robot.constants.controls.SimpleFeedforwardConstant;
-import java.util.Arrays;
 
 public abstract class Constants {
 
@@ -47,22 +44,7 @@ public abstract class Constants {
 
   public final double driveMaxCoastVelocity = 0.5;
 
-  public final Translation2d[] moduleTranslations =
-      new Translation2d[] {
-        new Translation2d(Units.inchesToMeters(12.75), Units.inchesToMeters(9.25)),
-        new Translation2d(Units.inchesToMeters(12.75), -Units.inchesToMeters(9.25)),
-        new Translation2d(-Units.inchesToMeters(12.75), Units.inchesToMeters(9.25)),
-        new Translation2d(-Units.inchesToMeters(12.75), -Units.inchesToMeters(9.25)),
-      };
-
   public final double maxLinearSpeed = Units.feetToMeters(14.5);
-
-  public final double maxAngularSpeed =
-      maxLinearSpeed
-          / Arrays.stream(moduleTranslations)
-              .map(Translation2d::getNorm)
-              .max(Double::compare)
-              .get();
 
   public final double moduleWheelDiameter = Units.inchesToMeters(4);
 
@@ -70,15 +52,13 @@ public abstract class Constants {
 
   public final GearRatio moduleTurnGearRatio = new GearRatio(12.8, 1);
 
-  public final SimpleFeedforwardConstant moduleDriveFF =
+  public final SimpleFeedforwardConstant wheelPodDriveFeedForward =
       new SimpleFeedforwardConstant(0.15026, 0.13682);
 
-  public final SimpleFeedforwardConstant moduleTurnFF =
+  public final SimpleFeedforwardConstant wheelPodTurnFeedForward =
       new SimpleFeedforwardConstant(0.16302, 0.0089689, 0.00034929);
 
   public final FeedbackConstant moduleTurnFB = new FeedbackConstant(3.2526, 0.05);
-
-  public final SwerveDriveKinematics kinematics = new SwerveDriveKinematics(moduleTranslations);
 
   public final Rotation2d[] absoluteAngleOffset =
       new Rotation2d[] {
