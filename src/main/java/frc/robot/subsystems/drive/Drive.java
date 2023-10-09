@@ -39,7 +39,7 @@ public class Drive extends SubsystemBase {
               .max(Double::compare)
               .get();
 
-  private final SwerveDriveKinematics kinematics = new SwerveDriveKinematics(moduleTranslations);
+  public final SwerveDriveKinematics kinematics = new SwerveDriveKinematics(moduleTranslations);
 
   private ChassisSpeeds setpoint = new ChassisSpeeds();
   private SwerveModuleState[] lastSetpointStates =

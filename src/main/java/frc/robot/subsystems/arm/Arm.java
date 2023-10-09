@@ -107,5 +107,4 @@ public class Arm extends SubsystemBase {
   public Command manualDown() {
     return rotator.manualDown();
   }
-  
 }

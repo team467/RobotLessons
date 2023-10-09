@@ -23,7 +23,8 @@ public class WheelPod extends SubsystemBase {
 
   private final SimpleMotorFeedforward driveFF =
       RobotConstants.get().wheelPodDriveFeedForward.getFeedforward();
-  private final SimpleMotorFeedforward turnFF = RobotConstants.get().wheelPodTurnFeedForward.getFeedforward();
+  private final SimpleMotorFeedforward turnFF =
+      RobotConstants.get().wheelPodTurnFeedForward.getFeedforward();
   private final ProfiledPIDController turnFB =
       RobotConstants.get()
           .moduleTurnFB
