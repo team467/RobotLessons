@@ -22,8 +22,8 @@ public class WheelPod extends SubsystemBase {
   private SwerveModuleState state = new SwerveModuleState();
 
   private final SimpleMotorFeedforward driveFF =
-      RobotConstants.get().moduleDriveFF.getFeedforward();
-  private final SimpleMotorFeedforward turnFF = RobotConstants.get().moduleTurnFF.getFeedforward();
+      RobotConstants.get().wheelPodDriveFeedForward.getFeedforward();
+  private final SimpleMotorFeedforward turnFF = RobotConstants.get().wheelPodTurnFeedForward.getFeedforward();
   private final ProfiledPIDController turnFB =
       RobotConstants.get()
           .moduleTurnFB

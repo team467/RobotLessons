@@ -3,6 +3,7 @@ package frc.robot.subsystems.drive;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Twist2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
@@ -16,12 +17,29 @@ import frc.robot.subsystems.drive.gyro.Gyro;
 import frc.robot.subsystems.drive.gyro.GyroIO;
 import frc.robot.subsystems.drive.wheelpod.WheelPod;
 import frc.robot.subsystems.drive.wheelpod.WheelPodIO;
+import java.util.Arrays;
 import org.littletonrobotics.junction.Logger;
 
 public class Drive extends SubsystemBase {
   private final Gyro gyro;
   private final WheelPod[] wheelPods = new WheelPod[4];
-  private final SwerveDriveKinematics kinematics = RobotConstants.get().kinematics;
+
+  public final Translation2d[] moduleTranslations =
+      new Translation2d[] {
+        new Translation2d(Units.inchesToMeters(12.75), Units.inchesToMeters(9.25)),
+        new Translation2d(Units.inchesToMeters(12.75), -Units.inchesToMeters(9.25)),
+        new Translation2d(-Units.inchesToMeters(12.75), Units.inchesToMeters(9.25)),
+        new Translation2d(-Units.inchesToMeters(12.75), -Units.inchesToMeters(9.25)),
+      };
+
+  public final double maxAngularSpeed =
+      RobotConstants.get().maxLinearSpeed
+          / Arrays.stream(moduleTranslations)
+              .map(Translation2d::getNorm)
+              .max(Double::compare)
+              .get();
+
+  private final SwerveDriveKinematics kinematics = new SwerveDriveKinematics(moduleTranslations);
 
   private ChassisSpeeds setpoint = new ChassisSpeeds();
   private SwerveModuleState[] lastSetpointStates =
@@ -106,8 +124,7 @@ public class Drive extends SubsystemBase {
               setpointTwist.dx / 0.020, setpointTwist.dy / 0.020, setpointTwist.dtheta / 0.020);
       // In normal mode, run the controllers for turning and driving based on the current
       // setpoint
-      SwerveModuleState[] setpointStates =
-          RobotConstants.get().kinematics.toSwerveModuleStates(adjustedSpeeds);
+      SwerveModuleState[] setpointStates = kinematics.toSwerveModuleStates(adjustedSpeeds);
       SwerveDriveKinematics.desaturateWheelSpeeds(
           setpointStates, RobotConstants.get().maxLinearSpeed);
 
@@ -171,8 +188,7 @@ public class Drive extends SubsystemBase {
     for (int i = 0; i < 4; i++) {
       lastSetpointStates[i] =
           new SwerveModuleState(
-              lastSetpointStates[i].speedMetersPerSecond,
-              RobotConstants.get().moduleTranslations[i].getAngle());
+              lastSetpointStates[i].speedMetersPerSecond, moduleTranslations[i].getAngle());
     }
   }
 
