@@ -24,7 +24,7 @@ public class Drive extends SubsystemBase {
   private final Gyro gyro;
   private final WheelPod[] wheelPods = new WheelPod[4];
 
-  public final Translation2d[] moduleTranslations =
+  public final Translation2d[] wheelPodTranslations =
       new Translation2d[] {
         new Translation2d(Units.inchesToMeters(12.75), Units.inchesToMeters(9.25)),
         new Translation2d(Units.inchesToMeters(12.75), -Units.inchesToMeters(9.25)),
@@ -34,12 +34,12 @@ public class Drive extends SubsystemBase {
 
   public final double maxAngularSpeed =
       RobotConstants.get().maxLinearSpeed
-          / Arrays.stream(moduleTranslations)
+          / Arrays.stream(wheelPodTranslations)
               .map(Translation2d::getNorm)
               .max(Double::compare)
               .get();
 
-  public final SwerveDriveKinematics kinematics = new SwerveDriveKinematics(moduleTranslations);
+  public final SwerveDriveKinematics kinematics = new SwerveDriveKinematics(wheelPodTranslations);
 
   private ChassisSpeeds setpoint = new ChassisSpeeds();
   private SwerveModuleState[] lastSetpointStates =
@@ -188,7 +188,7 @@ public class Drive extends SubsystemBase {
     for (int i = 0; i < 4; i++) {
       lastSetpointStates[i] =
           new SwerveModuleState(
-              lastSetpointStates[i].speedMetersPerSecond, moduleTranslations[i].getAngle());
+              lastSetpointStates[i].speedMetersPerSecond, wheelPodTranslations[i].getAngle());
     }
   }
 
