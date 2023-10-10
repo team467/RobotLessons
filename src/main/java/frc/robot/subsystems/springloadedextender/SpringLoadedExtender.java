@@ -210,10 +210,10 @@ public class SpringLoadedExtender extends SubsystemBase {
   }
 
   public Command forceCalibrated() {
-    return Commands.run(this::setCalibrated, this);
+    return Commands.runOnce(this::setCalibrated, this);
   }
 
   public Command setUncalibrated() {
-    return Commands.run(() -> isCalibrated = false, this);
+    return Commands.runOnce(() -> isCalibrated = false, this);
   }
 }

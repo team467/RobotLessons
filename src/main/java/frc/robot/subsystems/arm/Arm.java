@@ -43,7 +43,7 @@ public class Arm extends SubsystemBase {
     return Commands.parallel(
         extender.forceCalibrated(),
         rotator.forceCalibrated(),
-        Commands.run(() -> this.isCalibrated = true, this));
+        Commands.runOnce(() -> this.isCalibrated = true, this));
   }
 
   private Command rotateForCalibration() {
@@ -65,14 +65,15 @@ public class Arm extends SubsystemBase {
 
   public Command calibrate() {
     return Commands.parallel( // Reset state as uncalibrated
-            Commands.run(() -> this.isCalibrated = false, this),
+            Commands.runOnce(() -> this.isCalibrated = false, this),
             rotator.setUncalibrated(),
             extender.setUncalibrated())
         .andThen(
             rotateForCalibration()
+                .repeatedly()
                 .until(rotator::isCalibrated)) // Call multiple times to prevent belt from breaking.
         .andThen(extender.calibrate()) // Need to run one last time since the arm is down.
-        .andThen(Commands.run(() -> this.isCalibrated = true, this));
+        .andThen(Commands.runOnce(() -> this.isCalibrated = true, this));
   }
 
   public Command moveTo(ArmPosition position) {
