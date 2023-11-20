@@ -115,4 +115,16 @@ public abstract class Constants {
   public final double armRotateConversionFactor = 0.00236706;
 
   public final double armExtendMinDown = 0.2;
+
+  // Flywheeel
+
+  public final int flywheelMotorId = 25;
+  public final double flywheelDiameter = Units.inchesToMeters(4);
+  public final GearRatio flywheelGearRatio = new GearRatio(1.0, 1.0);
+
+  // LEDs
+
+  public final int ledId = 0;
+  public final int ledCount = 10;
+
 }
