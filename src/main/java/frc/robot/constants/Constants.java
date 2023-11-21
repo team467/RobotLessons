@@ -126,5 +126,4 @@ public abstract class Constants {
 
   public final int ledId = 0;
   public final int ledCount = 10;
-
 }

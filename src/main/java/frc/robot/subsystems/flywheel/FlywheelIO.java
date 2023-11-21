@@ -15,7 +15,6 @@ public interface FlywheelIO {
     public double temperature = 0.0;
     public boolean forwardLimitSwitch = false;
     public boolean reverseLimitSwitch = false;
-
   }
 
   default void updateInputs(FlywheelIOInputs inputs) {}
@@ -23,5 +22,4 @@ public interface FlywheelIO {
   default void setVoltage(double volts) {}
 
   default void setBrakeMode(boolean brake) {}
-
 }

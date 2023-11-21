@@ -88,7 +88,7 @@ public class RobotContainer {
                         RobotConstants.get().ratchetSolenoidId),
                     new RotatorIOPhysical(RobotConstants.get().armRotateMotorId));
 
-            flywheel = new Flywheel(new FlywheelIO() {} );
+            flywheel = new Flywheel(new FlywheelIO() {});
             // effector =
             //     new Effector(
             //         new EffectorIOBrushed(
@@ -105,9 +105,7 @@ public class RobotContainer {
                     new WheelPodIO() {});
             // List.of(new VisionIO() {}));
             arm = new Arm(new SpringLoadedExtenderIO() {}, new RotatorIO() {});
-            flywheel = new Flywheel(
-              new FlywheelIOSparkMax(RobotConstants.get().flywheelMotorId)
-            );
+            flywheel = new Flywheel(new FlywheelIOSparkMax(RobotConstants.get().flywheelMotorId));
             // effector = new Effector(new EffectorIO() {});
 
           }
@@ -155,7 +153,7 @@ public class RobotContainer {
                 new WheelPodIOSim());
         // List.of(new VisionIO() {}));
         arm = new Arm(new SpringLoadedExtenderIO() {}, new RotatorIO() {});
-        flywheel = new Flywheel(new FlywheelIO() { });
+        flywheel = new Flywheel(new FlywheelIO() {});
         // effector = new Effector(new EffectorIO() {});
       }
     }
