@@ -35,6 +35,8 @@ public class FlywheelIOSparkMax implements FlywheelIO {
     motor.setIdleMode(IdleMode.kCoast);
     motor.enableVoltageCompensation(12);
     motor.setSmartCurrentLimit(80);
+
+    System.out.println("BLAH: " + motor.getDeviceId());
   }
 
   @Override
@@ -51,6 +53,7 @@ public class FlywheelIOSparkMax implements FlywheelIO {
   @Override
   public void setVoltage(double volts) {
     motor.setVoltage(volts);
+    System.out.println("BLAH Set Voltage " + volts);
   }
 
   @Override

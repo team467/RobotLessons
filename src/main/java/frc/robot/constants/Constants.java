@@ -24,7 +24,7 @@ public abstract class Constants {
   // All values are defaults that may be overriden by the robot-specific constants
 
   /** Robot Type is used for determining which versions of constants and subsystems to use */
-  public final RobotType robot = null;
+  public final RobotType robot = RobotType.ROBOT_BRIEFCASE;
 
   /**
    * @return Check if robot is real, sim, or replay
@@ -118,7 +118,7 @@ public abstract class Constants {
 
   // Flywheeel
 
-  public final int flywheelMotorId = 25;
+  public final int flywheelMotorId = 1;
   public final double flywheelDiameter = Units.inchesToMeters(4);
   public final GearRatio flywheelGearRatio = new GearRatio(1.0, 1.0);
 
