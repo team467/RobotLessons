@@ -17,12 +17,13 @@ public class Flywheel extends SubsystemBase {
   /**
    * Configures the arm subsystem
    *
-   * @param armIO Arm IO
+   * @param flywheelIO Flywheel IO
    */
   public Flywheel(FlywheelIO io) {
     super();
     this.io = io;
     io.updateInputs(inputs);
+    logger.processInputs("Flywheel", inputs);
   }
 
   @Override

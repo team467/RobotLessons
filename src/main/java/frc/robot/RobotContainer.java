@@ -44,7 +44,6 @@ public class RobotContainer {
           }
           case ROBOT_BRIEFCASE -> {
             flywheel = new Flywheel(new FlywheelIOSparkMax(RobotConstants.get().flywheelMotorId));
-            flywheel.setDefaultCommand(flywheel.stop());
           }
           default -> {
             flywheel = new Flywheel(new FlywheelIOSim());
@@ -75,10 +74,14 @@ public class RobotContainer {
     driverController.start();
     operatorController.start();
     // move the flywheel if the left trigger of the operator's joystick moves.
-    operatorController.leftStick().onTrue(flywheel.manualSpin(operatorController.getLeftX()));
-    driverController.a().whileTrue(flywheel.manualSpin(1.0));
-    driverController.x().onTrue(flywheel.stop());
-    driverController.b().onTrue(flywheel.manualSpin(-0.5));
+    flywheel.setDefaultCommand(flywheel.stop());
+    operatorController.leftTrigger().whileTrue(flywheel.manualSpin(-1.0));
+    operatorController
+        .rightTrigger()
+        .onTrue(flywheel.manualSpin(operatorController.getRightTriggerAxis()));
+    operatorController.x().onTrue(flywheel.stop());
+
+    operatorController.b().whileTrue(flywheel.manualSpin(1.0));
   }
   /** Runs post-creation actions and eliminates warning for not using the RobotContainer. */
   public void init() {}
