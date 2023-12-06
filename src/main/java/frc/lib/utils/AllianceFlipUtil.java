@@ -1,5 +1,7 @@
 package frc.lib.utils;
 
+import java.util.Optional;
+
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -91,6 +93,9 @@ public class AllianceFlipUtil {
   }
 
   private static boolean shouldFlip() {
-    return DriverStation.getAlliance() == Alliance.Red;
+    Optional<Alliance> alliance = DriverStation.getAlliance();
+    if (alliance.isPresent()) {
+      return alliance.get() == Alliance.Red;
+    } else return false;
   }
 }

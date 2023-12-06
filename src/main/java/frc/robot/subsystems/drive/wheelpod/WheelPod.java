@@ -41,7 +41,7 @@ public class WheelPod extends SubsystemBase {
 
   public void periodic() {
     io.updateInputs(inputs);
-    Logger.getInstance().processInputs("Drive/Drive" + index, inputs);
+    Logger.processInputs("Drive/Drive" + index, inputs);
 
     // Updated derived values
     angle = new Rotation2d(MathUtil.angleModulus(inputs.turnPositionAbsoluteRad));

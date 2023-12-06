@@ -2,10 +2,10 @@ package frc.robot.subsystems.drive;
 
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.wpilibj2.command.CommandBase;
+import edu.wpi.first.wpilibj2.command.Command;
 import java.util.function.Supplier;
 
-public class DriveWithDpad extends CommandBase {
+public class DriveWithDpad extends Command {
   private final Drive drive;
   private final Supplier<Integer> povSupplier;
   private static final double SLOW_SPEED = Units.inchesToMeters(20);

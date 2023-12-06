@@ -20,8 +20,6 @@ public class SpringLoadedExtender extends SubsystemBase {
 
   private static final double CALIBRATE_RETRACT_VOLTAGE = -1.5;
 
-  private final Logger logger = Logger.getInstance();
-
   private final SpringLoadedExtenderIO io;
   private final SpringLoadedExtenderIOInputsAutoLogged inputs =
       new SpringLoadedExtenderIOInputsAutoLogged();
@@ -47,15 +45,15 @@ public class SpringLoadedExtender extends SubsystemBase {
   @Override
   public void periodic() {
     io.updateInputs(inputs);
-    logger.processInputs("Arm Extender", inputs);
+    Logger.processInputs("Arm Extender", inputs);
 
     if (DriverStation.isDisabled()) {
       stop();
       return;
     }
 
-    logger.recordOutput("Arm/IsCalibrated", isCalibrated);
-    logger.recordOutput("Arm/isHolding", isHolding);
+    Logger.recordOutput("Arm/IsCalibrated", isCalibrated);
+    Logger.recordOutput("Arm/isHolding", isHolding);
 
     if (isHolding) {
       io.setVoltageWhileHold(volts);
@@ -108,7 +106,7 @@ public class SpringLoadedExtender extends SubsystemBase {
             setpoint,
             RobotConstants.get().armExtendMinMeters,
             RobotConstants.get().armExtendMaxMeters);
-    logger.recordOutput("Extender/Setpoint", setpoint);
+    Logger.recordOutput("Extender/Setpoint", setpoint);
     setVoltage(calculateExtendPid(this.setpoint));
   }
 
@@ -133,7 +131,7 @@ public class SpringLoadedExtender extends SubsystemBase {
       return 0;
     }
     double pidValue = pid.calculate(inputs.position, targetPosition);
-    logger.recordOutput("ArmExtender/FbOutput", pidValue);
+    Logger.recordOutput("ArmExtender/FbOutput", pidValue);
     return pidValue;
   }
 
