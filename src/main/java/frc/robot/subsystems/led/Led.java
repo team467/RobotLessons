@@ -13,7 +13,6 @@ public class Led extends SubsystemBase {
   // private static final COLORS_467 BATTERY_LOW_COLOR = COLORS_467.Orange;
 
   private Rainbows rainbowLed = new Rainbows();
-  private Patterns colorPatterns = new Patterns();
 
   private COLORS_467 color = COLORS_467.Black;
 
@@ -63,7 +62,7 @@ public class Led extends SubsystemBase {
 
   public void resetTimers() {
     rainbowLed.rainbowTimer.reset();
-    colorPatterns.purpleTimer.reset();
+    purpleTimer.reset();
   }
 
   @Override
@@ -111,23 +110,21 @@ public class Led extends SubsystemBase {
     }
   }
 
-  public class Patterns {
     private Timer purpleTimer = new Timer();
-    private final double SHOOTING_TIMER_SPEED = 0.1;
 
-    public void setColorMovingDown(Color fgColor, Color bgColor) {
+    public void setColorMovingDown(COLORS_467 fgColor, COLORS_467 bgColor, double speed) {
       if (purpleTimer.hasElapsed(
-          SHOOTING_TIMER_SPEED * (RobotConstants.get().ledCount + 2))) {
+          speed * (RobotConstants.get().ledCount + 2))) {
         purpleTimer.reset();
       }
 
       for (int i = 0; i < RobotConstants.get().ledCount; i++) {
-        if (purpleTimer.hasElapsed(SHOOTING_TIMER_SPEED * i)) {
-          double timeUntilOff = Math.max(0, (SHOOTING_TIMER_SPEED * (i + 2)) - purpleTimer.get());
+        if (purpleTimer.hasElapsed(speed * i)) {
+          double timeUntilOff = Math.max(0, (speed * (i + 2)) - purpleTimer.get());
           double brightness = (255 * timeUntilOff);
 
           if (brightness == 0) {
-            ledStrip.setLED(i, bgColor);
+            ledStrip.setLED(i, bgColor.getColor());
 
           } else {
             ledStrip.setRGB(
@@ -137,25 +134,25 @@ public class Led extends SubsystemBase {
                 (int) (fgColor.blue * brightness));
           }
         } else {
-          ledStrip.setLED(i, bgColor);
+          ledStrip.setLED(i, bgColor.getColor());
         }
       }
     }
 
-    public void setColorMovingUp(Color fgColor, Color bgColor) {
+    public void setColorMovingUp(COLORS_467 fgColor, COLORS_467 bgColor, double speed) {
       if (purpleTimer.hasElapsed(
-          SHOOTING_TIMER_SPEED * (RobotConstants.get().ledCount + 2))) {
+          speed * (RobotConstants.get().ledCount + 2))) {
         purpleTimer.reset();
       }
 
       for (int i = 0; i < RobotConstants.get().ledCount; i++) {
         int j = RobotConstants.get().ledCount - i - 1;
-        if (purpleTimer.hasElapsed(SHOOTING_TIMER_SPEED * i)) {
-          double timeUntilOff = Math.max(0, (SHOOTING_TIMER_SPEED * (i + 2)) - purpleTimer.get());
+        if (purpleTimer.hasElapsed(speed * i)) {
+          double timeUntilOff = Math.max(0, (speed * (i + 2)) - purpleTimer.get());
           double brightness = (255 * timeUntilOff);
 
           if (brightness == 0) {
-            ledStrip.setLED(j, bgColor);
+            ledStrip.setLED(j, bgColor.getColor());
 
           } else {
             ledStrip.setRGB(
@@ -165,21 +162,21 @@ public class Led extends SubsystemBase {
                 (int) (fgColor.blue * brightness));
           }
         } else {
-          ledStrip.setLED(j, bgColor);
+          ledStrip.setLED(j, bgColor.getColor());
         }
       }
     }
 
-    public void setColorMovingUpTwoClr(Color topColor, Color bottomColor) {
+    public void setColorMovingUpTwoClr(Color topColor, Color bottomColor, double speed) {
       if (purpleTimer.hasElapsed(
-          SHOOTING_TIMER_SPEED * (RobotConstants.get().ledCount + 2))) {
+          speed * (RobotConstants.get().ledCount + 2))) {
         purpleTimer.reset();
       }
 
       for (int i = RobotConstants.get().ledCount - 1; i >= 0; i--) {
         int j = RobotConstants.get().ledCount - 1 - i;
-        if (purpleTimer.hasElapsed(SHOOTING_TIMER_SPEED * i)) {
-          double timeUntilOff = Math.max(0, (SHOOTING_TIMER_SPEED * (i + 2)) - purpleTimer.get());
+        if (purpleTimer.hasElapsed(speed * i)) {
+          double timeUntilOff = Math.max(0, (speed * (i + 2)) - purpleTimer.get());
           double brightness = (255 * timeUntilOff);
           Color currentColor =
               j >= RobotConstants.get().ledCount / 2 ? topColor : bottomColor;
@@ -215,7 +212,7 @@ public class Led extends SubsystemBase {
       }
     }
 
-    public void setAlternateColorsDown(COLORS_467 colorOne, COLORS_467 colorTwo, Color bgColor) {
+    public void setAlternateColorsDown(COLORS_467 colorOne, COLORS_467 colorTwo, Color bgColor, double speed) {
       for (int i = 0; i < RobotConstants.get().ledCount; i++) {
         if (i % 2 == 0) {
           ledStrip.setLED(i, colorOne.getColor());
@@ -225,7 +222,7 @@ public class Led extends SubsystemBase {
       }
 
       if (purpleTimer.hasElapsed(
-          SHOOTING_TIMER_SPEED * (RobotConstants.get().ledCount + 2))) {
+          speed * (RobotConstants.get().ledCount + 2))) {
         purpleTimer.reset();
         for (int j = 0; j < RobotConstants.get().ledCount; j++) {
           ledStrip.setLED(j, bgColor);
@@ -248,15 +245,15 @@ public class Led extends SubsystemBase {
       }
     }
 
-    public void setColorMovingDownTwoClr(Color topColor, Color bottomColor) {
+    public void setColorMovingDownTwoClr(Color topColor, Color bottomColor, double speed) {
       if (purpleTimer.hasElapsed(
-          SHOOTING_TIMER_SPEED * (RobotConstants.get().ledCount + 2))) {
+          speed * (RobotConstants.get().ledCount + 2))) {
         purpleTimer.reset();
       }
 
       for (int i = 0; i < RobotConstants.get().ledCount; i++) {
-        if (purpleTimer.hasElapsed(SHOOTING_TIMER_SPEED * i)) {
-          double timeUntilOff = Math.max(0, (SHOOTING_TIMER_SPEED * (i + 2)) - purpleTimer.get());
+        if (purpleTimer.hasElapsed(speed * i)) {
+          double timeUntilOff = Math.max(0, (speed * (i + 2)) - purpleTimer.get());
           double brightness = (255 * timeUntilOff);
 
           if (brightness == 0) {
@@ -290,7 +287,7 @@ public class Led extends SubsystemBase {
         }
       }
     }
-  }
+  
 
   private class Rainbows {
 

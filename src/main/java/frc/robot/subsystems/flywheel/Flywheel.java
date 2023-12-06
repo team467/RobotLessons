@@ -2,15 +2,26 @@ package frc.robot.subsystems.flywheel;
 
 import org.littletonrobotics.junction.Logger;
 
+import edu.wpi.first.math.controller.ProfiledPIDController;
+import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.constants.controls.FeedbackConstant;
 
 public class Flywheel extends SubsystemBase{
   
   private final FlywheelIO io;
   private final FlywheelIOInputsAutoLogged inputs = new FlywheelIOInputsAutoLogged();
+  
+  private double kP = 3.2526;
+  private double kD = 0.05;
+  private double maxVelocity = 550.6;
+  private double maxAcceleration = 7585;
+  private final ProfiledPIDController controller = new FeedbackConstant(kP, kD)
+    .getProfiledPIDController(new TrapezoidProfile.Constraints(maxVelocity, maxAcceleration));
 
+  private boolean isAutomated = false;
   private double volts = 0.0;
 
   /**
@@ -28,11 +39,21 @@ public class Flywheel extends SubsystemBase{
   public void periodic() {
     io.updateInputs(inputs);
     Logger.processInputs("Flywheel", inputs);
+    if (isAutomated) {
+      volts = controller.calculate(inputs.velocityInMetersPerSec);
+    }
     io.setVoltage(volts);
   }
 
   private void manualVolts(double volts) {
+    isAutomated = false;
     this.volts = volts;
+  }
+
+  private void speed(double speed) {
+    isAutomated = true;
+    controller.setGoal(speed);
+
   }
 
   // Readouts
@@ -73,6 +94,10 @@ public class Flywheel extends SubsystemBase{
 
   public Command stop() {
     return Commands.run(() -> this.manualVolts(0.0), this);
+  }
+
+  public Command spinToSpeed(double speed) {
+    return Commands.run(() -> this.speed(speed), this);
   }
 
 }

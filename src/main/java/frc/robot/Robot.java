@@ -77,6 +77,7 @@ public class Robot extends LoggedRobot {
       case SIM -> {
         Logger.addDataReceiver(new WPILOGWriter(""));
         Logger.addDataReceiver(new NT4Publisher());
+        pdp = new PowerDistribution(20, ModuleType.kRev);
       }
 
         // Replaying a log, set up replay source
