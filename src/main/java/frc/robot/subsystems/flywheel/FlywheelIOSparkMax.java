@@ -3,9 +3,10 @@ package frc.robot.subsystems.flywheel;
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.CANSparkMax.IdleMode;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
+import com.revrobotics.SparkMaxLimitSwitch.Type;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.SparkMaxLimitSwitch;
-import com.revrobotics.SparkMaxLimitSwitch.Type;
+
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.RobotController;
 import frc.robot.RobotConstants;
@@ -24,7 +25,8 @@ public class FlywheelIOSparkMax implements FlywheelIO {
 
     // Convert rotations to radians
     double rotsToRads =
-        Units.rotationsToRadians(1) * RobotConstants.get().flywheelGearRatio.getRotationsPerInput();
+        Units.rotationsToRadians(1)
+            * RobotConstants.get().flywheelGearRatio.getRotationsPerInput();
     encoder.setPositionConversionFactor(rotsToRads);
 
     // Convert rotations per minute to radians per second
@@ -35,8 +37,6 @@ public class FlywheelIOSparkMax implements FlywheelIO {
     motor.setIdleMode(IdleMode.kCoast);
     motor.enableVoltageCompensation(12);
     motor.setSmartCurrentLimit(80);
-
-    System.out.println("BLAH: " + motor.getDeviceId());
   }
 
   @Override
@@ -53,11 +53,11 @@ public class FlywheelIOSparkMax implements FlywheelIO {
   @Override
   public void setVoltage(double volts) {
     motor.setVoltage(volts);
-    System.out.println("BLAH Set Voltage " + volts);
   }
 
   @Override
   public void setBrakeMode(boolean brake) {
     motor.setIdleMode(brake ? IdleMode.kBrake : IdleMode.kCoast);
   }
+
 }

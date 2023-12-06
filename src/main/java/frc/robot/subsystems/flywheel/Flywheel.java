@@ -1,14 +1,13 @@
 package frc.robot.subsystems.flywheel;
 
+import org.littletonrobotics.junction.Logger;
+
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import org.littletonrobotics.junction.Logger;
 
-public class Flywheel extends SubsystemBase {
-
-  private final Logger logger = Logger.getInstance();
-
+public class Flywheel extends SubsystemBase{
+  
   private final FlywheelIO io;
   private final FlywheelIOInputsAutoLogged inputs = new FlywheelIOInputsAutoLogged();
 
@@ -28,7 +27,7 @@ public class Flywheel extends SubsystemBase {
   @Override
   public void periodic() {
     io.updateInputs(inputs);
-    logger.processInputs("Flywheel", inputs);
+    Logger.processInputs("Flywheel", inputs);
     io.setVoltage(volts);
   }
 
@@ -66,13 +65,14 @@ public class Flywheel extends SubsystemBase {
     return inputs.reverseLimitSwitch;
   }
 
-  // Commands
+ // Commands
 
-  public Command manualSpin(double speed) {
+ public Command manualSpin(double speed) {
     return Commands.run(() -> this.manualVolts(speed * 12.0), this);
   }
 
   public Command stop() {
     return Commands.run(() -> this.manualVolts(0.0), this);
   }
+
 }

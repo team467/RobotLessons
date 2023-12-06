@@ -11,8 +11,6 @@ import org.littletonrobotics.junction.Logger;
 
 public class Rotator extends SubsystemBase {
 
-  private final Logger logger = Logger.getInstance();
-
   private static final double ROTATE_TOLERANCE_METERS = 0.0023;
   private static final double ROTATE_RAISE_METERS = 0.025;
 
@@ -40,14 +38,14 @@ public class Rotator extends SubsystemBase {
   @Override
   public void periodic() {
     io.updateInputs(inputs);
-    logger.processInputs("Rotator", inputs);
+    Logger.processInputs("Rotator", inputs);
 
     if (DriverStation.isDisabled()) {
       stop();
       return;
     }
 
-    logger.recordOutput("Rotator/IsCalibrated", isCalibrated);
+    Logger.recordOutput("Rotator/IsCalibrated", isCalibrated);
     io.setVoltage(volts);
   }
 
@@ -79,7 +77,7 @@ public class Rotator extends SubsystemBase {
       return;
     }
     volts = pid.calculate(inputs.position, setpoint);
-    logger.recordOutput("Rotator/FbOutput", volts);
+    Logger.recordOutput("Rotator/FbOutput", volts);
   }
 
   private boolean isFinished() {

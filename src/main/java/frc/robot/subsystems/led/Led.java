@@ -10,11 +10,10 @@ import frc.robot.RobotConstants;
 public class Led extends SubsystemBase {
   public DoubleLEDStrip ledStrip;
 
-  private static final COLORS_467 BATTERY_LOW_COLOR = COLORS_467.Orange;
+  // private static final COLORS_467 BATTERY_LOW_COLOR = COLORS_467.Orange;
 
   private Rainbows rainbowLed = new Rainbows();
   private Patterns colorPatterns = new Patterns();
-  private SetThirdLeds setOneThird = new SetThirdLeds();
 
   private COLORS_467 color = COLORS_467.Black;
 
@@ -54,7 +53,8 @@ public class Led extends SubsystemBase {
   public Led() {
     super();
 
-    ledStrip = LEDManager.getInstance().createDoubleStrip(RobotConstants.get().ledCount, false);
+    ledStrip =
+        LEDManager.getInstance().createDoubleStrip(RobotConstants.get().ledCount, false);
     for (int i = 0; i < ledStrip.getSize(); i++) {
       ledStrip.setRGB(i, 0, 0, 0);
     }
@@ -72,6 +72,7 @@ public class Led extends SubsystemBase {
     ledStrip.update();
   }
 
+
   public void set(Color color) {
     setTop(color);
     setBottom(color);
@@ -84,7 +85,9 @@ public class Led extends SubsystemBase {
   }
 
   public void setBottom(Color color) {
-    for (int i = RobotConstants.get().ledCount / 2; i < RobotConstants.get().ledCount; i++) {
+    for (int i = RobotConstants.get().ledCount / 2;
+        i < RobotConstants.get().ledCount;
+        i++) {
       ledStrip.setLED(i, color);
     }
   }
@@ -95,7 +98,9 @@ public class Led extends SubsystemBase {
   }
 
   public void setTop(COLORS_467 color) {
-    for (int i = RobotConstants.get().ledCount / 2; i < RobotConstants.get().ledCount; i++) {
+    for (int i = RobotConstants.get().ledCount / 2;
+        i < RobotConstants.get().ledCount;
+        i++) {
       ledStrip.setRGB(i, color.red, color.green, color.blue);
     }
   }
@@ -111,7 +116,8 @@ public class Led extends SubsystemBase {
     private final double SHOOTING_TIMER_SPEED = 0.1;
 
     public void setColorMovingDown(Color fgColor, Color bgColor) {
-      if (purpleTimer.hasElapsed(SHOOTING_TIMER_SPEED * (RobotConstants.get().ledCount + 2))) {
+      if (purpleTimer.hasElapsed(
+          SHOOTING_TIMER_SPEED * (RobotConstants.get().ledCount + 2))) {
         purpleTimer.reset();
       }
 
@@ -137,7 +143,8 @@ public class Led extends SubsystemBase {
     }
 
     public void setColorMovingUp(Color fgColor, Color bgColor) {
-      if (purpleTimer.hasElapsed(SHOOTING_TIMER_SPEED * (RobotConstants.get().ledCount + 2))) {
+      if (purpleTimer.hasElapsed(
+          SHOOTING_TIMER_SPEED * (RobotConstants.get().ledCount + 2))) {
         purpleTimer.reset();
       }
 
@@ -164,7 +171,8 @@ public class Led extends SubsystemBase {
     }
 
     public void setColorMovingUpTwoClr(Color topColor, Color bottomColor) {
-      if (purpleTimer.hasElapsed(SHOOTING_TIMER_SPEED * (RobotConstants.get().ledCount + 2))) {
+      if (purpleTimer.hasElapsed(
+          SHOOTING_TIMER_SPEED * (RobotConstants.get().ledCount + 2))) {
         purpleTimer.reset();
       }
 
@@ -173,7 +181,8 @@ public class Led extends SubsystemBase {
         if (purpleTimer.hasElapsed(SHOOTING_TIMER_SPEED * i)) {
           double timeUntilOff = Math.max(0, (SHOOTING_TIMER_SPEED * (i + 2)) - purpleTimer.get());
           double brightness = (255 * timeUntilOff);
-          Color currentColor = j >= RobotConstants.get().ledCount / 2 ? topColor : bottomColor;
+          Color currentColor =
+              j >= RobotConstants.get().ledCount / 2 ? topColor : bottomColor;
 
           if (brightness == 0) {
             ledStrip.setLED(j, currentColor);
@@ -186,7 +195,8 @@ public class Led extends SubsystemBase {
                 (int) (currentColor.blue * brightness));
           }
         } else {
-          Color currentColor = j >= RobotConstants.get().ledCount / 2 ? topColor : bottomColor;
+          Color currentColor =
+              j >= RobotConstants.get().ledCount / 2 ? topColor : bottomColor;
           ledStrip.setLED(j, currentColor);
         }
       }
@@ -214,7 +224,8 @@ public class Led extends SubsystemBase {
         }
       }
 
-      if (purpleTimer.hasElapsed(SHOOTING_TIMER_SPEED * (RobotConstants.get().ledCount + 2))) {
+      if (purpleTimer.hasElapsed(
+          SHOOTING_TIMER_SPEED * (RobotConstants.get().ledCount + 2))) {
         purpleTimer.reset();
         for (int j = 0; j < RobotConstants.get().ledCount; j++) {
           ledStrip.setLED(j, bgColor);
@@ -238,7 +249,8 @@ public class Led extends SubsystemBase {
     }
 
     public void setColorMovingDownTwoClr(Color topColor, Color bottomColor) {
-      if (purpleTimer.hasElapsed(SHOOTING_TIMER_SPEED * (RobotConstants.get().ledCount + 2))) {
+      if (purpleTimer.hasElapsed(
+          SHOOTING_TIMER_SPEED * (RobotConstants.get().ledCount + 2))) {
         purpleTimer.reset();
       }
 
@@ -297,7 +309,10 @@ public class Led extends SubsystemBase {
 
       for (int i = 0; i < RobotConstants.get().ledCount; i++) {
         ledStrip.setHSB(
-            i, ((int) rainbowColor + (i * 360 / RobotConstants.get().ledCount)) % 360, 255, 127);
+            i,
+            ((int) rainbowColor + (i * 360 / RobotConstants.get().ledCount)) % 360,
+            255,
+            127);
       }
     }
 
@@ -311,7 +326,10 @@ public class Led extends SubsystemBase {
 
       for (int i = 0; i < RobotConstants.get().ledCount; i++) {
         ledStrip.setHSB(
-            i, ((int) rainbowColor + (i * 360 / RobotConstants.get().ledCount)) % 360, 255, 127);
+            i,
+            ((int) rainbowColor + (i * 360 / RobotConstants.get().ledCount)) % 360,
+            255,
+            127);
       }
     }
 
@@ -325,9 +343,15 @@ public class Led extends SubsystemBase {
 
       for (int i = 0; i < RobotConstants.get().ledCount; i++) {
         ledStrip.setLeftHSB(
-            i, ((int) rainbowColor + (i * 360 / RobotConstants.get().ledCount)) % 360, 255, 127);
+            i,
+            ((int) rainbowColor + (i * 360 / RobotConstants.get().ledCount)) % 360,
+            255,
+            127);
         ledStrip.setRightHSB(
-            i, ((int) rainbowColor - (i * 360 / RobotConstants.get().ledCount)) % 360, 255, 127);
+            i,
+            ((int) rainbowColor - (i * 360 / RobotConstants.get().ledCount)) % 360,
+            255,
+            127);
       }
     }
 
@@ -335,7 +359,10 @@ public class Led extends SubsystemBase {
       rainbowTimer.reset();
       for (int i = 0; i < RobotConstants.get().ledCount; i++) {
         ledStrip.setHSB(
-            i, ((int) rainbowColor + (i * 360 / RobotConstants.get().ledCount)) % 360, 255, 127);
+            i,
+            ((int) rainbowColor + (i * 360 / RobotConstants.get().ledCount)) % 360,
+            255,
+            127);
       }
     }
   }
@@ -344,7 +371,8 @@ public class Led extends SubsystemBase {
     private static final int topStart = 0;
     private static final int topEndandMidStart = (int) (RobotConstants.get().ledCount / 3);
     private static final int midEndandBottomStart =
-        (int) (RobotConstants.get().ledCount - (RobotConstants.get().ledCount / 3));
+        (int)
+            (RobotConstants.get().ledCount - (RobotConstants.get().ledCount / 3));
     private static final int bottomEnd = (RobotConstants.get().ledCount);
 
     public void set(COLORS_467 color, int preSet) {
