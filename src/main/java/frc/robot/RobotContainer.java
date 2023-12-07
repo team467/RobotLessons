@@ -43,7 +43,7 @@ public class RobotContainer {
             flywheel = new Flywheel(new FlywheelIO() {} );
           }
           case ROBOT_BRIEFCASE -> {
-          r  flywheel = new Flywheel(new FlywheelIOSparkMax(RobotConstants.get().flywheelMotorId));
+            flywheel = new Flywheel(new FlywheelIOSparkMax(RobotConstants.get().flywheelMotorId));
           }
           default -> {
             flywheel = new Flywheel(new FlywheelIOSim());

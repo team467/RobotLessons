@@ -33,7 +33,7 @@ public class Flywheel extends SubsystemBase{
     super();
     this.io = io;
     io.updateInputs(inputs);
-    logger.processInputs("Flywheel", inputs);
+    Logger.processInputs("Flywheel", inputs);
   }
 
   @Override
