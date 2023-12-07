@@ -40,10 +40,10 @@ public class RobotContainer {
       case REAL -> {
         switch (RobotConstants.get().robot) {
           case ROBOT_COMP -> {
-            flywheel = new Flywheel(new FlywheelIO() {});
+            flywheel = new Flywheel(new FlywheelIO() {} );
           }
           case ROBOT_BRIEFCASE -> {
-            flywheel = new Flywheel(new FlywheelIOSparkMax(RobotConstants.get().flywheelMotorId));
+          r  flywheel = new Flywheel(new FlywheelIOSparkMax(RobotConstants.get().flywheelMotorId));
           }
           default -> {
             flywheel = new Flywheel(new FlywheelIOSim());
@@ -52,12 +52,12 @@ public class RobotContainer {
       }
         // Sim robot, instantiate physics sim IO implementations
       case SIM -> {
-        // Init subsystems
         flywheel = new Flywheel(new FlywheelIOSim());
       }
+
         // Replayed robot, disable IO implementations
       default -> {
-        flywheel = new Flywheel(new FlywheelIO() {});
+        flywheel = new Flywheel(new FlywheelIO() { });
       }
     }
     configureButtonBindings();
@@ -72,16 +72,13 @@ public class RobotContainer {
   private void configureButtonBindings() {
 
     driverController.start();
-    operatorController.start();
-    // move the flywheel if the left trigger of the operator's joystick moves.
-    flywheel.setDefaultCommand(flywheel.stop());
-    operatorController.leftTrigger().whileTrue(flywheel.manualSpin(-1.0));
-    operatorController
-        .rightTrigger()
-        .onTrue(flywheel.manualSpin(operatorController.getRightTriggerAxis()));
-    operatorController.x().onTrue(flywheel.stop());
+    // led2023.setDefaultCommand(new LedRainbowCMD(led2023).ignoringDisable(true));
 
-    operatorController.b().whileTrue(flywheel.manualSpin(1.0));
+    // move the flywheel if the left trigger of the operator's joystick moves.
+    operatorController.start();
+    operatorController.leftTrigger().onTrue(flywheel.manualSpin(-operatorController.getLeftTriggerAxis()));
+    operatorController.rightTrigger().onTrue(flywheel.manualSpin(operatorController.getRightTriggerAxis()));
+
   }
   /** Runs post-creation actions and eliminates warning for not using the RobotContainer. */
   public void init() {}

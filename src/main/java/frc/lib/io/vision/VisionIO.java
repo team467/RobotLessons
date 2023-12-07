@@ -12,6 +12,7 @@ import java.util.Optional;
 import org.littletonrobotics.junction.LogTable;
 import org.littletonrobotics.junction.inputs.LoggableInputs;
 import org.photonvision.EstimatedRobotPose;
+import org.photonvision.PhotonPoseEstimator.PoseStrategy;
 import org.photonvision.targeting.PhotonTrackedTarget;
 import org.photonvision.targeting.TargetCorner;
 
@@ -411,7 +412,8 @@ public interface VisionIO {
                             serializedEstimatedPose[5],
                             serializedEstimatedPose[6]))),
                 table.get("EstimatedPose/TimestampSeconds").getDouble(),
-                targetsUsed);
+                targetsUsed,
+                PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR);
         this.estimatedPose = Optional.of(estimatedPose);
       } else {
         this.estimatedPose = Optional.empty();

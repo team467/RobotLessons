@@ -97,8 +97,8 @@ public class Drive extends SubsystemBase {
       }
 
       // Clear setpoint logs
-      Logger.getInstance().recordOutput("SwerveStates/Setpoints", new double[] {});
-      Logger.getInstance().recordOutput("SwerveStates/SetpointsOptimized", new double[] {});
+      Logger.recordOutput("SwerveStates/Setpoints", new double[] {});
+      Logger.recordOutput("SwerveStates/SetpointsOptimized", new double[] {});
 
     } else if (isCharacterizing) {
 
@@ -108,8 +108,8 @@ public class Drive extends SubsystemBase {
       }
 
       // Clear setpoint logs
-      Logger.getInstance().recordOutput("SwerveStates/Setpoints", new double[] {});
-      Logger.getInstance().recordOutput("SwerveStates/SetpointsOptimized", new double[] {});
+      Logger.recordOutput("SwerveStates/Setpoints", new double[] {});
+      Logger.recordOutput("SwerveStates/SetpointsOptimized", new double[] {});
 
     } else {
       Twist2d setpointTwist =
@@ -145,12 +145,12 @@ public class Drive extends SubsystemBase {
       }
 
       // Log setpoint states
-      Logger.getInstance().recordOutput("SwerveStates/Setpoints", setpointStates);
-      Logger.getInstance().recordOutput("SwerveStates/SetpointsOptimized", optimizedStates);
+      Logger.recordOutput("SwerveStates/Setpoints", setpointStates);
+      Logger.recordOutput("SwerveStates/SetpointsOptimized", optimizedStates);
     }
 
     this.estimate();
-    Logger.getInstance().recordOutput("Odometry", getPose());
+    Logger.recordOutput("Odometry", getPose());
   }
 
   public void estimate() {

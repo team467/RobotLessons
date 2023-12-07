@@ -17,13 +17,16 @@ public class FlywheelIOSim implements FlywheelIO {
   public void updateInputs(FlywheelIOInputs inputs) {
     sim.update(0.02);
 
-    inputs.positionInMeters += sim.getAngularVelocityRadPerSec() * 0.02 * inputs.wheelRadius;
-    inputs.velocityInMetersPerSec = sim.getAngularVelocityRadPerSec() * inputs.wheelRadius;
+    inputs.positionInMeters +=
+        sim.getAngularVelocityRadPerSec() * 0.02 * inputs.wheelRadius;
+    inputs.velocityInMetersPerSec =
+        sim.getAngularVelocityRadPerSec() * inputs.wheelRadius;
     inputs.appliedVolts = appliedVolts;
     inputs.currentAmps = sim.getCurrentDrawAmps();
     inputs.temperature = simTempurature;
     inputs.forwardLimitSwitch = simForwardLimitSwitch;
     inputs.reverseLimitSwitch = simReverseLimitSwitch;
+
   }
 
   @Override
