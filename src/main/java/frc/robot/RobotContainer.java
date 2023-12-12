@@ -23,10 +23,12 @@ public class RobotContainer {
   // Subsystems
   private final Flywheel flywheel;
 
+  
+
   // private led;
 
   // Controllers
-  private final CommandXboxController driverController = new CommandXboxController(0);
+  // private final CommandXboxController driverController = new CommandXboxController(0);
   private final CommandXboxController operatorController = new CommandXboxController(1);
 
   // Dashboard inputs
@@ -71,13 +73,19 @@ public class RobotContainer {
    */
   private void configureButtonBindings() {
 
-    driverController.start();
+    // driverController.start();
     // led2023.setDefaultCommand(new LedRainbowCMD(led2023).ignoringDisable(true));
 
     // move the flywheel if the left trigger of the operator's joystick moves.
     operatorController.start();
-    operatorController.leftTrigger().onTrue(flywheel.manualSpin(-operatorController.getLeftTriggerAxis()));
-    operatorController.rightTrigger().onTrue(flywheel.manualSpin(operatorController.getRightTriggerAxis()));
+
+    // Flywheel Controls
+    flywheel.setDefaultCommand(flywheel.stop());
+    operatorController.leftTrigger(0.1).whileTrue(flywheel.manualSpin(-0.5));
+    operatorController.rightTrigger(0.1).whileTrue(flywheel.manualSpin(0.5));
+    operatorController.a().whileTrue(flywheel.manualSpin(1.0));
+    operatorController.x().whileTrue(flywheel.stop());
+    operatorController.y().whileTrue(flywheel.spinToSpeed(20));
 
   }
   /** Runs post-creation actions and eliminates warning for not using the RobotContainer. */

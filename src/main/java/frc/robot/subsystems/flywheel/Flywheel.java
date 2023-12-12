@@ -23,6 +23,7 @@ public class Flywheel extends SubsystemBase{
 
   private boolean isAutomated = false;
   private double volts = 0.0;
+  private double setpoint = 0.0;
 
   /**
    * Configures the arm subsystem
@@ -41,12 +42,13 @@ public class Flywheel extends SubsystemBase{
     io.updateInputs(inputs);
     Logger.processInputs("Flywheel", inputs);
     if (isAutomated) {
-      volts = controller.calculate(inputs.velocityInMetersPerSec);
+      volts = controller.calculate(inputs.velocityInMetersPerSec, setpoint);
     }
     io.setVoltage(volts);
   }
 
   private void manualVolts(double volts) {
+    System.out.println("Manual Spin" + volts / 12.0);
     isAutomated = false;
     this.volts = volts;
   }
@@ -54,7 +56,7 @@ public class Flywheel extends SubsystemBase{
   private void speed(double speed) {
     isAutomated = true;
     controller.setGoal(speed);
-
+    this.setpoint = speed;
   }
 
   // Readouts
