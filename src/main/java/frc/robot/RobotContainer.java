@@ -20,10 +20,6 @@ import frc.robot.subsystems.drive.gyro.GyroIOSim;
 import frc.robot.subsystems.drive.wheelpod.WheelPodIO;
 import frc.robot.subsystems.drive.wheelpod.WheelPodIOSim;
 import frc.robot.subsystems.drive.wheelpod.WheelPodIOSparkMax;
-import frc.robot.subsystems.flywheel.Flywheel;
-import frc.robot.subsystems.flywheel.FlywheelIO;
-import frc.robot.subsystems.flywheel.FlywheelIOSim;
-import frc.robot.subsystems.flywheel.FlywheelIOSparkMax;
 import frc.robot.subsystems.rotator.RotatorIO;
 import frc.robot.subsystems.rotator.RotatorIOPhysical;
 import frc.robot.subsystems.springloadedextender.SpringLoadedExtenderIO;
@@ -41,7 +37,6 @@ public class RobotContainer {
   // Subsystems
   private final Drive drive;
   private final Arm arm;
-  private final Flywheel flywheel;
 
   // private led;
 
@@ -88,7 +83,6 @@ public class RobotContainer {
                         RobotConstants.get().ratchetSolenoidId),
                     new RotatorIOPhysical(RobotConstants.get().armRotateMotorId));
 
-            flywheel = new Flywheel(new FlywheelIO() {} );
             // effector =
             //     new Effector(
             //         new EffectorIOBrushed(
@@ -105,9 +99,6 @@ public class RobotContainer {
                     new WheelPodIO() {});
             // List.of(new VisionIO() {}));
             arm = new Arm(new SpringLoadedExtenderIO() {}, new RotatorIO() {});
-            flywheel = new Flywheel(
-              new FlywheelIOSparkMax(RobotConstants.get().flywheelMotorId)
-            );
             // effector = new Effector(new EffectorIO() {});
 
           }
@@ -121,7 +112,6 @@ public class RobotContainer {
                     new WheelPodIO() {});
             // List.of(new VisionIO() {}));
             arm = new Arm(new SpringLoadedExtenderIO() {}, new RotatorIO() {});
-            flywheel = new Flywheel(new FlywheelIOSim());
             // effector = new Effector(new EffectorIO() {});
           }
         }
@@ -139,7 +129,6 @@ public class RobotContainer {
                 new WheelPodIOSim());
         // List.of(new VisionIO() {}));
         arm = new Arm(new SpringLoadedExtenderIO() {}, new RotatorIO() {});
-        flywheel = new Flywheel(new FlywheelIOSim());
         // effector = new Effector(new EffectorIO() {});
       }
 
@@ -155,7 +144,6 @@ public class RobotContainer {
                 new WheelPodIOSim());
         // List.of(new VisionIO() {}));
         arm = new Arm(new SpringLoadedExtenderIO() {}, new RotatorIO() {});
-        flywheel = new Flywheel(new FlywheelIO() { });
         // effector = new Effector(new EffectorIO() {});
       }
     }
@@ -209,10 +197,7 @@ public class RobotContainer {
     operatorController.pov(270).whileTrue(arm.manualRetract());
     operatorController.pov(0).whileTrue(arm.manualUp());
     operatorController.pov(180).whileTrue(arm.manualDown());
-
-    // move the flywheel if the left trigger of the operator's joystick moves.
-    operatorController.leftStick().onTrue(flywheel.manualSpin(operatorController.getLeftX()));
-
+  
     // // Placing cone or cube, gets what it wants from in the command
     // operatorController.a().onTrue(new ArmScoreLowNodeCMD(arm));
     // operatorController.b().onTrue(new ArmScoreMidNodeCMD(arm, effector::wantsCone));
