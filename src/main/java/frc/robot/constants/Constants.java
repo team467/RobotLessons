@@ -24,7 +24,7 @@ public abstract class Constants {
   // All values are defaults that may be overriden by the robot-specific constants
 
   /** Robot Type is used for determining which versions of constants and subsystems to use */
-  public final RobotType robot = null;
+  public final RobotType robot = RobotType.ROBOT_BRIEFCASE;
 
   /**
    * @return Check if robot is real, sim, or replay
@@ -40,7 +40,7 @@ public abstract class Constants {
   /**
    * @return Folder to put logs into (nullable)
    */
-  public final String logFolder = "/media/sda1";
+  public final String logFolder = "/home/lvuser/log";
 
   public final double driveMaxCoastVelocity = 0.5;
 
@@ -84,7 +84,7 @@ public abstract class Constants {
 
   public final int intakeMotorID = 11;
 
-  public final int intakeCubeLimitSwitchID = 1;
+  public final int flyWheelID = 1;
 
   public final int ledChannel = 0;
 

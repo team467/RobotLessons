@@ -10,6 +10,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.lib.utils.AllianceFlipUtil;
+import frc.robot.constants.Constants;
 import frc.robot.subsystems.arm.Arm;
 import frc.robot.subsystems.drive.Drive;
 import frc.robot.subsystems.drive.DriveWithDpad;
@@ -20,6 +21,10 @@ import frc.robot.subsystems.drive.gyro.GyroIOSim;
 import frc.robot.subsystems.drive.wheelpod.WheelPodIO;
 import frc.robot.subsystems.drive.wheelpod.WheelPodIOSim;
 import frc.robot.subsystems.drive.wheelpod.WheelPodIOSparkMax;
+import frc.robot.subsystems.flywheel.FlyWheel;
+import frc.robot.subsystems.flywheel.FlyWheelIO;
+import frc.robot.subsystems.flywheel.FlyWheelIOSim;
+import frc.robot.subsystems.flywheel.FlyWheelIOSparkMax;
 import frc.robot.subsystems.rotator.RotatorIO;
 import frc.robot.subsystems.rotator.RotatorIOPhysical;
 import frc.robot.subsystems.springloadedextender.SpringLoadedExtenderIO;
@@ -37,6 +42,9 @@ public class RobotContainer {
   // Subsystems
   private final Drive drive;
   private final Arm arm;
+
+  //Flywheel
+  private final FlyWheel flywheel;
 
   // Controllers
   private final CommandXboxController driverController = new CommandXboxController(0);
@@ -74,29 +82,31 @@ public class RobotContainer {
             // List.of(
             //     new VisionIOAprilTag("front", front, FieldConstants.aprilTags),
             //     new VisionIOAprilTag("right", right, FieldConstants.aprilTags)));
-            arm =
-                new Arm(
-                    new SpringLoadedExtenderIOPhysical(
-                        RobotConstants.get().armExtendMotorId,
-                        RobotConstants.get().ratchetSolenoidId),
-                    new RotatorIOPhysical(RobotConstants.get().armRotateMotorId));
+            // arm =
+            //     new Arm(
+            //         new SpringLoadedExtenderIOPhysical(
+            //             RobotConstants.get().armExtendMotorId,
+            //             RobotConstants.get().ratchetSolenoidId),
+            //         new RotatorIOPhysical(RobotConstants.get().armRotateMotorId));
+            flywheel = new FlyWheel(new FlyWheelIO() {});
             // effector =
             //     new Effector(
             //         new EffectorIOBrushed(
-            //             RobotConstants.get().intakeMotorID(),
+            //             RotConstants.get().intakeMotorID(),
             //             RobotConstants.get().intakeCubeLimitSwitchID()));
           }
           case ROBOT_BRIEFCASE -> {
-            drive =
-                new Drive(
-                    new GyroIO() {},
-                    new WheelPodIO() {},
-                    new WheelPodIO() {},
-                    new WheelPodIO() {},
-                    new WheelPodIO() {});
+            // drive =
+            //     new Drive(
+            //         new GyroIO() {},
+            //         new WheelPodIO() {},
+            //         new WheelPodIO() {},
+            //         new WheelPodIO() {},
+            //         new WheelPodIO() {});
             // List.of(new VisionIO() {}));
-            arm = new Arm(new SpringLoadedExtenderIO() {}, new RotatorIO() {});
+            //arm = new Arm(new SpringLoadedExtenderIO() {}, new RotatorIO() {});
             // effector = new Effector(new EffectorIO() {});
+            flywheel = new FlyWheel(new FlyWheelIOSparkMax(1, 25));
           }
           default -> {
             drive =
@@ -108,6 +118,7 @@ public class RobotContainer {
                     new WheelPodIO() {});
             // List.of(new VisionIO() {}));
             arm = new Arm(new SpringLoadedExtenderIO() {}, new RotatorIO() {});
+                        flywheel = new FlyWheel(new FlyWheelIO() {});
             // effector = new Effector(new EffectorIO() {});
           }
         }
@@ -125,6 +136,7 @@ public class RobotContainer {
                 new WheelPodIOSim());
         // List.of(new VisionIO() {}));
         arm = new Arm(new SpringLoadedExtenderIO() {}, new RotatorIO() {});
+        flywheel = new FlyWheel(new FlyWheelIOSim());
         // effector = new Effector(new EffectorIO() {});
       }
 
@@ -140,6 +152,7 @@ public class RobotContainer {
                 new WheelPodIOSim());
         // List.of(new VisionIO() {}));
         arm = new Arm(new SpringLoadedExtenderIO() {}, new RotatorIO() {});
+                    flywheel = new FlyWheel(new FlyWheelIO() {});
         // effector = new Effector(new EffectorIO() {});
       }
     }
@@ -154,29 +167,29 @@ public class RobotContainer {
    */
   private void configureButtonBindings() {
 
-    driverController.y().onTrue(Commands.runOnce(() -> isRobotOriented = !isRobotOriented));
+    // driverController.y().onTrue(Commands.runOnce(() -> isRobotOriented = !isRobotOriented));
 
-    drive.setDefaultCommand(
-        new DriveWithJoysticks(
-            drive,
-            () -> -driverController.getLeftY(),
-            () -> -driverController.getLeftX(),
-            () -> -driverController.getRightX(),
-            () -> isRobotOriented // TODO: add toggle
-            ));
-    driverController
-        .start()
-        .onTrue(
-            Commands.runOnce(
-                    () ->
-                        drive.setPose(
-                            new Pose2d(
-                                drive.getPose().getTranslation(),
-                                AllianceFlipUtil.apply(new Rotation2d()))))
-                .ignoringDisable(true));
-    driverController
-        .pov(-1)
-        .whileFalse(new DriveWithDpad(drive, () -> driverController.getHID().getPOV()));
+    // drive.setDefaultCommand(
+    //     new DriveWithJoysticks(
+    //         drive,
+    //         () -> -driverController.getLeftY(),
+    //         () -> -driverController.getLeftX(),
+    //         () -> -driverController.getRightX(),
+    //         () -> isRobotOriented // TODO: add toggle
+    //         ));
+    // driverController
+    //     .start()
+    //     .onTrue(
+    //         Commands.runOnce(
+    //                 () ->
+    //                     drive.setPose(
+    //                         new Pose2d(
+    //                             drive.getPose().getTranslation(),
+    //                             AllianceFlipUtil.apply(new Rotation2d()))))
+    //             .ignoringDisable(true));
+    // driverController
+    //     .pov(-1)
+    //     .whileFalse(new DriveWithDpad(drive, () -> driverController.getHID().getPOV()));
 
     // led2023.setDefaultCommand(new LedRainbowCMD(led2023).ignoringDisable(true));
     // effector.setDefaultCommand(new HoldCMD(effector));
@@ -189,10 +202,10 @@ public class RobotContainer {
     // operatorController.back().whileTrue(new WantCubeCMD(effector));
 
     // Manual arm movements
-    operatorController.pov(90).whileTrue(arm.manualExtend());
-    operatorController.pov(270).whileTrue(arm.manualRetract());
-    operatorController.pov(0).whileTrue(arm.manualUp());
-    operatorController.pov(180).whileTrue(arm.manualDown());
+    // operatorController.pov(90).whileTrue(arm.manualExtend());
+    // operatorController.pov(270).whileTrue(arm.manualRetract());
+    // operatorController.pov(0).whileTrue(arm.manualUp());
+    // operatorController.pov(180).whileTrue(arm.manualDown());
 
     // // Placing cone or cube, gets what it wants from in the command
     // operatorController.a().onTrue(new ArmScoreLowNodeCMD(arm));
@@ -204,10 +217,10 @@ public class RobotContainer {
     // driverController.x().onTrue(new ArmHomeCMD(arm, effector::wantsCone));
 
     // Need to set to use automated movements, should be set in Autonomous init.
-    driverController.back().onTrue(arm.calibrate());
-    driverController.b().onTrue(arm.forceCalibrated());
+    // driverController.back().onTrue(arm.calibrate());
+    // driverController.b().onTrue(arm.forceCalibrated());
 
-    driverController.a().onTrue(Commands.runOnce(() -> drive.stopWithX(), drive));
+    // driverController.a().onTrue(Commands.runOnce(() -> drive.stopWithX(), drive));
 
     // // Manual arm movements
     // operatorController.leftStick().onTrue(new ArmStopCMD(arm));
@@ -217,6 +230,9 @@ public class RobotContainer {
 
     // // Auto grid align
     // driverController.rightTrigger().whileTrue(new NewAlignToNode(drive, effector));
+
+    // Flywheel
+    operatorController.a().whileTrue(flywheel.startCommand());
   }
   /** Runs post-creation actions and eliminates warning for not using the RobotContainer. */
   public void init() {}
