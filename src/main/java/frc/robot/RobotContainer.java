@@ -8,6 +8,7 @@ import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import frc.robot.commands.autonomous.SpinFlywheelToSpeed;
 import frc.robot.constants.Constants;
 import frc.robot.subsystems.flywheel.Flywheel;
 import frc.robot.subsystems.flywheel.FlywheelIO;
@@ -68,8 +69,7 @@ public class RobotContainer {
       }
     }
 
-    configureButtonBindings();
-    led.setDefaultCommand(new SetLedsFromFlywheelSpeed(led, flywheel));
+    init();
   }
 
   /**
@@ -97,7 +97,15 @@ public class RobotContainer {
   }
 
   /** Runs post-creation actions and eliminates warning for not using the RobotContainer. */
-  public void init() {}
+  public void init() {
+    led.setDefaultCommand(new SetLedsFromFlywheelSpeed(led, flywheel));
+    configureButtonBindings();
+
+    // Add autonomous commands to the auto chooser
+    autoChooser.addOption("Do Nothing", null);
+    autoChooser.addOption("Spin Flywheel", new SpinFlywheelToSpeed(flywheel));
+
+  }
 
   /**
    * Use this to pass the autonomous command to the main {@link Robot} class.
