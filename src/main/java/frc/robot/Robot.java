@@ -10,7 +10,6 @@ import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
 import edu.wpi.first.wpilibj.Threads;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import frc.robot.constants.BriefcaseConstants;
 import frc.robot.constants.Constants;
 import frc.robot.constants.Constants.RobotType;
 import java.io.IOException;
@@ -33,7 +32,6 @@ public class Robot extends LoggedRobot {
   @Override
   public void robotInit() {
     // Only ment to run in simulation
-    RobotConstants.set(new BriefcaseConstants());
 
     if (RobotConstants.get().mode() == Constants.Mode.REAL) {
       ProcessBuilder builder = new ProcessBuilder();
