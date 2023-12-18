@@ -49,11 +49,12 @@ public class Led extends SubsystemBase {
     }
   }
 
-  public Led() {
+  public Led(int channel) {
     super();
 
     ledStrip =
         LEDManager.getInstance().createDoubleStrip(RobotConstants.get().ledCount, false);
+    LEDManager.getInstance().init(channel);
     for (int i = 0; i < ledStrip.getSize(); i++) {
       ledStrip.setRGB(i, 0, 0, 0);
     }

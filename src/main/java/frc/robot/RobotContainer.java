@@ -4,12 +4,18 @@
 
 package frc.robot;
 
+import edu.wpi.first.wpilibj.GenericHID;
+import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import frc.robot.constants.Constants;
 import frc.robot.subsystems.flywheel.Flywheel;
 import frc.robot.subsystems.flywheel.FlywheelIO;
 import frc.robot.subsystems.flywheel.FlywheelIOSim;
 import frc.robot.subsystems.flywheel.FlywheelIOSparkMax;
+import frc.robot.subsystems.led.Led;
+import frc.robot.subsystems.led.commands.SetLedsFromFlywheelSpeed;
+
 import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
 
 /**
@@ -20,13 +26,12 @@ import org.littletonrobotics.junction.networktables.LoggedDashboardChooser;
  */
 public class RobotContainer {
 
+  Constants constants = RobotConstants.get();
+
   // Subsystems
   private final Flywheel flywheel;
-
-  
-
-  // private led;
-
+  private final Led led = new Led(constants.ledChannel);
+ 
   // Controllers
   // private final CommandXboxController driverController = new CommandXboxController(0);
   private final CommandXboxController operatorController = new CommandXboxController(1);
@@ -48,7 +53,7 @@ public class RobotContainer {
             flywheel = new Flywheel(new FlywheelIOSparkMax(RobotConstants.get().flywheelMotorId));
           }
           default -> {
-            flywheel = new Flywheel(new FlywheelIOSim());
+            flywheel = new Flywheel(new FlywheelIO() { });
           }
         }
       }
@@ -62,7 +67,9 @@ public class RobotContainer {
         flywheel = new Flywheel(new FlywheelIO() { });
       }
     }
+
     configureButtonBindings();
+    led.setDefaultCommand(new SetLedsFromFlywheelSpeed(led, flywheel));
   }
 
   /**
@@ -88,6 +95,7 @@ public class RobotContainer {
     operatorController.y().whileTrue(flywheel.spinToSpeed(20));
 
   }
+
   /** Runs post-creation actions and eliminates warning for not using the RobotContainer. */
   public void init() {}
 
