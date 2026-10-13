@@ -3,6 +3,7 @@ package first.robot;
 import static org.junit.jupiter.api.Assertions.*;
 
 import first.robot.constants.FieldConstants;
+import first.robot.constants.RobotConstants;
 import first.robot.sim.SimWorld;
 import first.robot.subsystems.claw.ClawIOSim;
 import first.robot.subsystems.claw.ClawMechanism;
@@ -124,6 +125,6 @@ public class TwoBallSimTest {
 
     assertEquals(1.5, drive.getPosition(), 0.05);
     assertTrue(world.snapshot().ball2Held(), "Ball 2 should remain held while driving");
-    assertEquals(1.5 + FieldConstants.WRIST_BASE_X + ExtenderConstants.BALL_EXTENSION, world.snapshot().ball2FieldX(), 0.08);
+    assertEquals(1.5 + RobotConstants.WRIST_BASE_X + ExtenderConstants.BALL_EXTENSION, world.snapshot().ball2FieldX(), 0.08);
   }
 }

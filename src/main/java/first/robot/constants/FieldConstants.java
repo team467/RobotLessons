@@ -1,33 +1,13 @@
 package first.robot.constants;
 
 /**
- * Shared geometry for the robot arm and the world around it (table, ball, target).
+ * Shared geometry for the field and game elements (table, balls, targets).
  *
- * <p>Everything is in meters, viewed from the side. x points away from the tower (to the right)
- * and y points up from the floor. The tower stands at x = 0.
- *
- * <p>The mechanism constants use these numbers to work out useful setpoints, and the simulator
- * uses them to draw the scene and decide when the claw has grabbed the ball.
+ * <p>Everything is in meters, viewed from the side. x points along the driving axis from the start
+ * zone (x = 0) towards the table (x = 2.0), and y points up from the floor.
  */
 public final class FieldConstants {
   private FieldConstants() {}
-
-  // ---------------- Robot arm geometry ----------------
-
-  /** Height of the elevator tower. */
-  public static final double TOWER_HEIGHT = 1.75;
-
-  /** x position of the wrist (claw pivot) when the extender is fully retracted. */
-  public static final double WRIST_BASE_X = 0.12;
-
-  /** Length of each claw finger, measured from the wrist downward. */
-  public static final double FINGER_LENGTH = 0.22;
-
-  /** Distance below the wrist where the fingers grip the ball. */
-  public static final double GRIP_DEPTH = 0.15;
-
-  /** Half the distance between the two finger pivots. */
-  public static final double FINGER_PIVOT_HALF_SPACING = 0.03;
 
   // ---------------- Field Layout & Drive Positions ----------------
 
@@ -89,5 +69,5 @@ public final class FieldConstants {
    * this angle is impossible while a ball is between the fingers.
    */
   public static final double BALL_CONTACT_ANGLE =
-      Math.asin((BALL_RADIUS - FINGER_PIVOT_HALF_SPACING) / GRIP_DEPTH);
+      Math.asin((BALL_RADIUS - RobotConstants.FINGER_PIVOT_HALF_SPACING) / RobotConstants.GRIP_DEPTH);
 }

@@ -3,7 +3,6 @@ package first.robot;
 import static org.junit.jupiter.api.Assertions.*;
 
 import first.robot.auto.TwoBallAuto;
-import first.robot.constants.FieldConstants;
 import first.robot.sim.SimWorld;
 import first.robot.subsystems.claw.ClawIOSim;
 import first.robot.subsystems.claw.ClawMechanism;

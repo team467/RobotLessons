@@ -1,6 +1,7 @@
 package first.robot.subsystems.extender;
 
 import first.robot.constants.FieldConstants;
+import first.robot.constants.RobotConstants;
 
 /**
  * Constants for the {@link ExtenderMechanism}. Positions are how far the arm is extended, in
@@ -29,13 +30,13 @@ public final class ExtenderConstants {
   // ---- Useful setpoints ----
   /** Puts the claw directly above the ball on the table. */
   public static final double BALL_EXTENSION =
-      FieldConstants.BALL_START_X - FieldConstants.WRIST_BASE_X;
+      FieldConstants.BALL_START_X - RobotConstants.WRIST_BASE_X;
 
   /** Puts the claw directly above the target zone on the floor. */
   public static final double TARGET_EXTENSION =
-      FieldConstants.TARGET_CENTER_X - FieldConstants.WRIST_BASE_X;
+      FieldConstants.TARGET_CENTER_X - RobotConstants.WRIST_BASE_X;
 
   /** Puts the claw directly above the orange target zone on the table. */
   public static final double TABLE_TARGET_EXTENSION =
-      FieldConstants.TABLE_TARGET_CENTER_X - FieldConstants.WRIST_BASE_X;
+      FieldConstants.TABLE_TARGET_CENTER_X - RobotConstants.WRIST_BASE_X;
 }

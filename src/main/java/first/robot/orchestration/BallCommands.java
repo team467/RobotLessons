@@ -29,7 +29,7 @@ public final class BallCommands {
       // 2. Extend slide outward directly above the ball on the table
       coroutine.await(extender.moveTo(ExtenderConstants.BALL_EXTENSION));
       // 3. Lower elevator onto the ball
-      coroutine.await(elevator.moveTo(ElevatorConstants.GRAB_HEIGHT));
+      coroutine.await(elevator.moveTo(ElevatorConstants.TABLE_GRAB_HEIGHT));
       // 4. Close claw fingers to grip the ball
       coroutine.await(claw.close());
     }).named("Grab Ball From Table");

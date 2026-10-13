@@ -1,6 +1,7 @@
 package first.robot.sim;
 
 import static first.robot.constants.FieldConstants.*;
+import static first.robot.constants.RobotConstants.*;
 
 import first.robot.constants.DriverConstants;
 import first.robot.subsystems.drive.DriveConstants;
@@ -78,7 +79,6 @@ public class SimWindow extends JFrame {
   private static final Color BUMPER_BLUE_DARK = new Color(0x172554);
 
   private final SimWorld world;
-  private final SimKeyboard keyboard;
   private final ScenePanel scene = new ScenePanel();
   private boolean resetKeyWasDown = false;
   private boolean teleopKeyWasDown = false;
@@ -95,7 +95,6 @@ public class SimWindow extends JFrame {
     super("467 Sim");
     loadWindowIcon();
     this.world = world;
-    this.keyboard = keyboard;
     keyboard.install();
 
     setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -363,7 +362,6 @@ public class SimWindow extends JFrame {
       // 1. Green Floor Target Box near Table
       double tgtLeft = ROBOT_TABLE_X + TARGET_LEFT_X;
       double tgtRight = ROBOT_TABLE_X + TARGET_RIGHT_X;
-      double tgtCenter = (tgtLeft + tgtRight) / 2.0;
       drawTargetBox(g, tgtLeft, tgtRight, 0.0, TARGET_BOX_WALL_HEIGHT, TARGET_GREEN, TARGET_GREEN_LIT, scoredGreen, "TARGET (Grn)");
 
       // 2. Orange Table Target Box on top of the Table
@@ -388,8 +386,6 @@ public class SimWindow extends JFrame {
         String label) {
       Color mainCol = isScored ? litCol : baseCol;
       double wallThickness = 0.020;
-      double boxHeight = yTop - yBase;
-
       // Interior glowing receptacle
       g.setColor(new Color(mainCol.getRed(), mainCol.getGreen(), mainCol.getBlue(), isScored ? 120 : 50));
       g.fill(rect(x1, yBase, x2, yTop));

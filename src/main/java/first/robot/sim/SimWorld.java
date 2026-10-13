@@ -1,6 +1,6 @@
 package first.robot.sim;
 
-import static first.robot.constants.FieldConstants.WRIST_BASE_X;
+import static first.robot.constants.RobotConstants.WRIST_BASE_X;
 
 import first.robot.subsystems.claw.ClawIOSim;
 import first.robot.subsystems.claw.ClawMechanism;
@@ -303,29 +303,24 @@ public class SimWorld {
 
     double robotFieldX =
         (drive != null) ? drive.getPosition() : first.robot.constants.FieldConstants.ROBOT_TABLE_X;
-    double robotSideX = robotFieldX - first.robot.constants.FieldConstants.ROBOT_TABLE_X;
-
     double wristExtenderX = WRIST_BASE_X + extender.getPosition();
-    double wristSideX = robotSideX + wristExtenderX;
     double wristFieldX = robotFieldX + wristExtenderX;
     double wristY = elevator.getPosition();
     double clawAngle = clawIO.getSimAngle();
     boolean ballHeld = ball1.isHeld() || ball2.isHeld();
 
     // The lowest point of the claw fingers / held ball relative to wristY
-    double clawDrop = 0.02 + first.robot.constants.FieldConstants.FINGER_LENGTH * Math.cos(clawAngle);
+    double clawDrop = 0.02 + first.robot.constants.RobotConstants.FINGER_LENGTH * Math.cos(clawAngle);
     if (ballHeld) {
-      clawDrop = Math.max(clawDrop, first.robot.constants.FieldConstants.GRIP_DEPTH + first.robot.constants.FieldConstants.BALL_RADIUS);
+      clawDrop = Math.max(clawDrop, first.robot.constants.RobotConstants.GRIP_DEPTH + first.robot.constants.FieldConstants.BALL_RADIUS);
     }
     double clawLowestY = wristY - clawDrop;
 
     // How far in front of wristSideX the fingers / held ball reach
-    double clawFrontReach = 0.03 + first.robot.constants.FieldConstants.FINGER_LENGTH * Math.sin(clawAngle);
+    double clawFrontReach = 0.03 + first.robot.constants.RobotConstants.FINGER_LENGTH * Math.sin(clawAngle);
     if (ballHeld) {
       clawFrontReach = Math.max(clawFrontReach, first.robot.constants.FieldConstants.BALL_RADIUS);
     }
-    double clawTipX = wristSideX + clawFrontReach;
-
     double tableFieldLeft =
         first.robot.constants.FieldConstants.ROBOT_TABLE_X
             + first.robot.constants.FieldConstants.TABLE_LEFT_X;

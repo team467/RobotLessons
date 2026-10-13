@@ -3,6 +3,7 @@ package first.robot;
 import static org.junit.jupiter.api.Assertions.*;
 
 import first.robot.constants.FieldConstants;
+import first.robot.constants.RobotConstants;
 import first.robot.sim.SimWorld;
 import first.robot.subsystems.claw.ClawIOSim;
 import first.robot.subsystems.claw.ClawMechanism;
@@ -38,7 +39,7 @@ public class TableContactTest {
 
     // Raise elevator above table and extend over the table
     Scheduler.getDefault().schedule(elevator.moveTo(first.robot.subsystems.elevator.ElevatorConstants.ABOVE_TABLE_HEIGHT));
-    Scheduler.getDefault().schedule(extender.moveTo(FieldConstants.BALL_START_X - FieldConstants.WRIST_BASE_X));
+    Scheduler.getDefault().schedule(extender.moveTo(FieldConstants.BALL_START_X - RobotConstants.WRIST_BASE_X));
     for (int i = 0; i < 80; i++) {
       elevator.periodic();
       extender.periodic();
@@ -62,7 +63,7 @@ public class TableContactTest {
 
     // The claw must physically stop on the table top and NOT penetrate through it
     double clawAngle = clawIO.getSimAngle();
-    double clawDrop = 0.02 + FieldConstants.FINGER_LENGTH * Math.cos(clawAngle);
+    double clawDrop = 0.02 + RobotConstants.FINGER_LENGTH * Math.cos(clawAngle);
     double lowestClawY = elevator.getPosition() - clawDrop;
     assertTrue(lowestClawY >= FieldConstants.TABLE_HEIGHT - 0.02,
         "Claw must not penetrate below table surface (" + lowestClawY + " vs " + FieldConstants.TABLE_HEIGHT + ")");
@@ -95,8 +96,8 @@ public class TableContactTest {
     assertTrue(world.snapshot().tableContact(), "Extending into side of table should trigger table contact");
 
     // Wrist X must not penetrate through the table left edge (TABLE_LEFT_X = 0.70)
-    double wristX = FieldConstants.WRIST_BASE_X + extender.getPosition();
-    double clawTipX = wristX + 0.03 + FieldConstants.FINGER_LENGTH * Math.sin(clawIO.getSimAngle());
+    double wristX = RobotConstants.WRIST_BASE_X + extender.getPosition();
+    double clawTipX = wristX + 0.03 + RobotConstants.FINGER_LENGTH * Math.sin(clawIO.getSimAngle());
     assertTrue(clawTipX <= FieldConstants.TABLE_LEFT_X + 0.02,
         "Claw must not penetrate past table left edge (" + clawTipX + " vs " + FieldConstants.TABLE_LEFT_X + ")");
   }
@@ -138,8 +139,8 @@ public class TableContactTest {
     assertTrue(world.snapshot().tableContact(), "Table contact should be true when hitting table from left");
 
     // Extender must stop at the left edge
-    double wristX = FieldConstants.WRIST_BASE_X + extender.getPosition();
-    double clawTipX = wristX + 0.03 + FieldConstants.FINGER_LENGTH * Math.sin(clawIO.getSimAngle());
+    double wristX = RobotConstants.WRIST_BASE_X + extender.getPosition();
+    double clawTipX = wristX + 0.03 + RobotConstants.FINGER_LENGTH * Math.sin(clawIO.getSimAngle());
     assertTrue(clawTipX <= FieldConstants.TABLE_LEFT_X + 0.02,
         "Claw must stop at the table left edge");
 

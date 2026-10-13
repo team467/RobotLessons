@@ -1,6 +1,7 @@
 package first.robot.subsystems.elevator;
 
 import first.robot.constants.FieldConstants;
+import first.robot.constants.RobotConstants;
 
 /** Constants for the {@link ElevatorMechanism}. Heights are wrist (claw pivot) heights in meters. */
 public final class ElevatorConstants {
@@ -28,10 +29,11 @@ public final class ElevatorConstants {
 
   // ---- Useful setpoints ----
   /** Low enough that the claw grips the ball sitting on the table. */
-  public static final double GRAB_HEIGHT = FieldConstants.BALL_START_Y + FieldConstants.GRIP_DEPTH;
+  public static final double TABLE_GRAB_HEIGHT = FieldConstants.BALL_START_Y + RobotConstants.GRIP_DEPTH;
+  public static final double GRAB_HEIGHT = TABLE_GRAB_HEIGHT;
 
   /** Low enough that the claw grips a ball sitting on the floor. */
-  public static final double GROUND_GRAB_HEIGHT = FieldConstants.BALL_RADIUS + FieldConstants.GRIP_DEPTH;
+  public static final double GROUND_GRAB_HEIGHT = FieldConstants.BALL_RADIUS + RobotConstants.GRIP_DEPTH;
 
   /** High enough to carry a ball over the table without hitting it. */
   public static final double ABOVE_TABLE_HEIGHT = 1.35;
@@ -41,7 +43,7 @@ public final class ElevatorConstants {
 
   /** Height over the table target to place the ball gently into the table box. */
   public static final double SCORE_TABLE_HEIGHT =
-      FieldConstants.TABLE_HEIGHT + FieldConstants.TARGET_BOX_WALL_HEIGHT + FieldConstants.GRIP_DEPTH + 0.05;
+      FieldConstants.TABLE_HEIGHT + FieldConstants.TARGET_BOX_WALL_HEIGHT + RobotConstants.GRIP_DEPTH + 0.05;
 
   public static final double STOW_HEIGHT = 0.50;
 }

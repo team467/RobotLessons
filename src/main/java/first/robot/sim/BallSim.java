@@ -1,6 +1,7 @@
 package first.robot.sim;
 
 import static first.robot.constants.FieldConstants.*;
+import static first.robot.constants.RobotConstants.*;
 
 /**
  * Simple 2D physics for the ball: it sits on the table or floor, falls under gravity, and can be
