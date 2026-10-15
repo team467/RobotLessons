@@ -13,7 +13,7 @@ public final class ExtenderConstants {
   // ---- Physical limits ----
   public static final double MIN_EXTENSION = 0.0;
   public static final double MAX_EXTENSION = 1.10;
-  public static final double STARTING_EXTENSION = 0.0;
+  public static final double STARTING_EXTENSION = 0.33;
 
   // ---- Simulated hardware ----
   public static final double GEARING = 8.0;

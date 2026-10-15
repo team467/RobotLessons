@@ -32,7 +32,7 @@ public class ClawIOSim implements ClawIO {
   private boolean ballDetected = false;
 
   @Override
-  public void updateInputs(ClawInputs inputs) {
+  public void updateSim() {
     double volts = RobotBase.isEnabled() ? requestedVolts : 0.0;
     sim.setInputVoltage(volts);
     sim.update(LOOP_PERIOD_SECONDS);
@@ -41,10 +41,13 @@ public class ClawIOSim implements ClawIO {
     if (!Double.isNaN(gripStopAngle) && sim.getAngle() < gripStopAngle) {
       sim.setState(gripStopAngle, 0.0);
     }
+  }
 
+  @Override
+  public void updateInputs(ClawInputs inputs) {
     inputs.angleRadians = sim.getAngle();
     inputs.velocityRadPerSec = sim.getVelocity();
-    inputs.appliedVolts = volts;
+    inputs.appliedVolts = RobotBase.isEnabled() ? requestedVolts : 0.0;
     inputs.currentAmps = Math.abs(sim.getCurrentDraw());
     inputs.hasBall = ballDetected;
   }

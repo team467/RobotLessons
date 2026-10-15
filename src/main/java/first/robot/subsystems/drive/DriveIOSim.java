@@ -26,14 +26,17 @@ public class DriveIOSim implements DriveIO {
   private double requestedVolts = 0.0;
 
   @Override
-  public void updateInputs(DriveInputs inputs) {
+  public void updateSim() {
     double volts = RobotBase.isEnabled() ? requestedVolts : 0.0;
     sim.setInputVoltage(volts);
     sim.update(LOOP_PERIOD_SECONDS);
+  }
 
+  @Override
+  public void updateInputs(DriveInputs inputs) {
     inputs.positionMeters = sim.getPosition();
     inputs.velocityMetersPerSec = sim.getVelocity();
-    inputs.appliedVolts = volts;
+    inputs.appliedVolts = RobotBase.isEnabled() ? requestedVolts : 0.0;
     inputs.currentAmps = Math.abs(sim.getCurrentDraw());
   }
 

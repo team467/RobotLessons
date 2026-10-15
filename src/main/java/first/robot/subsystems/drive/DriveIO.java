@@ -19,4 +19,7 @@ public interface DriveIO {
   default void resetPosition() {}
 
   default void resetPosition(double positionMeters) {}
+
+  /** Updates simulation physics (called during simulationPeriodic). Default does nothing for real hardware. */
+  default void updateSim() {}
 }

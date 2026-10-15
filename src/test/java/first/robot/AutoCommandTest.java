@@ -38,7 +38,7 @@ public class AutoCommandTest {
     ExtenderMechanism extender = new ExtenderMechanism(extenderIO);
     ClawMechanism claw = new ClawMechanism(clawIO);
 
-    SimWorld world = new SimWorld(elevator, extender, claw, clawIO);
+    SimWorld world = new SimWorld(elevator, elevatorIO, extender, extenderIO, claw, clawIO);
 
     Command grabBall = BallCommands.grabBallFromTable(elevator, extender, claw);
     Scheduler.getDefault().schedule(grabBall);

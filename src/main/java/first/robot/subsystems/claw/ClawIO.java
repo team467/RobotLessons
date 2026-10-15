@@ -28,4 +28,7 @@ public interface ClawIO {
 
   /** Commands the motor with a voltage. Positive opens the claw, negative closes it. */
   void setVoltage(double volts);
+
+  /** Updates simulation physics (called during simulationPeriodic). Default does nothing for real hardware. */
+  default void updateSim() {}
 }

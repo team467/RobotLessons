@@ -169,14 +169,6 @@ public class SimWorld {
     this(elevator, elevatorIO, extender, extenderIO, claw, clawIO, null, null);
   }
 
-  public SimWorld(
-      ElevatorMechanism elevator,
-      ExtenderMechanism extender,
-      ClawMechanism claw,
-      ClawIOSim clawIO) {
-    this(elevator, null, extender, null, claw, clawIO, null, null);
-  }
-
   public void setTeleopActivator(Runnable teleopActivator) {
     this.teleopActivator = teleopActivator;
   }
@@ -392,6 +384,20 @@ public class SimWorld {
 
     clawIO.setGripStop(gripStop);
     clawIO.setBallDetected(ball1.isHeld() || ball2.isHeld());
+
+    // Step simulation physics for all mechanisms
+    if (elevatorIO != null) {
+      elevatorIO.updateSim();
+    }
+    if (extenderIO != null) {
+      extenderIO.updateSim();
+    }
+    if (clawIO != null) {
+      clawIO.updateSim();
+    }
+    if (driveIO != null) {
+      driveIO.updateSim();
+    }
 
     boolean isAutonomous = RobotBase.isAutonomous() && RobotBase.isEnabled();
     if (isAutonomous) {

@@ -61,8 +61,8 @@ public class MotorStateSimTest {
     elevator.periodic();
     extender.periodic();
     claw.periodic();
-    world.update();
     Scheduler.getDefault().run();
+    world.update();
   }
 
   @Test

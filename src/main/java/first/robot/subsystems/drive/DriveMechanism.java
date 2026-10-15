@@ -1,3 +1,23 @@
+/**
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ *  DONT EDIT THIS FILE FOR THE 467 SIM BOT
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ */
 package first.robot.subsystems.drive;
 
 import static first.robot.subsystems.drive.DriveConstants.*;
@@ -29,6 +49,11 @@ public class DriveMechanism implements Mechanism {
   /** Call once per robot loop, before scheduler runs, to refresh sensor readings. */
   public void periodic() {
     io.updateInputs(inputs);
+  }
+
+  /** Call in simulation loop to step drivetrain physics. */
+  public void simulationPeriodic() {
+    io.updateSim();
   }
 
   // ------------------------------------------------------------------------------------------

@@ -39,6 +39,7 @@ public class DriveMechanismTest {
     for (int i = 0; i < 150; i++) {
       drive.periodic();
       Scheduler.getDefault().run();
+      drive.simulationPeriodic();
       if (drive.atSetpoint()) {
         reached = true;
         break;
@@ -59,6 +60,7 @@ public class DriveMechanismTest {
     for (int i = 0; i < 150; i++) {
       drive.periodic();
       Scheduler.getDefault().run();
+      drive.simulationPeriodic();
       if (drive.atSetpoint()) break;
     }
     assertTrue(drive.atSetpoint());
@@ -68,6 +70,7 @@ public class DriveMechanismTest {
     for (int i = 0; i < 150; i++) {
       drive.periodic();
       Scheduler.getDefault().run();
+      drive.simulationPeriodic();
       if (drive.atSetpoint()) break;
     }
     assertTrue(drive.atSetpoint());

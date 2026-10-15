@@ -1,3 +1,23 @@
+/**
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ *  DONT EDIT THIS FILE FOR THE 467 SIM BOT
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ */
 package first.robot.subsystems.elevator;
 
 import first.robot.constants.FieldConstants;

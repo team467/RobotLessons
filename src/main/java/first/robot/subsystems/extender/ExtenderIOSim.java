@@ -38,7 +38,7 @@ public class ExtenderIOSim implements ExtenderIO {
   }
 
   @Override
-  public void updateInputs(ExtenderInputs inputs) {
+  public void updateSim() {
     double volts = RobotBase.isEnabled() ? requestedVolts : 0.0;
     sim.setInputVoltage(volts);
     sim.update(LOOP_PERIOD_SECONDS);
@@ -46,10 +46,13 @@ public class ExtenderIOSim implements ExtenderIO {
     if (sim.getPosition() > maxExtensionLimit) {
       sim.setState(maxExtensionLimit, Math.min(0.0, sim.getVelocity()));
     }
+  }
 
+  @Override
+  public void updateInputs(ExtenderInputs inputs) {
     inputs.positionMeters = sim.getPosition();
     inputs.velocityMetersPerSec = sim.getVelocity();
-    inputs.appliedVolts = volts;
+    inputs.appliedVolts = RobotBase.isEnabled() ? requestedVolts : 0.0;
     inputs.currentAmps = Math.abs(sim.getCurrentDraw());
   }
 

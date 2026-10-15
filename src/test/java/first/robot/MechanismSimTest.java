@@ -37,6 +37,7 @@ public class MechanismSimTest {
     for (int i = 0; i < 100; i++) {
       elevator.periodic();
       Scheduler.getDefault().run();
+      elevator.simulationPeriodic();
       if (elevator.atSetpoint()) {
         break;
       }
@@ -58,6 +59,7 @@ public class MechanismSimTest {
     for (int i = 0; i < 100; i++) {
       extender.periodic();
       Scheduler.getDefault().run();
+      extender.simulationPeriodic();
       if (extender.atSetpoint()) {
         break;
       }
@@ -78,6 +80,7 @@ public class MechanismSimTest {
     for (int i = 0; i < 50; i++) {
       claw.periodic();
       Scheduler.getDefault().run();
+      claw.simulationPeriodic();
       if (claw.atSetpoint()) {
         break;
       }

@@ -30,6 +30,11 @@ public class ExtenderMechanism implements Mechanism {
     io.updateInputs(inputs);
   }
 
+  /** Call in simulation loop to step mechanism physics. */
+  public void simulationPeriodic() {
+    io.updateSim();
+  }
+
   // ------------------------------------------------------------------------------------------
   // Commands
   // ------------------------------------------------------------------------------------------

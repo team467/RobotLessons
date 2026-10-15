@@ -33,8 +33,7 @@ public class ElevatorIOSim implements ElevatorIO {
   }
 
   @Override
-  public void updateInputs(ElevatorInputs inputs) {
-    // A real motor controller outputs nothing while the robot is disabled.
+  public void updateSim() {
     double volts = RobotBase.isEnabled() ? requestedVolts : 0.0;
     sim.setInputVoltage(volts);
     sim.update(LOOP_PERIOD_SECONDS);
@@ -42,10 +41,13 @@ public class ElevatorIOSim implements ElevatorIO {
     if (sim.getPosition() < minHeightLimit) {
       sim.setState(minHeightLimit, Math.max(0.0, sim.getVelocity()));
     }
+  }
 
+  @Override
+  public void updateInputs(ElevatorInputs inputs) {
     inputs.positionMeters = sim.getPosition();
     inputs.velocityMetersPerSec = sim.getVelocity();
-    inputs.appliedVolts = volts;
+    inputs.appliedVolts = RobotBase.isEnabled() ? requestedVolts : 0.0;
     inputs.currentAmps = Math.abs(sim.getCurrentDraw());
   }
 
