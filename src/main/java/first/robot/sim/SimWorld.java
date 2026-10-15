@@ -20,6 +20,13 @@ import org.wpilib.framework.RobotBase;
  * Swing thread. Snapshots are immutable, so this is thread-safe.
  */
 public class SimWorld {
+  /** Operating state of a mechanism's motor for visual feedback in the simulator. */
+  public enum MotorState {
+    IDLE,
+    RUNNING,
+    STALLED
+  }
+
   /** Everything the window needs to draw one frame. */
   public record Snapshot(
       double elevatorHeight,
@@ -54,7 +61,11 @@ public class SimWorld {
       double ball2FieldX,
       double autoTimeSeconds,
       boolean autoRunning,
-      boolean autoComplete) {}
+      boolean autoComplete,
+      MotorState elevatorMotorState,
+      MotorState extenderMotorState,
+      MotorState clawMotorState,
+      MotorState driveMotorState) {}
 
   private static final double LOOP_PERIOD_SECONDS = 0.02;
 
@@ -463,6 +474,17 @@ public class SimWorld {
     double ball1SideX = ball1.getX() - first.robot.constants.FieldConstants.ROBOT_TABLE_X;
     double ball2SideX = ball2.getX() - first.robot.constants.FieldConstants.ROBOT_TABLE_X;
 
+    double minElevatorLimit =
+        (elevatorIO != null) ? elevatorIO.getMinHeightLimit() : first.robot.subsystems.elevator.ElevatorConstants.MIN_HEIGHT;
+    double maxExtenderLimit =
+        (extenderIO != null) ? extenderIO.getMaxExtensionLimit() : first.robot.subsystems.extender.ExtenderConstants.MAX_EXTENSION;
+    boolean anyBallHeld = (ball1 != null && ball1.isHeld()) || (ball2 != null && ball2.isHeld()) || claw.hasBall();
+
+    MotorState elevatorState = computeElevatorMotorState(minElevatorLimit, tableContact);
+    MotorState extenderState = computeExtenderMotorState(maxExtenderLimit, tableContact);
+    MotorState clawState = computeClawMotorState(anyBallHeld);
+    MotorState driveState = computeDriveMotorState();
+
     return new Snapshot(
         elevator.getPosition(),
         elevator.getSetpoint(),
@@ -496,6 +518,103 @@ public class SimWorld {
         ball2.getX(),
         autoTimerSeconds,
         autoRunning,
-        autoComplete);
+        autoComplete,
+        elevatorState,
+        extenderState,
+        clawState,
+        driveState);
+  }
+
+  private MotorState computeElevatorMotorState(double minLimit, boolean tableContact) {
+    if (!RobotBase.isEnabled()) {
+      return MotorState.IDLE;
+    }
+    double vel = elevator.getVelocity();
+    double volts = elevator.getAppliedVolts();
+    double pos = elevator.getPosition();
+
+    // Stalled: voltage applied, but cannot move because at limit/stop/obstacle
+    boolean atLowerLimit = pos <= (minLimit + 0.02) || tableContact;
+    boolean pushingDown = (volts < first.robot.subsystems.elevator.ElevatorConstants.KG - 0.4);
+    boolean atUpperLimit = pos >= (first.robot.subsystems.elevator.ElevatorConstants.MAX_HEIGHT - 0.02);
+    boolean pushingUp = (volts > first.robot.subsystems.elevator.ElevatorConstants.KG + 0.8);
+
+    if (Math.abs(vel) < 0.03 && ((atLowerLimit && pushingDown) || (atUpperLimit && pushingUp))) {
+      return MotorState.STALLED;
+    }
+
+    if (Math.abs(vel) > 0.015 && Math.abs(volts - first.robot.subsystems.elevator.ElevatorConstants.KG) > 0.2) {
+      return MotorState.RUNNING;
+    }
+
+    return MotorState.IDLE;
+  }
+
+  private MotorState computeExtenderMotorState(double maxLimit, boolean tableContact) {
+    if (!RobotBase.isEnabled()) {
+      return MotorState.IDLE;
+    }
+    double vel = extender.getVelocity();
+    double volts = extender.getAppliedVolts();
+    double pos = extender.getPosition();
+
+    // Stalled: voltage applied, but cannot move because at retracted or extended limit
+    boolean atMinLimit = pos <= (first.robot.subsystems.extender.ExtenderConstants.MIN_EXTENSION + 0.02);
+    boolean pushingIn = (volts < -0.5);
+    boolean atMaxLimit = pos >= (maxLimit - 0.02) || (tableContact && volts > 0.5);
+    boolean pushingOut = (volts > 0.5);
+
+    if (Math.abs(vel) < 0.03 && ((atMinLimit && pushingIn) || (atMaxLimit && pushingOut))) {
+      return MotorState.STALLED;
+    }
+
+    if (Math.abs(vel) > 0.01 && Math.abs(volts) > 0.2) {
+      return MotorState.RUNNING;
+    }
+
+    return MotorState.IDLE;
+  }
+
+  private MotorState computeClawMotorState(boolean ballHeld) {
+    if (!RobotBase.isEnabled()) {
+      return MotorState.IDLE;
+    }
+    double vel = claw.getVelocity();
+    double volts = claw.getAppliedVolts();
+    double angle = claw.getAngle();
+
+    // Stalled: squeezing a held ball, or driven into closed/open physical stops
+    boolean grippingBall = ballHeld && (volts < -0.5);
+    boolean atClosedStop = angle <= (first.robot.subsystems.claw.ClawConstants.CLOSED_ANGLE + 0.025) && (volts < -0.5);
+    boolean atOpenStop = angle >= (first.robot.subsystems.claw.ClawConstants.OPEN_ANGLE - 0.025) && (volts > 0.5);
+
+    if (Math.abs(vel) < 0.05 && (grippingBall || atClosedStop || atOpenStop)) {
+      return MotorState.STALLED;
+    }
+
+    if (Math.abs(vel) > 0.02 && Math.abs(volts) > 0.2) {
+      return MotorState.RUNNING;
+    }
+
+    return MotorState.IDLE;
+  }
+
+  private MotorState computeDriveMotorState() {
+    if (!RobotBase.isEnabled() || drive == null) {
+      return MotorState.IDLE;
+    }
+    double vel = drive.getVelocity();
+    double volts = drive.getAppliedVolts();
+
+    // Drivetrain stalled: commanding substantial drive voltage while stationary
+    if (Math.abs(volts) > 1.5 && Math.abs(vel) < 0.02) {
+      return MotorState.STALLED;
+    }
+
+    if (Math.abs(vel) > 0.02 && Math.abs(volts) > 0.2) {
+      return MotorState.RUNNING;
+    }
+
+    return MotorState.IDLE;
   }
 }

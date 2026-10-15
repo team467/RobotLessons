@@ -122,6 +122,10 @@ public class ClawMechanism implements Mechanism {
     return inputs.appliedVolts;
   }
 
+  public double getVelocity() {
+    return inputs.velocityRadPerSec;
+  }
+
   /** The name of the most specific command currently using the claw. */
   public String getCurrentCommandName() {
     List<Command> running = getRunningCommands();

@@ -123,6 +123,10 @@ public class ElevatorMechanism implements Mechanism {
     return inputs.appliedVolts;
   }
 
+  public double getVelocity() {
+    return inputs.velocityMetersPerSec;
+  }
+
   /** The name of the most specific command currently using the elevator. */
   public String getCurrentCommandName() {
     List<Command> running = getRunningCommands();

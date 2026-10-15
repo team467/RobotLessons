@@ -118,6 +118,10 @@ public class ExtenderMechanism implements Mechanism {
     return inputs.appliedVolts;
   }
 
+  public double getVelocity() {
+    return inputs.velocityMetersPerSec;
+  }
+
   /** The name of the most specific command currently using the extender. */
   public String getCurrentCommandName() {
     List<Command> running = getRunningCommands();

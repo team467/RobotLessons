@@ -68,6 +68,8 @@ public class SimWindow extends JFrame {
   private static final Color ALUMINUM_DARK = new Color(0x8A939C);
   private static final Color ALUMINUM_LIGHT = new Color(0xD8DEE4);
   private static final Color MOTOR = new Color(0x2B2F33);
+  private static final Color MOTOR_RUNNING = new Color(0x22C55E); // Green when actively moving
+  private static final Color MOTOR_STALLED = new Color(0xEF4444); // Red when stalled at limit
   private static final Color CARRIAGE = new Color(0x3C6E9E);
   private static final Color CHAIN = new Color(0x444444);
   private static final Color FINGER = new Color(0x3A3F44);
@@ -77,6 +79,17 @@ public class SimWindow extends JFrame {
   private static final Color WHEEL_RIM = new Color(0x717D8A);
   private static final Color BUMPER_BLUE = new Color(0x1D4ED8); // FRC Team 467 royal blue
   private static final Color BUMPER_BLUE_DARK = new Color(0x172554);
+
+  private static Color motorColor(SimWorld.MotorState state) {
+    if (state == null) {
+      return MOTOR;
+    }
+    return switch (state) {
+      case RUNNING -> MOTOR_RUNNING;
+      case STALLED -> MOTOR_STALLED;
+      default -> MOTOR;
+    };
+  }
 
   private final SimWorld world;
   private final ScenePanel scene = new ScenePanel();
@@ -300,10 +313,10 @@ public class SimWindow extends JFrame {
 
       // Robot is always centered in the side view
       drawWheelsSide(g, robFieldX);
-      drawTower(g, robFieldX);
+      drawTower(g, robFieldX, s);
       drawBumperSide(g, robFieldX);
-      drawCarriageAndExtender(g, robFieldX, wristY, wristFieldX);
-      drawClaw(g, wristFieldX, wristY, s.clawAngle());
+      drawCarriageAndExtender(g, robFieldX, wristY, wristFieldX, s);
+      drawClaw(g, wristFieldX, wristY, s.clawAngle(), s);
       drawSetpointMarkers(g, robFieldX, s, wristY);
 
       // Ball 1 (Green ball)
@@ -492,11 +505,15 @@ public class SimWindow extends JFrame {
       g.drawString("467", (float) textPixelX, (float) baselineY);
     }
 
-    private void drawTower(Graphics2D g, double rx) {
+    private void drawTower(Graphics2D g, double rx, SimWorld.Snapshot s) {
       // Chassis base plate and elevator motor
       fillOutlined(g, rect(rx - 0.30, 0.045, rx + 0.22, 0.09), ALUMINUM_DARK, ALUMINUM_DARK.darker());
-      fillOutlined(g, roundRect(rx - 0.27, 0.09, rx - 0.11, 0.20, 0.02), MOTOR, Color.BLACK);
+      fillOutlined(g, roundRect(rx - 0.27, 0.09, rx - 0.11, 0.20, 0.02), motorColor(s.elevatorMotorState()), Color.BLACK);
       label(g, "Y motor", rx - 0.19, 0.23);
+
+      // Drive motor balancing on chassis plate
+      fillOutlined(g, roundRect(rx + 0.09, 0.09, rx + 0.21, 0.18, 0.02), motorColor(s.driveMotorState()), Color.BLACK);
+      label(g, "Drive motor", rx + 0.15, 0.21);
 
       // Two vertical rails
       fillOutlined(g, rect(rx - 0.075, 0.09, rx - 0.04, TOWER_HEIGHT), ALUMINUM, ALUMINUM_DARK);
@@ -522,7 +539,7 @@ public class SimWindow extends JFrame {
       }
     }
 
-    private void drawCarriageAndExtender(Graphics2D g, double rx, double h, double wristX) {
+    private void drawCarriageAndExtender(Graphics2D g, double rx, double h, double wristX, SimWorld.Snapshot s) {
       // Carriage
       fillOutlined(g, roundRect(rx - 0.10, h - 0.09, rx + 0.11, h + 0.06, 0.015), CARRIAGE,
           CARRIAGE.darker());
@@ -540,7 +557,7 @@ public class SimWindow extends JFrame {
       g.draw(new Line2D.Double(sx(rx + 0.06), sy(h + 0.025), sx(rx + 0.62), sy(h + 0.025)));
 
       // Extender motor
-      fillOutlined(g, roundRect(rx, h + 0.055, rx + 0.13, h + 0.14, 0.02), MOTOR, Color.BLACK);
+      fillOutlined(g, roundRect(rx, h + 0.055, rx + 0.13, h + 0.14, 0.02), motorColor(s.extenderMotorState()), Color.BLACK);
       label(g, "X motor", rx + 0.065, h + 0.17);
     }
 
@@ -571,11 +588,11 @@ public class SimWindow extends JFrame {
               sx(x - r * 0.35), sy(y + r), len(r * 0.7), len(2 * r)));
     }
 
-    private void drawClaw(Graphics2D g, double wristX, double wristY, double angle) {
+    private void drawClaw(Graphics2D g, double wristX, double wristY, double angle, SimWorld.Snapshot s) {
       fillOutlined(g, roundRect(wristX - 0.06, wristY - 0.03, wristX + 0.06, wristY + 0.06, 0.01),
           ALUMINUM_DARK, ALUMINUM_DARK.darker());
       fillOutlined(g, roundRect(wristX - 0.028, wristY + 0.06, wristX + 0.028, wristY + 0.13,
-          0.01), MOTOR, Color.BLACK);
+          0.01), motorColor(s.clawMotorState()), Color.BLACK);
 
       for (int side : new int[] {-1, 1}) {
         double pivotX = wristX + side * FINGER_PIVOT_HALF_SPACING;
@@ -687,18 +704,29 @@ public class SimWindow extends JFrame {
 
       // Table data rows
       g.setFont(mono);
+      SimWorld.MotorState[] motorStates = {
+        s.driveMotorState(),
+        s.elevatorMotorState(),
+        s.extenderMotorState(),
+        s.clawMotorState()
+      };
       for (int r = 0; r < rows.length; r++) {
         int rowY = tableY + 6 + lineH * (r + 1);
         curX = 2 * pad;
+        SimWorld.MotorState mState = (r < motorStates.length) ? motorStates[r] : SimWorld.MotorState.IDLE;
+        g.setColor(motorColor(mState));
+        g.fillOval(curX, rowY - 8, 7, 7);
         for (int c = 0; c < rows[r].length; c++) {
           if (c == 0) {
             g.setColor(new Color(0xE2E8F0)); // Subsystem name
+            g.drawString(rows[r][c], curX + 12, rowY);
           } else if (c == 4) {
             g.setColor(new Color(0x38BDF8)); // Status / command
+            g.drawString(rows[r][c], curX, rowY);
           } else {
             g.setColor(Color.WHITE); // numeric metrics
+            g.drawString(rows[r][c], curX, rowY);
           }
-          g.drawString(rows[r][c], curX, rowY);
           curX += colWidths[c];
         }
       }
