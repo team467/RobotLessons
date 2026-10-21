@@ -40,6 +40,9 @@ public class BallSim {
   private final double targetLeftX;
   private final double targetRightX;
   private final double targetSurfaceY;
+  private double basketLeftX = BASKET_LEFT_X;
+  private double basketRightX = BASKET_RIGHT_X;
+  private double basketHeight = BASKET_HEIGHT;
 
   private double x;
   private double y;
@@ -47,7 +50,9 @@ public class BallSim {
   private double vy;
   private State state;
   private boolean scored;
+  private boolean scoredInBasket;
   private boolean readyToGrab;
+  private double kickCooldown = 0.0;
   private double previousClawAngle = Double.NaN;
 
   public BallSim() {
@@ -119,6 +124,13 @@ public class BallSim {
     reset();
   }
 
+  /** Configures the world X bounds and height of the elevated basket target. */
+  public void setBasketBounds(double basketLeftX, double basketRightX, double basketHeight) {
+    this.basketLeftX = basketLeftX;
+    this.basketRightX = basketRightX;
+    this.basketHeight = basketHeight;
+  }
+
   /** Puts the ball back at its starting spot. */
   public void reset() {
     x = startX;
@@ -127,8 +139,26 @@ public class BallSim {
     vy = 0;
     state = initialState;
     scored = false;
+    scoredInBasket = false;
     readyToGrab = false;
+    kickCooldown = 0.0;
     previousClawAngle = Double.NaN;
+  }
+
+  /**
+   * Kicks the ball into the air with the given initial velocity, knocking it free from the claw.
+   *
+   * @param launchVx horizontal launch velocity (meters/sec)
+   * @param launchVy vertical launch velocity (meters/sec)
+   */
+  public void kick(double launchVx, double launchVy) {
+    state = State.FALLING;
+    vx = launchVx;
+    vy = launchVy;
+    scored = false;
+    scoredInBasket = false;
+    readyToGrab = false;
+    kickCooldown = 0.25;
   }
 
   /**
@@ -147,6 +177,10 @@ public class BallSim {
     double lastAngle = Double.isNaN(previousClawAngle) ? clawAngle : previousClawAngle;
     previousClawAngle = clawAngle;
 
+    if (kickCooldown > 0.0) {
+      kickCooldown = Math.max(0.0, kickCooldown - dt);
+    }
+
     if (state == State.HELD) {
       readyToGrab = false;
       if (clawAngle > BALL_CONTACT_ANGLE + RELEASE_MARGIN) {
@@ -163,7 +197,10 @@ public class BallSim {
 
     // Try to grab: the ball must be in the capture zone, the claw must have opened
     // wide enough to fit over the ball, and then close onto the ball.
-    boolean inCaptureZone = Math.abs(x - gripX) < CAPTURE_X && Math.abs(y - gripY) < CAPTURE_Y;
+    boolean inCaptureZone =
+        kickCooldown <= 0.0
+            && Math.abs(x - gripX) < CAPTURE_X
+            && Math.abs(y - gripY) < CAPTURE_Y;
     if (!inCaptureZone) {
       readyToGrab = false;
     } else if (clawAngle >= BALL_CONTACT_ANGLE + OPEN_FOR_CAPTURE_MARGIN) {
@@ -177,6 +214,7 @@ public class BallSim {
       state = State.HELD;
       readyToGrab = false;
       scored = false;
+      scoredInBasket = false;
       vx = 0;
       vy = 0;
       x = gripX;
@@ -191,13 +229,19 @@ public class BallSim {
       y += vy * dt;
       double bottom = y - BALL_RADIUS;
 
+      boolean overBasket = x >= basketLeftX && x <= basketRightX;
       boolean overTable = x >= tableLeftX && x <= tableRightX;
-      if (overTable && bottom <= tableHeight && previousBottom >= tableHeight - 0.01) {
+      if (overBasket && vy <= 0.0 && bottom <= basketHeight && previousBottom >= basketHeight - 0.02) {
+        land(basketHeight + BALL_RADIUS, State.ON_TABLE);
+        scored = true;
+        scoredInBasket = true;
+      } else if (overTable && bottom <= tableHeight && previousBottom >= tableHeight - 0.01) {
         if (Math.abs(vy) > 2.4) {
           y = tableHeight + BALL_RADIUS;
           vy = -vy * 0.55;
           vx = (Math.abs(vx) < 0.2) ? 0.8 : vx * 0.8;
           scored = false;
+          scoredInBasket = false;
         } else {
           land(tableHeight + BALL_RADIUS, State.ON_TABLE);
           if (Math.abs(targetSurfaceY - tableHeight) < 0.1) {
@@ -215,6 +259,7 @@ public class BallSim {
             vx *= 0.8;
           }
           scored = false;
+          scoredInBasket = false;
         } else {
           land(BALL_RADIUS, State.ON_FLOOR);
           if (Math.abs(targetSurfaceY - 0.0) < 0.1) {
@@ -249,8 +294,13 @@ public class BallSim {
     return state == State.HELD;
   }
 
-  /** True when the ball is resting on the floor inside the target zone. */
+  /** True when the ball is resting inside its target zone or in the elevated basket. */
   public boolean isScored() {
     return scored;
+  }
+
+  /** True when the ball is resting inside the elevated basket target. */
+  public boolean isScoredInBasket() {
+    return scoredInBasket;
   }
 }

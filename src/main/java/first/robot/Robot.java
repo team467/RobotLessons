@@ -12,13 +12,15 @@ import first.robot.subsystems.elevator.ElevatorIOSim;
 import first.robot.subsystems.elevator.ElevatorMechanism;
 import first.robot.subsystems.extender.ExtenderIOSim;
 import first.robot.subsystems.extender.ExtenderMechanism;
+import first.robot.subsystems.shooter.ShooterIOSim;
+import first.robot.subsystems.shooter.ShooterMechanism;
 import org.wpilib.command3.Scheduler;
 import org.wpilib.command3.button.CommandGamepad;
 import org.wpilib.framework.OpModeRobot;
 
 /**
  * Main robot container: coordinates the drivetrain, elevator (up/down), extender (in/out),
- * and claw (open/close) mechanisms.
+ * claw (open/close), and spring-loaded shooter mechanisms.
  *
  * <p>Extends {@link OpModeRobot}, which automatically manages opmode lifecycle and discovers
  * registered {@code @Teleop} and {@code @Autonomous} classes.
@@ -34,6 +36,7 @@ public class Robot extends OpModeRobot {
   private final ElevatorIOSim elevatorIO = new ElevatorIOSim();
   private final ExtenderIOSim extenderIO = new ExtenderIOSim();
   private final ClawIOSim clawIO = new ClawIOSim();
+  private final ShooterIOSim shooterIO = new ShooterIOSim();
 
   /** Drivetrain mechanism for field translation between start and table. */
   public final DriveMechanism drive = new DriveMechanism(driveIO);
@@ -46,6 +49,9 @@ public class Robot extends OpModeRobot {
 
   /** Claw mechanism controlling pinchers/fingers to grasp and release game balls. */
   public final ClawMechanism claw = new ClawMechanism(clawIO);
+
+  /** Spring-loaded shooter mechanism with pullback motor, ratchet lock, and release solenoid. */
+  public final ShooterMechanism shooter = new ShooterMechanism(shooterIO);
 
   /** Driver gamepad controller on USB port 1. */
   final CommandGamepad controller = new CommandGamepad(DriverConstants.DRIVER_CONTROLLER_PORT);
@@ -75,6 +81,7 @@ public class Robot extends OpModeRobot {
     elevator.periodic();
     extender.periodic();
     claw.periodic();
+    shooter.periodic();
 
     // 2. Step the Command3 scheduler to execute running commands and update motor outputs.
     Scheduler.getDefault().run();
@@ -86,7 +93,9 @@ public class Robot extends OpModeRobot {
     activateTeleop();
 
     // Create the simulation physics world with all mechanisms
-    simWorld = new SimWorld(elevator, elevatorIO, extender, extenderIO, claw, clawIO, drive, driveIO);
+    simWorld =
+        new SimWorld(
+            elevator, elevatorIO, extender, extenderIO, claw, clawIO, drive, driveIO, shooter, shooterIO);
     simWorld.setTeleopActivator(this::activateTeleop);
 
     // Launch the Swing graphical user interface

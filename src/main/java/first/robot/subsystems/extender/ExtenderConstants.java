@@ -39,4 +39,7 @@ public final class ExtenderConstants {
   /** Puts the claw directly above the orange target zone on the table. */
   public static final double TABLE_TARGET_EXTENSION =
       FieldConstants.TABLE_TARGET_CENTER_X - RobotConstants.WRIST_BASE_X;
+
+  /** Positions the arm so the held ball sits directly in front of the shooter kicker. */
+  public static final double SHOOT_EXTENSION = 0.23;
 }

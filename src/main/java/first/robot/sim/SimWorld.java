@@ -9,6 +9,9 @@ import first.robot.subsystems.drive.DriveIOSim;
 import first.robot.subsystems.drive.DriveMechanism;
 import first.robot.subsystems.elevator.ElevatorMechanism;
 import first.robot.subsystems.extender.ExtenderMechanism;
+import first.robot.subsystems.shooter.ShooterConstants;
+import first.robot.subsystems.shooter.ShooterIOSim;
+import first.robot.subsystems.shooter.ShooterMechanism;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.wpilib.framework.RobotBase;
 
@@ -65,7 +68,16 @@ public class SimWorld {
       MotorState elevatorMotorState,
       MotorState extenderMotorState,
       MotorState clawMotorState,
-      MotorState driveMotorState) {}
+      MotorState driveMotorState,
+      boolean basketScored,
+      double shooterPullback,
+      double shooterSetpoint,
+      double shooterVolts,
+      boolean shooterRatchetLocked,
+      boolean shooterSolenoidReleased,
+      boolean shooterLoaded,
+      String shooterCommand,
+      MotorState shooterMotorState) {}
 
   private static final double LOOP_PERIOD_SECONDS = 0.02;
 
@@ -77,6 +89,8 @@ public class SimWorld {
   private final ClawIOSim clawIO;
   private final DriveMechanism drive;
   private final DriveIOSim driveIO;
+  private final ShooterMechanism shooter;
+  private final ShooterIOSim shooterIO;
   private final BallSim ball1;
   private final BallSim ball2;
   private final AtomicBoolean resetStateRequested = new AtomicBoolean(false);
@@ -84,6 +98,7 @@ public class SimWorld {
   private final AtomicBoolean autoGrabRequested = new AtomicBoolean(false);
   private final AtomicBoolean autoScoreRequested = new AtomicBoolean(false);
   private final AtomicBoolean autoTwoBallRequested = new AtomicBoolean(false);
+  private final AtomicBoolean autoShootBallsRequested = new AtomicBoolean(false);
   private final AtomicBoolean disableRequested = new AtomicBoolean(false);
   private Runnable teleopActivator;
 
@@ -101,7 +116,9 @@ public class SimWorld {
       ClawMechanism claw,
       ClawIOSim clawIO,
       DriveMechanism drive,
-      DriveIOSim driveIO) {
+      DriveIOSim driveIO,
+      ShooterMechanism shooter,
+      ShooterIOSim shooterIO) {
     this.elevator = elevator;
     this.elevatorIO = elevatorIO;
     this.extender = extender;
@@ -110,6 +127,8 @@ public class SimWorld {
     this.clawIO = clawIO;
     this.drive = drive;
     this.driveIO = driveIO;
+    this.shooter = shooter;
+    this.shooterIO = shooterIO;
 
     double tableFieldLeft =
         first.robot.constants.FieldConstants.ROBOT_TABLE_X
@@ -129,6 +148,13 @@ public class SimWorld {
     double tableTargetFieldRight =
         first.robot.constants.FieldConstants.ROBOT_TABLE_X
             + first.robot.constants.FieldConstants.TABLE_TARGET_RIGHT_X;
+    double basketFieldLeft =
+        first.robot.constants.FieldConstants.ROBOT_TABLE_X
+            + first.robot.constants.FieldConstants.BASKET_LEFT_X;
+    double basketFieldRight =
+        first.robot.constants.FieldConstants.ROBOT_TABLE_X
+            + first.robot.constants.FieldConstants.BASKET_RIGHT_X;
+    double basketHeight = first.robot.constants.FieldConstants.BASKET_HEIGHT;
 
     this.ball1 =
         new BallSim(
@@ -142,6 +168,7 @@ public class SimWorld {
             targetFieldLeft,
             targetFieldRight,
             0.0);
+    this.ball1.setBasketBounds(basketFieldLeft, basketFieldRight, basketHeight);
 
     this.ball2 =
         new BallSim(
@@ -155,6 +182,7 @@ public class SimWorld {
             tableTargetFieldLeft,
             tableTargetFieldRight,
             first.robot.constants.FieldConstants.TABLE_HEIGHT);
+    this.ball2.setBasketBounds(basketFieldLeft, basketFieldRight, basketHeight);
 
     snapshot = buildSnapshot(false);
   }
@@ -165,8 +193,20 @@ public class SimWorld {
       ExtenderMechanism extender,
       first.robot.subsystems.extender.ExtenderIOSim extenderIO,
       ClawMechanism claw,
+      ClawIOSim clawIO,
+      DriveMechanism drive,
+      DriveIOSim driveIO) {
+    this(elevator, elevatorIO, extender, extenderIO, claw, clawIO, drive, driveIO, null, null);
+  }
+
+  public SimWorld(
+      ElevatorMechanism elevator,
+      first.robot.subsystems.elevator.ElevatorIOSim elevatorIO,
+      ExtenderMechanism extender,
+      first.robot.subsystems.extender.ExtenderIOSim extenderIO,
+      ClawMechanism claw,
       ClawIOSim clawIO) {
-    this(elevator, elevatorIO, extender, extenderIO, claw, clawIO, null, null);
+    this(elevator, elevatorIO, extender, extenderIO, claw, clawIO, null, null, null, null);
   }
 
   public void setTeleopActivator(Runnable teleopActivator) {
@@ -196,9 +236,15 @@ public class SimWorld {
       if (driveIO != null) {
         driveIO.resetPosition();
       }
+      if (shooterIO != null) {
+        shooterIO.reset();
+      }
       if (drive != null) {
         drive.resetPosition(DriveConstants.START_POSITION);
         drive.resetSetpoint();
+      }
+      if (shooter != null) {
+        shooter.resetSetpoint();
       }
       elevator.resetSetpoint();
       extender.resetSetpoint();
@@ -304,6 +350,30 @@ public class SimWorld {
       }
     }
 
+    if (autoShootBallsRequested.getAndSet(false)) {
+      org.wpilib.command3.Scheduler.getDefault().cancelAll();
+      long shootBallsId = 0;
+      for (org.wpilib.hardware.hal.OpModeOption opt : org.wpilib.simulation.DriverStationSim.getOpModeOptions()) {
+        if ("Shoot Both Balls".equals(opt.name)) {
+          shootBallsId = opt.id;
+          break;
+        }
+      }
+      org.wpilib.simulation.DriverStationSim.setDsAttached(true);
+      org.wpilib.simulation.DriverStationSim.setRobotMode(org.wpilib.hardware.hal.RobotMode.AUTONOMOUS);
+      if (shootBallsId != 0) {
+        org.wpilib.simulation.DriverStationSim.setOpMode(shootBallsId);
+      }
+      org.wpilib.simulation.DriverStationSim.setEnabled(true);
+      org.wpilib.simulation.DriverStationSim.notifyNewData();
+      if (drive != null && shooter != null) {
+        org.wpilib.command3.Scheduler.getDefault()
+            .schedule(
+                first.robot.auto.ShootBothBallsAuto.shootBothBallsRoutine(
+                    drive, elevator, extender, claw, shooter));
+      }
+    }
+
     double robotFieldX =
         (drive != null) ? drive.getPosition() : first.robot.constants.FieldConstants.ROBOT_TABLE_X;
     double wristExtenderX = WRIST_BASE_X + extender.getPosition();
@@ -375,6 +445,29 @@ public class SimWorld {
       }
       if (extenderIO != null) {
         extenderIO.setMaxExtensionLimit(first.robot.subsystems.extender.ExtenderConstants.MAX_EXTENSION);
+      }
+    }
+
+    if (shooterIO != null) {
+      shooterIO.updateSim();
+      double kickStrength = shooterIO.consumeKickStrength();
+      if (kickStrength > 0.0) {
+        double ext = extender.getPosition();
+        boolean armInStrikeZone =
+            ext >= ShooterConstants.MIN_STRIKE_EXTENSION
+                && ext <= ShooterConstants.MAX_STRIKE_EXTENSION
+                && wristY >= ShooterConstants.MIN_STRIKE_WRIST_Y
+                && wristY <= ShooterConstants.MAX_STRIKE_WRIST_Y;
+        if (armInStrikeZone) {
+          double launchVx = ShooterConstants.LAUNCH_VX_MPS * kickStrength;
+          double launchVy = ShooterConstants.LAUNCH_VY_MPS * kickStrength;
+          if (ball1.isHeld()) {
+            ball1.kick(launchVx, launchVy);
+          }
+          if (ball2.isHeld()) {
+            ball2.kick(launchVx, launchVy);
+          }
+        }
       }
     }
 
@@ -451,6 +544,11 @@ public class SimWorld {
     autoTwoBallRequested.set(true);
   }
 
+  /** Switches Driver Station to Autonomous mode and runs the Shoot Both Balls routine. */
+  public void requestAutoShootBalls() {
+    autoShootBallsRequested.set(true);
+  }
+
   /** Disables the robot and cancels all commands. */
   public void requestDisable() {
     disableRequested.set(true);
@@ -490,6 +588,9 @@ public class SimWorld {
     MotorState extenderState = computeExtenderMotorState(maxExtenderLimit, tableContact);
     MotorState clawState = computeClawMotorState(anyBallHeld);
     MotorState driveState = computeDriveMotorState();
+    MotorState shooterState = computeShooterMotorState();
+
+    boolean basketScored = ball1.isScoredInBasket() || ball2.isScoredInBasket();
 
     return new Snapshot(
         elevator.getPosition(),
@@ -528,7 +629,16 @@ public class SimWorld {
         elevatorState,
         extenderState,
         clawState,
-        driveState);
+        driveState,
+        basketScored,
+        shooter != null ? shooter.getPosition() : 0.0,
+        shooter != null ? shooter.getSetpoint() : 0.0,
+        shooter != null ? shooter.getAppliedVolts() : 0.0,
+        shooter == null || shooter.isRatchetLocked(),
+        shooter != null && shooter.isSolenoidReleased(),
+        shooter != null && shooter.isLoaded(),
+        shooter != null ? shooter.getCurrentCommandName() : "(none)",
+        shooterState);
   }
 
   private MotorState computeElevatorMotorState(double minLimit, boolean tableContact) {
@@ -618,6 +728,28 @@ public class SimWorld {
     }
 
     if (Math.abs(vel) > 0.02 && Math.abs(volts) > 0.2) {
+      return MotorState.RUNNING;
+    }
+
+    return MotorState.IDLE;
+  }
+
+  private MotorState computeShooterMotorState() {
+    if (!RobotBase.isEnabled() || shooter == null) {
+      return MotorState.IDLE;
+    }
+    double vel = shooter.getVelocity();
+    double volts = shooter.getAppliedVolts();
+    double pos = shooter.getPosition();
+
+    boolean atMaxPullback = pos >= (ShooterConstants.MAX_PULLBACK - 0.015) && (volts > 0.5);
+    boolean againstRatchet = shooter.isRatchetLocked() && (volts < -0.5);
+
+    if (Math.abs(vel) < 0.02 && (atMaxPullback || againstRatchet)) {
+      return MotorState.STALLED;
+    }
+
+    if (Math.abs(vel) > 0.01 && Math.abs(volts) > 0.2) {
       return MotorState.RUNNING;
     }
 

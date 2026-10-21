@@ -48,10 +48,10 @@ import javax.swing.Timer;
  */
 public class SimWindow extends JFrame {
   // Visible area of the side-view elevation world, in meters.
-  // The camera horizontally centers on the robot (camX = drivePosition).
-  private static final double VIEW_SPAN_X = 2.20;
+  // The camera tracks the robot horizontally with forward lookahead so the table and basket are visible.
+  private static final double VIEW_SPAN_X = 2.80;
   private static final double VIEW_HALF_X = VIEW_SPAN_X / 2.0;
-  private static final double VIEW_MIN_Y = -0.08;
+  private static final double VIEW_MIN_Y = -0.38;
   private static final double VIEW_MAX_Y = 1.95;
 
   private static final Color SKY_TOP = new Color(0xDCE6F0);
@@ -62,6 +62,8 @@ public class SimWindow extends JFrame {
   private static final Color TARGET_GREEN_LIT = new Color(0x4CFF7A);
   private static final Color TARGET_ORANGE = new Color(0xEA580C);
   private static final Color TARGET_ORANGE_LIT = new Color(0xFBA04B);
+  private static final Color TARGET_BASKET = new Color(0x7C3AED);
+  private static final Color TARGET_BASKET_LIT = new Color(0xA78BFA);
   private static final Color TABLE_TOP = new Color(0x8B5A2B);
   private static final Color TABLE_LEG = new Color(0x6E4520);
   private static final Color ALUMINUM = new Color(0xB8C0C8);
@@ -122,6 +124,10 @@ public class SimWindow extends JFrame {
     teleopBtn.setFocusable(false);
     teleopBtn.addActionListener(e -> world.requestTeleop());
 
+    JButton shootBallsBtn = new JButton("Auto: Shoot Balls");
+    shootBallsBtn.setFocusable(false);
+    shootBallsBtn.addActionListener(e -> world.requestAutoShootBalls());
+
     JButton twoBallBtn = new JButton("Auto: Two Ball");
     twoBallBtn.setFocusable(false);
     twoBallBtn.addActionListener(e -> world.requestAutoTwoBall());
@@ -137,6 +143,7 @@ public class SimWindow extends JFrame {
     JPanel buttons = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 6));
     buttons.add(resetBtn);
     buttons.add(teleopBtn);
+    buttons.add(shootBallsBtn);
     buttons.add(twoBallBtn);
     buttons.add(scoreBtn);
     buttons.add(disableBtn);
@@ -295,11 +302,11 @@ public class SimWindow extends JFrame {
 
       SimWorld.Snapshot s = world.snapshot();
 
-      // Full-window Side Elevation View with camera centered on the robot
+      // Full-window Side Elevation View with camera centered ahead of the robot so the table and basket fit in view
       sideScale = Math.min(w / VIEW_SPAN_X, h / (VIEW_MAX_Y - VIEW_MIN_Y));
       sideOriginX = (w - VIEW_SPAN_X * sideScale) / 2.0;
       sideOriginY = (h - (VIEW_MAX_Y - VIEW_MIN_Y) * sideScale) / 2.0;
-      cameraCenterX = s.drivePosition();
+      cameraCenterX = s.drivePosition() + 0.65;
 
       double robFieldX = s.drivePosition();
       double wristFieldX = robFieldX + WRIST_BASE_X + s.extenderPosition();
@@ -308,14 +315,15 @@ public class SimWindow extends JFrame {
       // Background, scrolling floor, scrolling start zone, targets and table
       drawSideBackground(g, w, h, cameraCenterX);
       drawStartZoneSide(g);
-      drawFloorAndTargets(g, s.scored(), s.ball2Scored());
+      drawFloorAndTargets(g, s.scored() && !s.basketScored(), s.ball2Scored() && !s.basketScored(), s.basketScored());
       drawTable(g, s.tableContact());
 
-      // Robot is always centered in the side view
+      // Robot is always in the side view
       drawWheelsSide(g, robFieldX);
       drawTower(g, robFieldX, s);
       drawBumperSide(g, robFieldX);
       drawCarriageAndExtender(g, robFieldX, wristY, wristFieldX, s);
+      drawShooter(g, robFieldX, s);
       drawClaw(g, wristFieldX, wristY, s.clawAngle(), s);
       drawSetpointMarkers(g, robFieldX, s, wristY);
 
@@ -367,7 +375,8 @@ public class SimWindow extends JFrame {
       drawCentered(g, "START ZONE", sx(ROBOT_START_X), sy(-0.045));
     }
 
-    private void drawFloorAndTargets(Graphics2D g, boolean scoredGreen, boolean scoredOrange) {
+    private void drawFloorAndTargets(
+        Graphics2D g, boolean scoredGreen, boolean scoredOrange, boolean scoredBasket) {
       // Continuous scrolling floor
       g.setColor(FLOOR);
       g.fillRect(0, (int) sy(0.0), getWidth(), getHeight() - (int) sy(0.0));
@@ -381,6 +390,38 @@ public class SimWindow extends JFrame {
       double tblTgtLeft = ROBOT_TABLE_X + TABLE_TARGET_LEFT_X;
       double tblTgtRight = ROBOT_TABLE_X + TABLE_TARGET_RIGHT_X;
       drawTargetBox(g, tblTgtLeft, tblTgtRight, TABLE_HEIGHT, TABLE_HEIGHT + TARGET_BOX_WALL_HEIGHT, TARGET_ORANGE, TARGET_ORANGE_LIT, scoredOrange, "TARGET (Org)");
+
+      // 3. Elevated Basket in the air to the right of the Table
+      double bskLeft = ROBOT_TABLE_X + BASKET_LEFT_X;
+      double bskRight = ROBOT_TABLE_X + BASKET_RIGHT_X;
+      // Vertical support post, diagonal brace, and backboard holding the basket in the air
+      double postX = bskRight + 0.02;
+      fillOutlined(g, rect(postX, 0.0, postX + 0.035, BASKET_HEIGHT + 0.24), ALUMINUM_DARK, Color.DARK_GRAY);
+      fillOutlined(g, roundRect(bskRight + 0.005, BASKET_HEIGHT - 0.02, postX + 0.045, BASKET_HEIGHT + 0.28, 0.01), ALUMINUM_LIGHT, ALUMINUM_DARK);
+      drawTargetBox(
+          g,
+          bskLeft,
+          bskRight,
+          BASKET_HEIGHT,
+          BASKET_HEIGHT + TARGET_BOX_WALL_HEIGHT + 0.03,
+          TARGET_BASKET,
+          TARGET_BASKET_LIT,
+          scoredBasket,
+          "BASKET");
+
+      // If the robot is back near the start zone and the basket is off the right edge of the view,
+      // show a directional indicator badge at the right edge of the screen.
+      if (sx(bskLeft) > getWidth() - 20) {
+        int badgeW = 148;
+        int badgeH = 28;
+        int bx = getWidth() - badgeW - 14;
+        int by = (int) sy(BASKET_HEIGHT + 0.05) - badgeH / 2;
+        g.setColor(new Color(124, 58, 237, 220));
+        g.fillRoundRect(bx, by, badgeW, badgeH, 10, 10);
+        g.setColor(Color.WHITE);
+        g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 12));
+        drawCentered(g, "TABLE & BASKET ->", bx + badgeW / 2.0, by + 18);
+      }
     }
 
     /**
@@ -539,6 +580,75 @@ public class SimWindow extends JFrame {
       }
     }
 
+    /**
+     * Draws the spring-loaded shooter mounted on the front of the robot tower:
+     * mounting bracket, pullback motor, ratchet wheel & pawl, release solenoid, coil spring, and kicker foot.
+     * Positioned so its extended kicker strikes a ball held near elevator=0.60m, extender=0.23m (ball center ~ rx+0.35, y=0.46),
+     * while balls held too close to the robot (extender < 0.17m) sit behind the kicker.
+     */
+    private void drawShooter(Graphics2D g, double rx, SimWorld.Snapshot s) {
+      double baseX = rx + 0.09;
+      double baseY = 0.31;
+      double pullback = s.shooterPullback(); // 0.0 (extended) to 0.25 (pulled back)
+      double extension = Math.max(0.03, 0.19 - pullback * 0.58);
+
+      // Mounting bracket attached to front of tower
+      fillOutlined(g, rect(rx + 0.055, baseY - 0.01, baseX + 0.125, baseY + 0.095), ALUMINUM_DARK, Color.DARK_GRAY);
+
+      // Pullback winch motor housing (colored green when running, red when stalled)
+      fillOutlined(g, roundRect(baseX, baseY, baseX + 0.12, baseY + 0.075, 0.015), motorColor(s.shooterMotorState()), Color.BLACK);
+      label(g, "Shooter", baseX + 0.06, baseY - 0.025);
+
+      // Ratchet wheel on the shooter shaft
+      double gearCx = baseX + 0.06;
+      double gearCy = baseY + 0.038;
+      double gearR = 0.022;
+      Ellipse2D ratchetWheel =
+          new Ellipse2D.Double(sx(gearCx - gearR), sy(gearCy + gearR), len(2 * gearR), len(2 * gearR));
+      fillOutlined(
+          g,
+          ratchetWheel,
+          s.shooterRatchetLocked() ? new Color(0xFBBF24) : ALUMINUM_LIGHT,
+          Color.BLACK);
+
+      // Solenoid cylinder & ratchet locking pawl on top of shooter housing
+      Color solenoidCol =
+          s.shooterSolenoidReleased()
+              ? new Color(0x38BDF8) // Bright cyan when solenoid releases ratchet
+              : (s.shooterLoaded() ? new Color(0xF59E0B) : new Color(0x64748B));
+      fillOutlined(g, roundRect(baseX + 0.01, baseY + 0.08, baseX + 0.11, baseY + 0.12, 0.01), solenoidCol, Color.BLACK);
+      label(g, s.shooterSolenoidReleased() ? "Solenoid: OPEN" : "Ratchet LOCK", baseX + 0.06, baseY + 0.13);
+
+      // Coil spring extending from front of shooter housing toward the kicker plate (aimed at ball when elevator=0.60, extender=0.23)
+      double startX = baseX + 0.12;
+      double startY = baseY + 0.045;
+      double tipX = startX + extension;
+      double tipY = startY + extension * 0.45;
+
+      g.setColor(s.shooterLoaded() ? new Color(0xF59E0B) : new Color(0xEA580C));
+      g.setStroke(new BasicStroke((float) Math.max(2.5, len(0.010))));
+      int coils = 6;
+      Path2D spring = new Path2D.Double();
+      spring.moveTo(sx(startX), sy(startY));
+      for (int i = 1; i <= coils; i++) {
+        double t = (double) i / (coils + 1);
+        double side = (i % 2 == 0) ? 0.020 : -0.020;
+        double cx = startX + (tipX - startX) * t - side * 0.4;
+        double cy = startY + (tipY - startY) * t + side;
+        spring.lineTo(sx(cx), sy(cy));
+      }
+      spring.lineTo(sx(tipX), sy(tipY));
+      g.draw(spring);
+
+      // Heavy curved kicker plate at the end of the spring
+      Path2D kicker = new Path2D.Double();
+      kicker.moveTo(sx(tipX - 0.014), sy(tipY + 0.036));
+      kicker.lineTo(sx(tipX + 0.018), sy(tipY - 0.028));
+      g.setColor(new Color(0xF97316));
+      g.setStroke(new BasicStroke((float) Math.max(4.0, len(0.018)), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+      g.draw(kicker);
+    }
+
     private void drawCarriageAndExtender(Graphics2D g, double rx, double h, double wristX, SimWorld.Snapshot s) {
       // Carriage
       fillOutlined(g, roundRect(rx - 0.10, h - 0.09, rx + 0.11, h + 0.06, 0.015), CARRIAGE,
@@ -659,6 +769,12 @@ public class SimWindow extends JFrame {
       Font monoBold = new Font(Font.MONOSPACED, Font.BOLD, 12);
       Font bold = new Font(Font.SANS_SERIF, Font.BOLD, 14);
 
+      String shooterPosLabel =
+          String.format(
+              "%.2f m %s",
+              s.shooterPullback(),
+              s.shooterSolenoidReleased() ? "[REL]" : (s.shooterLoaded() ? "[LOCK]" : ""));
+
       // Subsystem table columns: Subsystem | Current Position | Setpoint | Voltage | Status
       String[] headers = {"Subsystem", "Current Position", "Setpoint", "Voltage", "Status"};
       String[][] rows = {
@@ -666,6 +782,7 @@ public class SimWindow extends JFrame {
         {"Elevator", String.format("%.2f m", s.elevatorHeight()), String.format("%.2f m", s.elevatorSetpoint()), String.format("%5.1f V", s.elevatorVolts()), s.elevatorCommand()},
         {"Extender", String.format("%.2f m", s.extenderPosition()), String.format("%.2f m", s.extenderSetpoint()), String.format("%5.1f V", s.extenderVolts()), s.extenderCommand()},
         {"Claw", String.format("%.0f deg", Math.toDegrees(s.clawAngle())), String.format("%.0f deg", Math.toDegrees(s.clawSetpoint())), String.format("%5.1f V", s.clawVolts()), s.clawCommand()},
+        {"Shooter", shooterPosLabel, String.format("%.2f m", s.shooterSetpoint()), String.format("%5.1f V", s.shooterVolts()), s.shooterCommand()},
       };
 
       int[] colWidths = {95, 135, 105, 85, 140};
@@ -708,7 +825,8 @@ public class SimWindow extends JFrame {
         s.driveMotorState(),
         s.elevatorMotorState(),
         s.extenderMotorState(),
-        s.clawMotorState()
+        s.clawMotorState(),
+        s.shooterMotorState()
       };
       for (int r = 0; r < rows.length; r++) {
         int rowY = tableY + 6 + lineH * (r + 1);
@@ -787,7 +905,7 @@ public class SimWindow extends JFrame {
       // Key legend (bottom-left)
       String[] help = {
         "D / A: drive forward / backward    Up / Down: elevator    Left / Right: extender",
-        "Z / X: open / close claw    T: Teleop    R: reset state",
+        "Z / X: open / close claw    C / Space: pull back / kick shooter    T: Teleop    R: reset",
         isFocusOwnerWindow()
             ? "Keyboard active. Click buttons or use shortcuts T / R."
             : "Click this window to use the keyboard.",

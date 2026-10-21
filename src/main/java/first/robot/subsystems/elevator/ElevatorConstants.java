@@ -66,4 +66,7 @@ public final class ElevatorConstants {
       FieldConstants.TABLE_HEIGHT + FieldConstants.TARGET_BOX_WALL_HEIGHT + RobotConstants.GRIP_DEPTH + 0.05;
 
   public static final double STOW_HEIGHT = 0.50;
+
+  /** Height that positions a held ball directly in front of the spring-loaded shooter. */
+  public static final double SHOOT_HEIGHT = 0.60;
 }

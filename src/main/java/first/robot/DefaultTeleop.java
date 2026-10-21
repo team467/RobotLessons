@@ -2,6 +2,7 @@ package first.robot;
 
 import static first.robot.constants.DriverConstants.*;
 
+import first.robot.constants.DriverConstants;
 import org.wpilib.opmode.OpMode;
 import org.wpilib.opmode.Teleop;
 
@@ -14,6 +15,7 @@ import org.wpilib.opmode.Teleop;
  *   <li>Right bumper or Z: open the claw
  *   <li>Left bumper or X: close the claw
  *   <li>D / A (or Y / A face buttons): hold to drive forward / backward
+ *   <li>C / Space (or X / B face buttons): pull back shooter / release solenoid to kick
  * </ul>
  *
  * <p>When you let go of a movement key, the command is canceled and the mechanism's default
@@ -45,5 +47,10 @@ public class DefaultTeleop implements OpMode {
     // Drives forward (towards table) or backward (towards starting position) at teleop speed (5.5 m/s).
     pad.faceUp().or(keys.key(KEY_DRIVE_FORWARD)).whileTrue(robot.drive.forward());
     pad.faceDown().or(keys.key(KEY_DRIVE_BACKWARD)).whileTrue(robot.drive.backward());
+
+    // Spring-loaded shooter:
+    // C (or X face button) pulls back the shooter until locked by the ratchet; Space (or B face button) releases the solenoid to kick.
+    pad.faceLeft().or(keys.key(DriverConstants.KEY_SHOOTER_PULL)).onTrue(robot.shooter.pullBack());
+    pad.faceRight().or(keys.key(DriverConstants.KEY_SHOOTER_KICK)).onTrue(robot.shooter.kick());
   }
 }

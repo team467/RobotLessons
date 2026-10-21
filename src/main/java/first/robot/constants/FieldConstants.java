@@ -64,6 +64,12 @@ public final class FieldConstants {
   public static final double TABLE_TARGET_RIGHT_X = 1.14;
   public static final double TABLE_TARGET_CENTER_X = (TABLE_TARGET_LEFT_X + TABLE_TARGET_RIGHT_X) / 2.0;
 
+  /** Elevated basket target in the air to the right of the table (relative to robot parked at table). */
+  public static final double BASKET_LEFT_X = 1.40;
+  public static final double BASKET_RIGHT_X = 1.72;
+  public static final double BASKET_CENTER_X = (BASKET_LEFT_X + BASKET_RIGHT_X) / 2.0;
+  public static final double BASKET_HEIGHT = 1.25;
+
   /**
    * The claw angle (radians from vertical) where the fingers first touch the ball. Closing past
    * this angle is impossible while a ball is between the fingers.

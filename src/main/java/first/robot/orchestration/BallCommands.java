@@ -5,6 +5,8 @@ import first.robot.subsystems.elevator.ElevatorConstants;
 import first.robot.subsystems.elevator.ElevatorMechanism;
 import first.robot.subsystems.extender.ExtenderConstants;
 import first.robot.subsystems.extender.ExtenderMechanism;
+import first.robot.subsystems.shooter.ShooterConstants;
+import first.robot.subsystems.shooter.ShooterMechanism;
 import org.wpilib.command3.Command;
 
 /**
@@ -93,5 +95,34 @@ public final class BallCommands {
   public static Command scoreBallOnTable(
       ElevatorMechanism elevator, ExtenderMechanism extender, ClawMechanism claw) {
     return scoreTableBall(elevator, extender, claw);
+  }
+
+  /**
+   * Positions a held ball close to the front of the robot in front of the spring-loaded shooter,
+   * pulls the shooter back against its ratchet, and releases the solenoid to kick the ball into
+   * the elevated basket.
+   */
+  public static Command shootBallIntoBasket(
+      ElevatorMechanism elevator,
+      ExtenderMechanism extender,
+      ClawMechanism claw,
+      ShooterMechanism shooter) {
+    return Command.noRequirements(coroutine -> {
+      // 1. If extended over the table, raise above table height first while pulling back shooter
+      if (extender.getPosition() > 0.45
+          && elevator.getPosition() < ElevatorConstants.ABOVE_TABLE_HEIGHT - 0.05) {
+        coroutine.awaitAll(
+            elevator.moveTo(ElevatorConstants.ABOVE_TABLE_HEIGHT),
+            shooter.pullBack());
+      }
+      // 2. Retract arm close to the front of the robot and ensure shooter is pulled back & locked
+      coroutine.awaitAll(
+          extender.moveTo(ShooterConstants.SHOOT_EXTENSION),
+          shooter.pullBack());
+      // 3. Align elevator at shooting height in front of the plunger
+      coroutine.await(elevator.moveTo(ShooterConstants.SHOOT_HEIGHT));
+      // 4. Release the solenoid to kick the ball toward the basket
+      coroutine.await(shooter.kick());
+    }).named("Shoot Ball Into Basket");
   }
 }
