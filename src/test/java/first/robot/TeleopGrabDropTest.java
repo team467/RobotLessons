@@ -4,14 +4,14 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import first.robot.constants.FieldConstants;
 import first.robot.sim.SimWorld;
-import first.robot.subsystems.claw.ClawIOSim;
-import first.robot.subsystems.claw.ClawMechanism;
-import first.robot.subsystems.elevator.ElevatorConstants;
-import first.robot.subsystems.elevator.ElevatorIOSim;
-import first.robot.subsystems.elevator.ElevatorMechanism;
-import first.robot.subsystems.extender.ExtenderConstants;
-import first.robot.subsystems.extender.ExtenderIOSim;
-import first.robot.subsystems.extender.ExtenderMechanism;
+import first.robot.mechanisms.claw.ClawIOSim;
+import first.robot.mechanisms.claw.ClawMechanism;
+import first.robot.mechanisms.elevator.ElevatorConstants;
+import first.robot.mechanisms.elevator.ElevatorIOSim;
+import first.robot.mechanisms.elevator.ElevatorMechanism;
+import first.robot.mechanisms.extender.ExtenderConstants;
+import first.robot.mechanisms.extender.ExtenderIOSim;
+import first.robot.mechanisms.extender.ExtenderMechanism;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -133,9 +133,6 @@ public class TeleopGrabDropTest {
 
     // Step physics for 150 ticks (~3 seconds) to let bounce finish
     for (int i = 0; i < 150; i++) {
-      elevator.periodic();
-      extender.periodic();
-      claw.periodic();
       world.update();
       Scheduler.getDefault().run();
     }
@@ -158,7 +155,7 @@ public class TeleopGrabDropTest {
     SimWorld world = new SimWorld(elevator, elevatorIO, extender, extenderIO, claw, clawIO);
 
     // Claw starts closed at 0.0 radians
-    assertEquals(first.robot.subsystems.claw.ClawConstants.CLOSED_ANGLE, claw.getAngle(), 1e-3);
+    assertEquals(first.robot.mechanisms.claw.ClawConstants.CLOSED_ANGLE, claw.getAngle(), 1e-3);
 
     // 1. Raise elevator and extend over ball WITHOUT opening claw
     Scheduler.getDefault().schedule(elevator.moveTo(ElevatorConstants.ABOVE_TABLE_HEIGHT));
@@ -173,9 +170,6 @@ public class TeleopGrabDropTest {
 
     // Run for 50 ticks in this overlapping position
     for (int i = 0; i < 50; i++) {
-      elevator.periodic();
-      extender.periodic();
-      claw.periodic();
       world.update();
       Scheduler.getDefault().run();
     }
@@ -184,7 +178,7 @@ public class TeleopGrabDropTest {
     assertFalse(claw.hasBall(), "Claw must not detect ball when overlapping while closed");
     assertFalse(world.snapshot().ballHeld(), "World must not record ball as held");
     assertEquals(
-        first.robot.subsystems.claw.ClawConstants.CLOSED_ANGLE,
+        first.robot.mechanisms.claw.ClawConstants.CLOSED_ANGLE,
         claw.getAngle(),
         0.05,
         "Claw must stay closed and not pop open");
@@ -253,7 +247,7 @@ public class TeleopGrabDropTest {
         robot.simulationPeriodic();
         robot.robotPeriodic();
       }
-      assertTrue(robot.claw.getAngle() > first.robot.subsystems.claw.ClawConstants.OPEN_ANGLE - 0.10, "Claw should open on Z key");
+      assertTrue(robot.claw.getAngle() > first.robot.mechanisms.claw.ClawConstants.OPEN_ANGLE - 0.10, "Claw should open on Z key");
 
       // Hold D key -> drive should move forward
       double initialDrive = robot.drive.getPosition();
@@ -291,9 +285,6 @@ public class TeleopGrabDropTest {
       ClawMechanism claw,
       SimWorld world) {
     for (int i = 0; i < maxTicks; i++) {
-      elevator.periodic();
-      extender.periodic();
-      claw.periodic();
       world.update();
       Scheduler.getDefault().run();
       if (condition.getAsBoolean()) {

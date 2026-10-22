@@ -4,16 +4,16 @@ import first.robot.constants.DriverConstants;
 import first.robot.sim.SimKeyboard;
 import first.robot.sim.SimWindow;
 import first.robot.sim.SimWorld;
-import first.robot.subsystems.claw.ClawIOSim;
-import first.robot.subsystems.claw.ClawMechanism;
-import first.robot.subsystems.drive.DriveIOSim;
-import first.robot.subsystems.drive.DriveMechanism;
-import first.robot.subsystems.elevator.ElevatorIOSim;
-import first.robot.subsystems.elevator.ElevatorMechanism;
-import first.robot.subsystems.extender.ExtenderIOSim;
-import first.robot.subsystems.extender.ExtenderMechanism;
-import first.robot.subsystems.shooter.ShooterIOSim;
-import first.robot.subsystems.shooter.ShooterMechanism;
+import first.robot.mechanisms.claw.ClawIOSim;
+import first.robot.mechanisms.claw.ClawMechanism;
+import first.robot.mechanisms.drive.DriveIOSim;
+import first.robot.mechanisms.drive.DriveMechanism;
+import first.robot.mechanisms.elevator.ElevatorIOSim;
+import first.robot.mechanisms.elevator.ElevatorMechanism;
+import first.robot.mechanisms.extender.ExtenderIOSim;
+import first.robot.mechanisms.extender.ExtenderMechanism;
+import first.robot.mechanisms.shooter.ShooterIOSim;
+import first.robot.mechanisms.shooter.ShooterMechanism;
 import org.wpilib.command3.Scheduler;
 import org.wpilib.command3.button.CommandGamepad;
 import org.wpilib.framework.OpModeRobot;
@@ -76,14 +76,8 @@ public class Robot extends OpModeRobot {
 
   @Override
   public void robotPeriodic() {
-    // 1. Refresh sensor inputs from hardware/simulation IO.
-    drive.periodic();
-    elevator.periodic();
-    extender.periodic();
-    claw.periodic();
-    shooter.periodic();
-
-    // 2. Step the Command3 scheduler to execute running commands and update motor outputs.
+    // Step the Command3 scheduler (runs registered mechanism periodic callbacks, polls triggers,
+    // and executes running commands).
     Scheduler.getDefault().run();
   }
 

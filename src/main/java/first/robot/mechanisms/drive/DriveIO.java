@@ -1,4 +1,4 @@
-package first.robot.subsystems.drive;
+package first.robot.mechanisms.drive;
 
 /** Hardware interface for the drivetrain. */
 public interface DriveIO {

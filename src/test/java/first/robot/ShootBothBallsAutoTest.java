@@ -4,17 +4,17 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import first.robot.auto.ShootBothBallsAuto;
 import first.robot.sim.SimWorld;
-import first.robot.subsystems.claw.ClawIOSim;
-import first.robot.subsystems.claw.ClawMechanism;
-import first.robot.subsystems.drive.DriveIOSim;
-import first.robot.subsystems.drive.DriveMechanism;
-import first.robot.subsystems.elevator.ElevatorIOSim;
-import first.robot.subsystems.elevator.ElevatorMechanism;
-import first.robot.subsystems.extender.ExtenderIOSim;
-import first.robot.subsystems.extender.ExtenderMechanism;
-import first.robot.subsystems.shooter.ShooterConstants;
-import first.robot.subsystems.shooter.ShooterIOSim;
-import first.robot.subsystems.shooter.ShooterMechanism;
+import first.robot.mechanisms.claw.ClawIOSim;
+import first.robot.mechanisms.claw.ClawMechanism;
+import first.robot.mechanisms.drive.DriveIOSim;
+import first.robot.mechanisms.drive.DriveMechanism;
+import first.robot.mechanisms.elevator.ElevatorIOSim;
+import first.robot.mechanisms.elevator.ElevatorMechanism;
+import first.robot.mechanisms.extender.ExtenderIOSim;
+import first.robot.mechanisms.extender.ExtenderMechanism;
+import first.robot.mechanisms.shooter.ShooterConstants;
+import first.robot.mechanisms.shooter.ShooterIOSim;
+import first.robot.mechanisms.shooter.ShooterMechanism;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,9 +44,7 @@ public class ShootBothBallsAutoTest {
     // 1. Pull back the shooter against the spring
     Scheduler.getDefault().schedule(shooter.pullBack());
     for (int i = 0; i < 60; i++) {
-      shooter.periodic();
       Scheduler.getDefault().run();
-      shooter.simulationPeriodic();
       if (shooter.isLoaded()) {
         break;
       }
@@ -57,9 +55,7 @@ public class ShootBothBallsAutoTest {
 
     // 2. Let default hold() command run with 0V and verify ratchet holds the spring in place
     for (int i = 0; i < 20; i++) {
-      shooter.periodic();
       Scheduler.getDefault().run();
-      shooter.simulationPeriodic();
     }
     assertEquals(0.0, shooter.getAppliedVolts(), 1e-4, "Hold command should apply 0V");
     assertTrue(
@@ -69,9 +65,7 @@ public class ShootBothBallsAutoTest {
     // 3. Release solenoid to kick
     Scheduler.getDefault().schedule(shooter.kick());
     for (int i = 0; i < 30; i++) {
-      shooter.periodic();
       Scheduler.getDefault().run();
-      shooter.simulationPeriodic();
     }
 
     assertEquals(
@@ -106,11 +100,6 @@ public class ShootBothBallsAutoTest {
 
     boolean bothScored = false;
     for (int i = 0; i < 1200; i++) {
-      drive.periodic();
-      elevator.periodic();
-      extender.periodic();
-      claw.periodic();
-      shooter.periodic();
       Scheduler.getDefault().run();
       world.update();
 
@@ -164,11 +153,6 @@ public class ShootBothBallsAutoTest {
     Scheduler.getDefault().schedule(grabAndRetractTooClose);
 
     for (int i = 0; i < 350; i++) {
-      drive.periodic();
-      elevator.periodic();
-      extender.periodic();
-      claw.periodic();
-      shooter.periodic();
       Scheduler.getDefault().run();
       world.update();
     }

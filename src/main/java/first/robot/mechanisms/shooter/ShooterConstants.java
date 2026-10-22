@@ -1,7 +1,7 @@
-package first.robot.subsystems.shooter;
+package first.robot.mechanisms.shooter;
 
-import first.robot.subsystems.elevator.ElevatorConstants;
-import first.robot.subsystems.extender.ExtenderConstants;
+import first.robot.mechanisms.elevator.ElevatorConstants;
+import first.robot.mechanisms.extender.ExtenderConstants;
 
 /**
  * Constants for the spring-loaded {@link ShooterMechanism} mounted on the front of the robot.

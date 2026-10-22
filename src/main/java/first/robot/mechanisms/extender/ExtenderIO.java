@@ -1,4 +1,4 @@
-package first.robot.subsystems.extender;
+package first.robot.mechanisms.extender;
 
 /**
  * The hardware layer for the extender. See {@link ExtenderIOSim} for the simulated version.

@@ -18,14 +18,15 @@
  * 
  * 
  */
-package first.robot.subsystems.drive;
+package first.robot.mechanisms.drive;
 
-import static first.robot.subsystems.drive.DriveConstants.*;
+import static first.robot.mechanisms.drive.DriveConstants.*;
 
 import java.util.List;
 import java.util.function.DoubleSupplier;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
+import org.wpilib.command3.Scheduler;
 import org.wpilib.command3.Trigger;
 import org.wpilib.framework.RobotBase;
 import org.wpilib.math.controller.PIDController;
@@ -43,17 +44,10 @@ public class DriveMechanism implements Mechanism {
 
   public DriveMechanism(DriveIO io) {
     this.io = io;
-    setDefaultCommand(hold());
-  }
-
-  /** Call once per robot loop, before scheduler runs, to refresh sensor readings. */
-  public void periodic() {
+    Scheduler.getDefault().addPeriodic(io::updateSim);
+    Scheduler.getDefault().addPeriodic(() -> io.updateInputs(inputs));
     io.updateInputs(inputs);
-  }
-
-  /** Call in simulation loop to step drivetrain physics. */
-  public void simulationPeriodic() {
-    io.updateSim();
+    setDefaultCommand(hold());
   }
 
   // ------------------------------------------------------------------------------------------

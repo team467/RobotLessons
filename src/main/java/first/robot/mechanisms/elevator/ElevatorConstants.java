@@ -18,7 +18,7 @@
  * 
  * 
  */
-package first.robot.subsystems.elevator;
+package first.robot.mechanisms.elevator;
 
 import first.robot.constants.FieldConstants;
 import first.robot.constants.RobotConstants;

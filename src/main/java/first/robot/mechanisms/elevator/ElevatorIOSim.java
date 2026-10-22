@@ -1,6 +1,6 @@
-package first.robot.subsystems.elevator;
+package first.robot.mechanisms.elevator;
 
-import static first.robot.subsystems.elevator.ElevatorConstants.*;
+import static first.robot.mechanisms.elevator.ElevatorConstants.*;
 
 import org.wpilib.framework.RobotBase;
 import org.wpilib.math.system.DCMotor;

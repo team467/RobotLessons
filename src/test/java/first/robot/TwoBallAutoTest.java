@@ -4,15 +4,15 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import first.robot.auto.TwoBallAuto;
 import first.robot.sim.SimWorld;
-import first.robot.subsystems.claw.ClawIOSim;
-import first.robot.subsystems.claw.ClawMechanism;
-import first.robot.subsystems.drive.DriveConstants;
-import first.robot.subsystems.drive.DriveIOSim;
-import first.robot.subsystems.drive.DriveMechanism;
-import first.robot.subsystems.elevator.ElevatorIOSim;
-import first.robot.subsystems.elevator.ElevatorMechanism;
-import first.robot.subsystems.extender.ExtenderIOSim;
-import first.robot.subsystems.extender.ExtenderMechanism;
+import first.robot.mechanisms.claw.ClawIOSim;
+import first.robot.mechanisms.claw.ClawMechanism;
+import first.robot.mechanisms.drive.DriveConstants;
+import first.robot.mechanisms.drive.DriveIOSim;
+import first.robot.mechanisms.drive.DriveMechanism;
+import first.robot.mechanisms.elevator.ElevatorIOSim;
+import first.robot.mechanisms.elevator.ElevatorMechanism;
+import first.robot.mechanisms.extender.ExtenderIOSim;
+import first.robot.mechanisms.extender.ExtenderMechanism;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -55,10 +55,6 @@ public class TwoBallAutoTest {
     // Simulate routine up to 26 seconds (1300 ticks @ 20ms)
     boolean completed = false;
     for (int i = 0; i < 1300; i++) {
-      drive.periodic();
-      elevator.periodic();
-      extender.periodic();
-      claw.periodic();
       world.update();
       Scheduler.getDefault().run();
 

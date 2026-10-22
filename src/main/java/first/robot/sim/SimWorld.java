@@ -2,16 +2,16 @@ package first.robot.sim;
 
 import static first.robot.constants.RobotConstants.WRIST_BASE_X;
 
-import first.robot.subsystems.claw.ClawIOSim;
-import first.robot.subsystems.claw.ClawMechanism;
-import first.robot.subsystems.drive.DriveConstants;
-import first.robot.subsystems.drive.DriveIOSim;
-import first.robot.subsystems.drive.DriveMechanism;
-import first.robot.subsystems.elevator.ElevatorMechanism;
-import first.robot.subsystems.extender.ExtenderMechanism;
-import first.robot.subsystems.shooter.ShooterConstants;
-import first.robot.subsystems.shooter.ShooterIOSim;
-import first.robot.subsystems.shooter.ShooterMechanism;
+import first.robot.mechanisms.claw.ClawIOSim;
+import first.robot.mechanisms.claw.ClawMechanism;
+import first.robot.mechanisms.drive.DriveConstants;
+import first.robot.mechanisms.drive.DriveIOSim;
+import first.robot.mechanisms.drive.DriveMechanism;
+import first.robot.mechanisms.elevator.ElevatorMechanism;
+import first.robot.mechanisms.extender.ExtenderMechanism;
+import first.robot.mechanisms.shooter.ShooterConstants;
+import first.robot.mechanisms.shooter.ShooterIOSim;
+import first.robot.mechanisms.shooter.ShooterMechanism;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.wpilib.framework.RobotBase;
 
@@ -82,9 +82,9 @@ public class SimWorld {
   private static final double LOOP_PERIOD_SECONDS = 0.02;
 
   private final ElevatorMechanism elevator;
-  private final first.robot.subsystems.elevator.ElevatorIOSim elevatorIO;
+  private final first.robot.mechanisms.elevator.ElevatorIOSim elevatorIO;
   private final ExtenderMechanism extender;
-  private final first.robot.subsystems.extender.ExtenderIOSim extenderIO;
+  private final first.robot.mechanisms.extender.ExtenderIOSim extenderIO;
   private final ClawMechanism claw;
   private final ClawIOSim clawIO;
   private final DriveMechanism drive;
@@ -110,9 +110,9 @@ public class SimWorld {
 
   public SimWorld(
       ElevatorMechanism elevator,
-      first.robot.subsystems.elevator.ElevatorIOSim elevatorIO,
+      first.robot.mechanisms.elevator.ElevatorIOSim elevatorIO,
       ExtenderMechanism extender,
-      first.robot.subsystems.extender.ExtenderIOSim extenderIO,
+      first.robot.mechanisms.extender.ExtenderIOSim extenderIO,
       ClawMechanism claw,
       ClawIOSim clawIO,
       DriveMechanism drive,
@@ -189,9 +189,9 @@ public class SimWorld {
 
   public SimWorld(
       ElevatorMechanism elevator,
-      first.robot.subsystems.elevator.ElevatorIOSim elevatorIO,
+      first.robot.mechanisms.elevator.ElevatorIOSim elevatorIO,
       ExtenderMechanism extender,
-      first.robot.subsystems.extender.ExtenderIOSim extenderIO,
+      first.robot.mechanisms.extender.ExtenderIOSim extenderIO,
       ClawMechanism claw,
       ClawIOSim clawIO,
       DriveMechanism drive,
@@ -201,9 +201,9 @@ public class SimWorld {
 
   public SimWorld(
       ElevatorMechanism elevator,
-      first.robot.subsystems.elevator.ElevatorIOSim elevatorIO,
+      first.robot.mechanisms.elevator.ElevatorIOSim elevatorIO,
       ExtenderMechanism extender,
-      first.robot.subsystems.extender.ExtenderIOSim extenderIO,
+      first.robot.mechanisms.extender.ExtenderIOSim extenderIO,
       ClawMechanism claw,
       ClawIOSim clawIO) {
     this(elevator, elevatorIO, extender, extenderIO, claw, clawIO, null, null, null, null);
@@ -418,11 +418,11 @@ public class SimWorld {
         tableContact = true;
       } else {
         if (extenderIO != null) {
-          extenderIO.setMaxExtensionLimit(first.robot.subsystems.extender.ExtenderConstants.MAX_EXTENSION);
+          extenderIO.setMaxExtensionLimit(first.robot.mechanisms.extender.ExtenderConstants.MAX_EXTENSION);
         }
       }
       if (elevatorIO != null) {
-        elevatorIO.setMinHeightLimit(first.robot.subsystems.elevator.ElevatorConstants.MIN_HEIGHT);
+        elevatorIO.setMinHeightLimit(first.robot.mechanisms.elevator.ElevatorConstants.MIN_HEIGHT);
       }
     } else {
       // Claw is high enough to be over the table, or wrist has moved over the table
@@ -440,16 +440,15 @@ public class SimWorld {
         }
       } else {
         if (elevatorIO != null) {
-          elevatorIO.setMinHeightLimit(first.robot.subsystems.elevator.ElevatorConstants.MIN_HEIGHT);
+          elevatorIO.setMinHeightLimit(first.robot.mechanisms.elevator.ElevatorConstants.MIN_HEIGHT);
         }
       }
       if (extenderIO != null) {
-        extenderIO.setMaxExtensionLimit(first.robot.subsystems.extender.ExtenderConstants.MAX_EXTENSION);
+        extenderIO.setMaxExtensionLimit(first.robot.mechanisms.extender.ExtenderConstants.MAX_EXTENSION);
       }
     }
 
     if (shooterIO != null) {
-      shooterIO.updateSim();
       double kickStrength = shooterIO.consumeKickStrength();
       if (kickStrength > 0.0) {
         double ext = extender.getPosition();
@@ -477,20 +476,6 @@ public class SimWorld {
 
     clawIO.setGripStop(gripStop);
     clawIO.setBallDetected(ball1.isHeld() || ball2.isHeld());
-
-    // Step simulation physics for all mechanisms
-    if (elevatorIO != null) {
-      elevatorIO.updateSim();
-    }
-    if (extenderIO != null) {
-      extenderIO.updateSim();
-    }
-    if (clawIO != null) {
-      clawIO.updateSim();
-    }
-    if (driveIO != null) {
-      driveIO.updateSim();
-    }
 
     boolean isAutonomous = RobotBase.isAutonomous() && RobotBase.isEnabled();
     if (isAutonomous) {
@@ -579,9 +564,9 @@ public class SimWorld {
     double ball2SideX = ball2.getX() - first.robot.constants.FieldConstants.ROBOT_TABLE_X;
 
     double minElevatorLimit =
-        (elevatorIO != null) ? elevatorIO.getMinHeightLimit() : first.robot.subsystems.elevator.ElevatorConstants.MIN_HEIGHT;
+        (elevatorIO != null) ? elevatorIO.getMinHeightLimit() : first.robot.mechanisms.elevator.ElevatorConstants.MIN_HEIGHT;
     double maxExtenderLimit =
-        (extenderIO != null) ? extenderIO.getMaxExtensionLimit() : first.robot.subsystems.extender.ExtenderConstants.MAX_EXTENSION;
+        (extenderIO != null) ? extenderIO.getMaxExtensionLimit() : first.robot.mechanisms.extender.ExtenderConstants.MAX_EXTENSION;
     boolean anyBallHeld = (ball1 != null && ball1.isHeld()) || (ball2 != null && ball2.isHeld()) || claw.hasBall();
 
     MotorState elevatorState = computeElevatorMotorState(minElevatorLimit, tableContact);
@@ -651,15 +636,15 @@ public class SimWorld {
 
     // Stalled: voltage applied, but cannot move because at limit/stop/obstacle
     boolean atLowerLimit = pos <= (minLimit + 0.02) || tableContact;
-    boolean pushingDown = (volts < first.robot.subsystems.elevator.ElevatorConstants.KG - 0.4);
-    boolean atUpperLimit = pos >= (first.robot.subsystems.elevator.ElevatorConstants.MAX_HEIGHT - 0.02);
-    boolean pushingUp = (volts > first.robot.subsystems.elevator.ElevatorConstants.KG + 0.8);
+    boolean pushingDown = (volts < first.robot.mechanisms.elevator.ElevatorConstants.KG - 0.4);
+    boolean atUpperLimit = pos >= (first.robot.mechanisms.elevator.ElevatorConstants.MAX_HEIGHT - 0.02);
+    boolean pushingUp = (volts > first.robot.mechanisms.elevator.ElevatorConstants.KG + 0.8);
 
     if (Math.abs(vel) < 0.03 && ((atLowerLimit && pushingDown) || (atUpperLimit && pushingUp))) {
       return MotorState.STALLED;
     }
 
-    if (Math.abs(vel) > 0.015 && Math.abs(volts - first.robot.subsystems.elevator.ElevatorConstants.KG) > 0.2) {
+    if (Math.abs(vel) > 0.015 && Math.abs(volts - first.robot.mechanisms.elevator.ElevatorConstants.KG) > 0.2) {
       return MotorState.RUNNING;
     }
 
@@ -675,7 +660,7 @@ public class SimWorld {
     double pos = extender.getPosition();
 
     // Stalled: voltage applied, but cannot move because at retracted or extended limit
-    boolean atMinLimit = pos <= (first.robot.subsystems.extender.ExtenderConstants.MIN_EXTENSION + 0.02);
+    boolean atMinLimit = pos <= (first.robot.mechanisms.extender.ExtenderConstants.MIN_EXTENSION + 0.02);
     boolean pushingIn = (volts < -0.5);
     boolean atMaxLimit = pos >= (maxLimit - 0.02) || (tableContact && volts > 0.5);
     boolean pushingOut = (volts > 0.5);
@@ -701,8 +686,8 @@ public class SimWorld {
 
     // Stalled: squeezing a held ball, or driven into closed/open physical stops
     boolean grippingBall = ballHeld && (volts < -0.5);
-    boolean atClosedStop = angle <= (first.robot.subsystems.claw.ClawConstants.CLOSED_ANGLE + 0.025) && (volts < -0.5);
-    boolean atOpenStop = angle >= (first.robot.subsystems.claw.ClawConstants.OPEN_ANGLE - 0.025) && (volts > 0.5);
+    boolean atClosedStop = angle <= (first.robot.mechanisms.claw.ClawConstants.CLOSED_ANGLE + 0.025) && (volts < -0.5);
+    boolean atOpenStop = angle >= (first.robot.mechanisms.claw.ClawConstants.OPEN_ANGLE - 0.025) && (volts > 0.5);
 
     if (Math.abs(vel) < 0.05 && (grippingBall || atClosedStop || atOpenStop)) {
       return MotorState.STALLED;

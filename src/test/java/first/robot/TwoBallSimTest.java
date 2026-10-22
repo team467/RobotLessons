@@ -5,17 +5,17 @@ import static org.junit.jupiter.api.Assertions.*;
 import first.robot.constants.FieldConstants;
 import first.robot.constants.RobotConstants;
 import first.robot.sim.SimWorld;
-import first.robot.subsystems.claw.ClawIOSim;
-import first.robot.subsystems.claw.ClawMechanism;
-import first.robot.subsystems.drive.DriveConstants;
-import first.robot.subsystems.drive.DriveIOSim;
-import first.robot.subsystems.drive.DriveMechanism;
-import first.robot.subsystems.elevator.ElevatorConstants;
-import first.robot.subsystems.elevator.ElevatorIOSim;
-import first.robot.subsystems.elevator.ElevatorMechanism;
-import first.robot.subsystems.extender.ExtenderConstants;
-import first.robot.subsystems.extender.ExtenderIOSim;
-import first.robot.subsystems.extender.ExtenderMechanism;
+import first.robot.mechanisms.claw.ClawIOSim;
+import first.robot.mechanisms.claw.ClawMechanism;
+import first.robot.mechanisms.drive.DriveConstants;
+import first.robot.mechanisms.drive.DriveIOSim;
+import first.robot.mechanisms.drive.DriveMechanism;
+import first.robot.mechanisms.elevator.ElevatorConstants;
+import first.robot.mechanisms.elevator.ElevatorIOSim;
+import first.robot.mechanisms.elevator.ElevatorMechanism;
+import first.robot.mechanisms.extender.ExtenderConstants;
+import first.robot.mechanisms.extender.ExtenderIOSim;
+import first.robot.mechanisms.extender.ExtenderMechanism;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -78,10 +78,6 @@ public class TwoBallSimTest {
     Scheduler.getDefault().schedule(claw.open());
     Scheduler.getDefault().schedule(extender.moveTo(ExtenderConstants.BALL_EXTENSION));
     for (int i = 0; i < 80; i++) {
-      drive.periodic();
-      elevator.periodic();
-      extender.periodic();
-      claw.periodic();
       world.update();
       Scheduler.getDefault().run();
     }
@@ -89,10 +85,6 @@ public class TwoBallSimTest {
     // 2. Lower onto ground ball
     Scheduler.getDefault().schedule(elevator.moveTo(ElevatorConstants.GROUND_GRAB_HEIGHT));
     for (int i = 0; i < 80; i++) {
-      drive.periodic();
-      elevator.periodic();
-      extender.periodic();
-      claw.periodic();
       world.update();
       Scheduler.getDefault().run();
     }
@@ -100,10 +92,6 @@ public class TwoBallSimTest {
     // 3. Close claw to grab Ball 2
     Scheduler.getDefault().schedule(claw.close());
     for (int i = 0; i < 60; i++) {
-      drive.periodic();
-      elevator.periodic();
-      extender.periodic();
-      claw.periodic();
       world.update();
       Scheduler.getDefault().run();
     }
@@ -114,10 +102,6 @@ public class TwoBallSimTest {
     // 4. Drive forward with held ball and verify ball travels with robot
     Scheduler.getDefault().schedule(drive.driveTo(1.5));
     for (int i = 0; i < 150; i++) {
-      drive.periodic();
-      elevator.periodic();
-      extender.periodic();
-      claw.periodic();
       world.update();
       Scheduler.getDefault().run();
       if (drive.atSetpoint()) break;

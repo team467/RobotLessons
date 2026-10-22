@@ -1,10 +1,11 @@
-package first.robot.subsystems.claw;
+package first.robot.mechanisms.claw;
 
-import static first.robot.subsystems.claw.ClawConstants.*;
+import static first.robot.mechanisms.claw.ClawConstants.*;
 
 import java.util.List;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
+import org.wpilib.command3.Scheduler;
 import org.wpilib.command3.Trigger;
 import org.wpilib.framework.RobotBase;
 import org.wpilib.math.controller.PIDController;
@@ -22,17 +23,10 @@ public class ClawMechanism implements Mechanism {
 
   public ClawMechanism(ClawIO io) {
     this.io = io;
-    setDefaultCommand(hold());
-  }
-
-  /** Call once per robot loop, before the scheduler runs, to refresh sensor readings. */
-  public void periodic() {
+    Scheduler.getDefault().addPeriodic(io::updateSim);
+    Scheduler.getDefault().addPeriodic(() -> io.updateInputs(inputs));
     io.updateInputs(inputs);
-  }
-
-  /** Call in simulation loop to step mechanism physics. */
-  public void simulationPeriodic() {
-    io.updateSim();
+    setDefaultCommand(hold());
   }
 
   // ------------------------------------------------------------------------------------------

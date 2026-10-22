@@ -2,9 +2,9 @@ package first.robot;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import first.robot.subsystems.drive.DriveConstants;
-import first.robot.subsystems.drive.DriveIOSim;
-import first.robot.subsystems.drive.DriveMechanism;
+import first.robot.mechanisms.drive.DriveConstants;
+import first.robot.mechanisms.drive.DriveIOSim;
+import first.robot.mechanisms.drive.DriveMechanism;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,9 +37,7 @@ public class DriveMechanismTest {
     // Simulate for up to 3 seconds (150 ticks @ 20ms)
     boolean reached = false;
     for (int i = 0; i < 150; i++) {
-      drive.periodic();
       Scheduler.getDefault().run();
-      drive.simulationPeriodic();
       if (drive.atSetpoint()) {
         reached = true;
         break;
@@ -58,9 +56,7 @@ public class DriveMechanismTest {
     // Start by moving to table
     Scheduler.getDefault().schedule(drive.driveToTable());
     for (int i = 0; i < 150; i++) {
-      drive.periodic();
       Scheduler.getDefault().run();
-      drive.simulationPeriodic();
       if (drive.atSetpoint()) break;
     }
     assertTrue(drive.atSetpoint());
@@ -68,9 +64,7 @@ public class DriveMechanismTest {
     // Now drive back to start
     Scheduler.getDefault().schedule(drive.driveToStart());
     for (int i = 0; i < 150; i++) {
-      drive.periodic();
       Scheduler.getDefault().run();
-      drive.simulationPeriodic();
       if (drive.atSetpoint()) break;
     }
     assertTrue(drive.atSetpoint());

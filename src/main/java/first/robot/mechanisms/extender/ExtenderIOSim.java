@@ -1,6 +1,6 @@
-package first.robot.subsystems.extender;
+package first.robot.mechanisms.extender;
 
-import static first.robot.subsystems.extender.ExtenderConstants.*;
+import static first.robot.mechanisms.extender.ExtenderConstants.*;
 
 import org.wpilib.framework.RobotBase;
 import org.wpilib.math.system.DCMotor;

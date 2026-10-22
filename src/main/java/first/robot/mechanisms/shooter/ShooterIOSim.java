@@ -1,6 +1,6 @@
-package first.robot.subsystems.shooter;
+package first.robot.mechanisms.shooter;
 
-import static first.robot.subsystems.shooter.ShooterConstants.*;
+import static first.robot.mechanisms.shooter.ShooterConstants.*;
 
 import org.wpilib.framework.RobotBase;
 import org.wpilib.math.system.DCMotor;

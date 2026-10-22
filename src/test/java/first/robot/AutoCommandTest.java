@@ -5,14 +5,14 @@ import static org.junit.jupiter.api.Assertions.*;
 import first.robot.auto.ScoreBallAuto;
 import first.robot.orchestration.BallCommands;
 import first.robot.sim.SimWorld;
-import first.robot.subsystems.claw.ClawIOSim;
-import first.robot.subsystems.claw.ClawMechanism;
-import first.robot.subsystems.drive.DriveIOSim;
-import first.robot.subsystems.drive.DriveMechanism;
-import first.robot.subsystems.elevator.ElevatorIOSim;
-import first.robot.subsystems.elevator.ElevatorMechanism;
-import first.robot.subsystems.extender.ExtenderIOSim;
-import first.robot.subsystems.extender.ExtenderMechanism;
+import first.robot.mechanisms.claw.ClawIOSim;
+import first.robot.mechanisms.claw.ClawMechanism;
+import first.robot.mechanisms.drive.DriveIOSim;
+import first.robot.mechanisms.drive.DriveMechanism;
+import first.robot.mechanisms.elevator.ElevatorIOSim;
+import first.robot.mechanisms.elevator.ElevatorMechanism;
+import first.robot.mechanisms.extender.ExtenderIOSim;
+import first.robot.mechanisms.extender.ExtenderMechanism;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.wpilib.command3.Command;
@@ -46,9 +46,6 @@ public class AutoCommandTest {
     // Simulate for up to 6 seconds (300 ticks @ 20ms)
     boolean grabbed = false;
     for (int i = 0; i < 300; i++) {
-      elevator.periodic();
-      extender.periodic();
-      claw.periodic();
       world.update();
       Scheduler.getDefault().run();
 
@@ -81,10 +78,6 @@ public class AutoCommandTest {
 
     boolean scored = false;
     for (int i = 0; i < 600; i++) {
-      drive.periodic();
-      elevator.periodic();
-      extender.periodic();
-      claw.periodic();
       world.update();
       Scheduler.getDefault().run();
 

@@ -1,4 +1,4 @@
-package first.robot.subsystems.shooter;
+package first.robot.mechanisms.shooter;
 
 /**
  * Hardware interface for the spring-loaded {@link ShooterMechanism}: a pullback motor with a

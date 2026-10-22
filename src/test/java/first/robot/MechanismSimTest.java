@@ -2,14 +2,14 @@ package first.robot;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import first.robot.subsystems.claw.ClawIOSim;
-import first.robot.subsystems.claw.ClawMechanism;
-import first.robot.subsystems.elevator.ElevatorConstants;
-import first.robot.subsystems.elevator.ElevatorIOSim;
-import first.robot.subsystems.elevator.ElevatorMechanism;
-import first.robot.subsystems.extender.ExtenderConstants;
-import first.robot.subsystems.extender.ExtenderIOSim;
-import first.robot.subsystems.extender.ExtenderMechanism;
+import first.robot.mechanisms.claw.ClawIOSim;
+import first.robot.mechanisms.claw.ClawMechanism;
+import first.robot.mechanisms.elevator.ElevatorConstants;
+import first.robot.mechanisms.elevator.ElevatorIOSim;
+import first.robot.mechanisms.elevator.ElevatorMechanism;
+import first.robot.mechanisms.extender.ExtenderConstants;
+import first.robot.mechanisms.extender.ExtenderIOSim;
+import first.robot.mechanisms.extender.ExtenderMechanism;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.wpilib.command3.Scheduler;
@@ -35,9 +35,7 @@ public class MechanismSimTest {
 
     // Run periodic loop for up to 2 seconds (100 ticks @ 20ms)
     for (int i = 0; i < 100; i++) {
-      elevator.periodic();
       Scheduler.getDefault().run();
-      elevator.simulationPeriodic();
       if (elevator.atSetpoint()) {
         break;
       }
@@ -57,9 +55,7 @@ public class MechanismSimTest {
     Scheduler.getDefault().schedule(cmd);
 
     for (int i = 0; i < 100; i++) {
-      extender.periodic();
       Scheduler.getDefault().run();
-      extender.simulationPeriodic();
       if (extender.atSetpoint()) {
         break;
       }
@@ -78,9 +74,7 @@ public class MechanismSimTest {
     Scheduler.getDefault().schedule(openCmd);
 
     for (int i = 0; i < 50; i++) {
-      claw.periodic();
       Scheduler.getDefault().run();
-      claw.simulationPeriodic();
       if (claw.atSetpoint()) {
         break;
       }

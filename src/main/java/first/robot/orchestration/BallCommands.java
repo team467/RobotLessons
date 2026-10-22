@@ -1,12 +1,12 @@
 package first.robot.orchestration;
 
-import first.robot.subsystems.claw.ClawMechanism;
-import first.robot.subsystems.elevator.ElevatorConstants;
-import first.robot.subsystems.elevator.ElevatorMechanism;
-import first.robot.subsystems.extender.ExtenderConstants;
-import first.robot.subsystems.extender.ExtenderMechanism;
-import first.robot.subsystems.shooter.ShooterConstants;
-import first.robot.subsystems.shooter.ShooterMechanism;
+import first.robot.mechanisms.claw.ClawMechanism;
+import first.robot.mechanisms.elevator.ElevatorConstants;
+import first.robot.mechanisms.elevator.ElevatorMechanism;
+import first.robot.mechanisms.extender.ExtenderConstants;
+import first.robot.mechanisms.extender.ExtenderMechanism;
+import first.robot.mechanisms.shooter.ShooterConstants;
+import first.robot.mechanisms.shooter.ShooterMechanism;
 import org.wpilib.command3.Command;
 
 /**

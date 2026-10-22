@@ -1,6 +1,6 @@
-package first.robot.subsystems.drive;
+package first.robot.mechanisms.drive;
 
-import static first.robot.subsystems.drive.DriveConstants.*;
+import static first.robot.mechanisms.drive.DriveConstants.*;
 
 import first.robot.constants.FieldConstants;
 import org.wpilib.framework.RobotBase;

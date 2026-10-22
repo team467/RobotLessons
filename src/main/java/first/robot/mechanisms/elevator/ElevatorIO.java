@@ -1,4 +1,4 @@
-package first.robot.subsystems.elevator;
+package first.robot.mechanisms.elevator;
 
 /**
  * The hardware layer for the elevator. The {@link ElevatorMechanism} only talks to the motor

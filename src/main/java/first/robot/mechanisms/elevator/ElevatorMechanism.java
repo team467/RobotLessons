@@ -1,10 +1,11 @@
-package first.robot.subsystems.elevator;
+package first.robot.mechanisms.elevator;
 
-import static first.robot.subsystems.elevator.ElevatorConstants.*;
+import static first.robot.mechanisms.elevator.ElevatorConstants.*;
 
 import java.util.List;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
+import org.wpilib.command3.Scheduler;
 import org.wpilib.command3.Trigger;
 import org.wpilib.framework.RobotBase;
 import org.wpilib.math.controller.PIDController;
@@ -23,18 +24,11 @@ public class ElevatorMechanism implements Mechanism {
 
   public ElevatorMechanism(ElevatorIO io) {
     this.io = io;
+    Scheduler.getDefault().addPeriodic(io::updateSim);
+    Scheduler.getDefault().addPeriodic(() -> io.updateInputs(inputs));
+    io.updateInputs(inputs);
     // When no other command is using the elevator, hold it where it is.
     setDefaultCommand(hold());
-  }
-
-  /** Call once per robot loop, before the scheduler runs, to refresh sensor readings. */
-  public void periodic() {
-    io.updateInputs(inputs);
-  }
-
-  /** Call in simulation loop to step mechanism physics. */
-  public void simulationPeriodic() {
-    io.updateSim();
   }
 
   // ------------------------------------------------------------------------------------------

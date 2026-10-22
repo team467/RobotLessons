@@ -5,12 +5,12 @@ import static org.junit.jupiter.api.Assertions.*;
 import first.robot.constants.FieldConstants;
 import first.robot.constants.RobotConstants;
 import first.robot.sim.SimWorld;
-import first.robot.subsystems.claw.ClawIOSim;
-import first.robot.subsystems.claw.ClawMechanism;
-import first.robot.subsystems.elevator.ElevatorIOSim;
-import first.robot.subsystems.elevator.ElevatorMechanism;
-import first.robot.subsystems.extender.ExtenderIOSim;
-import first.robot.subsystems.extender.ExtenderMechanism;
+import first.robot.mechanisms.claw.ClawIOSim;
+import first.robot.mechanisms.claw.ClawMechanism;
+import first.robot.mechanisms.elevator.ElevatorIOSim;
+import first.robot.mechanisms.elevator.ElevatorMechanism;
+import first.robot.mechanisms.extender.ExtenderIOSim;
+import first.robot.mechanisms.extender.ExtenderMechanism;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.wpilib.command3.Scheduler;
@@ -38,12 +38,9 @@ public class TableContactTest {
     SimWorld world = new SimWorld(elevator, elevatorIO, extender, extenderIO, claw, clawIO);
 
     // Raise elevator above table and extend over the table
-    Scheduler.getDefault().schedule(elevator.moveTo(first.robot.subsystems.elevator.ElevatorConstants.ABOVE_TABLE_HEIGHT));
+    Scheduler.getDefault().schedule(elevator.moveTo(first.robot.mechanisms.elevator.ElevatorConstants.ABOVE_TABLE_HEIGHT));
     Scheduler.getDefault().schedule(extender.moveTo(FieldConstants.BALL_START_X - RobotConstants.WRIST_BASE_X));
     for (int i = 0; i < 80; i++) {
-      elevator.periodic();
-      extender.periodic();
-      claw.periodic();
       world.update();
       Scheduler.getDefault().run();
     }
@@ -51,9 +48,6 @@ public class TableContactTest {
     // Now command elevator down to minimum height (trying to smash through table)
     Scheduler.getDefault().schedule(elevator.moveTo(0.35));
     for (int i = 0; i < 60; i++) {
-      elevator.periodic();
-      extender.periodic();
-      claw.periodic();
       world.update();
       Scheduler.getDefault().run();
     }
@@ -85,9 +79,6 @@ public class TableContactTest {
     // Try to extend out all the way into the side of the table
     Scheduler.getDefault().schedule(extender.moveTo(1.10));
     for (int i = 0; i < 80; i++) {
-      elevator.periodic();
-      extender.periodic();
-      claw.periodic();
       world.update();
       Scheduler.getDefault().run();
     }
@@ -117,9 +108,6 @@ public class TableContactTest {
     // Position elevator at 0.80m (wrist is above table height 0.75m, but claw hangs down to 0.56m)
     Scheduler.getDefault().schedule(elevator.moveTo(0.80));
     for (int i = 0; i < 50; i++) {
-      elevator.periodic();
-      extender.periodic();
-      claw.periodic();
       world.update();
       Scheduler.getDefault().run();
     }
@@ -128,9 +116,6 @@ public class TableContactTest {
     // Now try to extend into the table from the left
     Scheduler.getDefault().schedule(extender.moveTo(1.00));
     for (int i = 0; i < 80; i++) {
-      elevator.periodic();
-      extender.periodic();
-      claw.periodic();
       world.update();
       Scheduler.getDefault().run();
     }

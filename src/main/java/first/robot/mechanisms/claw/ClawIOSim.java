@@ -1,6 +1,6 @@
-package first.robot.subsystems.claw;
+package first.robot.mechanisms.claw;
 
-import static first.robot.subsystems.claw.ClawConstants.*;
+import static first.robot.mechanisms.claw.ClawConstants.*;
 
 import org.wpilib.framework.RobotBase;
 import org.wpilib.math.system.DCMotor;

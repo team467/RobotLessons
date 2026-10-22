@@ -2,12 +2,12 @@ package first.robot.auto;
 
 import first.robot.Robot;
 import first.robot.orchestration.BallCommands;
-import first.robot.subsystems.claw.ClawMechanism;
-import first.robot.subsystems.drive.DriveMechanism;
-import first.robot.subsystems.elevator.ElevatorMechanism;
-import first.robot.subsystems.extender.ExtenderMechanism;
-import first.robot.subsystems.shooter.ShooterConstants;
-import first.robot.subsystems.shooter.ShooterMechanism;
+import first.robot.mechanisms.claw.ClawMechanism;
+import first.robot.mechanisms.drive.DriveMechanism;
+import first.robot.mechanisms.elevator.ElevatorMechanism;
+import first.robot.mechanisms.extender.ExtenderMechanism;
+import first.robot.mechanisms.shooter.ShooterConstants;
+import first.robot.mechanisms.shooter.ShooterMechanism;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Scheduler;
 import org.wpilib.opmode.Autonomous;

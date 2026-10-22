@@ -1,4 +1,4 @@
-package first.robot.subsystems.extender;
+package first.robot.mechanisms.extender;
 
 import first.robot.constants.FieldConstants;
 import first.robot.constants.RobotConstants;

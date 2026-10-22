@@ -1,10 +1,11 @@
-package first.robot.subsystems.shooter;
+package first.robot.mechanisms.shooter;
 
-import static first.robot.subsystems.shooter.ShooterConstants.*;
+import static first.robot.mechanisms.shooter.ShooterConstants.*;
 
 import java.util.List;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
+import org.wpilib.command3.Scheduler;
 import org.wpilib.command3.Trigger;
 import org.wpilib.framework.RobotBase;
 import org.wpilib.math.controller.PIDController;
@@ -35,17 +36,10 @@ public class ShooterMechanism implements Mechanism {
 
   public ShooterMechanism(ShooterIO io) {
     this.io = io;
-    setDefaultCommand(hold());
-  }
-
-  /** Call once per robot loop, before the scheduler runs, to refresh sensor readings. */
-  public void periodic() {
+    Scheduler.getDefault().addPeriodic(io::updateSim);
+    Scheduler.getDefault().addPeriodic(() -> io.updateInputs(inputs));
     io.updateInputs(inputs);
-  }
-
-  /** Call in simulation loop to step mechanism physics. */
-  public void simulationPeriodic() {
-    io.updateSim();
+    setDefaultCommand(hold());
   }
 
   // ------------------------------------------------------------------------------------------

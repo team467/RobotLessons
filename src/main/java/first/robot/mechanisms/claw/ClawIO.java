@@ -1,4 +1,4 @@
-package first.robot.subsystems.claw;
+package first.robot.mechanisms.claw;
 
 /** The hardware layer for the claw. See {@link ClawIOSim} for the simulated version. */
 public interface ClawIO {

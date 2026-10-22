@@ -1,4 +1,4 @@
-package first.robot.subsystems.claw;
+package first.robot.mechanisms.claw;
 
 /**
  * Constants for the {@link ClawMechanism}. The claw angle is how far each finger swings away from
