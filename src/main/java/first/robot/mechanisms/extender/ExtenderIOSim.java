@@ -1,5 +1,6 @@
 package first.robot.mechanisms.extender;
 
+import static first.robot.constants.SimulationConstants.LOOP_PERIOD_SECONDS;
 import static first.robot.mechanisms.extender.ExtenderConstants.*;
 
 import org.wpilib.framework.RobotBase;
@@ -13,8 +14,6 @@ import org.wpilib.simulation.ElevatorSim;
  * {@link ElevatorSim} with gravity turned off.
  */
 public class ExtenderIOSim implements ExtenderIO {
-  private static final double LOOP_PERIOD_SECONDS = 0.02;
-
   private final ElevatorSim sim =
       new ElevatorSim(
           DCMotor.getNEO(1),

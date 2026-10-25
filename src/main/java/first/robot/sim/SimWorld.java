@@ -1,6 +1,7 @@
 package first.robot.sim;
 
 import static first.robot.constants.RobotConstants.WRIST_BASE_X;
+import static first.robot.constants.SimulationConstants.LOOP_PERIOD_SECONDS;
 
 import first.robot.mechanisms.claw.ClawIOSim;
 import first.robot.mechanisms.claw.ClawMechanism;
@@ -78,8 +79,6 @@ public class SimWorld {
       boolean shooterLoaded,
       String shooterCommand,
       MotorState shooterMotorState) {}
-
-  private static final double LOOP_PERIOD_SECONDS = 0.02;
 
   private final ElevatorMechanism elevator;
   private final first.robot.mechanisms.elevator.ElevatorIOSim elevatorIO;

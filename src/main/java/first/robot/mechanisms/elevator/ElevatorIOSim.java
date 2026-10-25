@@ -1,5 +1,6 @@
 package first.robot.mechanisms.elevator;
 
+import static first.robot.constants.SimulationConstants.LOOP_PERIOD_SECONDS;
 import static first.robot.mechanisms.elevator.ElevatorConstants.*;
 
 import org.wpilib.framework.RobotBase;
@@ -8,8 +9,6 @@ import org.wpilib.simulation.ElevatorSim;
 
 /** Simulated elevator: one NEO motor lifting the carriage on a chain, with gravity. */
 public class ElevatorIOSim implements ElevatorIO {
-  private static final double LOOP_PERIOD_SECONDS = 0.02;
-
   private final ElevatorSim sim =
       new ElevatorSim(
           DCMotor.getNEO(1),

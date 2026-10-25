@@ -1,5 +1,6 @@
 package first.robot.mechanisms.drive;
 
+import static first.robot.constants.SimulationConstants.LOOP_PERIOD_SECONDS;
 import static first.robot.mechanisms.drive.DriveConstants.*;
 
 import first.robot.constants.FieldConstants;
@@ -9,8 +10,6 @@ import org.wpilib.simulation.ElevatorSim;
 
 /** Simulated drivetrain hardware using WPILib's linear physics simulator. */
 public class DriveIOSim implements DriveIO {
-  private static final double LOOP_PERIOD_SECONDS = 0.02;
-
   // Horizontal linear carriage with 2 NEOs, toughbox gearing, robot mass, and wheels.
   private final ElevatorSim sim =
       new ElevatorSim(

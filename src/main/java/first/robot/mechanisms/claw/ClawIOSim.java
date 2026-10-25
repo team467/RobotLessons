@@ -1,5 +1,6 @@
 package first.robot.mechanisms.claw;
 
+import static first.robot.constants.SimulationConstants.LOOP_PERIOD_SECONDS;
 import static first.robot.mechanisms.claw.ClawConstants.*;
 
 import org.wpilib.framework.RobotBase;
@@ -14,8 +15,6 @@ import org.wpilib.simulation.SingleJointedArmSim;
  * is between the fingers so they stop closing when they touch it.
  */
 public class ClawIOSim implements ClawIO {
-  private static final double LOOP_PERIOD_SECONDS = 0.02;
-
   private final SingleJointedArmSim sim =
       new SingleJointedArmSim(
           DCMotor.getNeo550(1),

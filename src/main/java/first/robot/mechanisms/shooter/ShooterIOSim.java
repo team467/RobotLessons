@@ -1,5 +1,6 @@
 package first.robot.mechanisms.shooter;
 
+import static first.robot.constants.SimulationConstants.LOOP_PERIOD_SECONDS;
 import static first.robot.mechanisms.shooter.ShooterConstants.*;
 
 import org.wpilib.framework.RobotBase;
@@ -12,8 +13,6 @@ import org.wpilib.simulation.ElevatorSim;
  * disengages the ratchet, letting the spring snap the plunger back to {@code 0.0} and kick the ball.
  */
 public class ShooterIOSim implements ShooterIO {
-  private static final double LOOP_PERIOD_SECONDS = 0.02;
-
   private final ElevatorSim sim =
       new ElevatorSim(
           DCMotor.getNEO(1),
