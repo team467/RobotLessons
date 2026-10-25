@@ -26,7 +26,4 @@ public interface ElevatorIO {
 
   /** Commands the motor with a voltage. Positive moves the carriage up. */
   void setVoltage(double volts);
-
-  /** Updates simulation physics (called during simulationPeriodic). Default does nothing for real hardware. */
-  default void updateSim() {}
 }

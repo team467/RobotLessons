@@ -81,15 +81,10 @@ public class SimWorld {
       MotorState shooterMotorState) {}
 
   private final ElevatorMechanism elevator;
-  private final first.robot.mechanisms.elevator.ElevatorIOSim elevatorIO;
   private final ExtenderMechanism extender;
-  private final first.robot.mechanisms.extender.ExtenderIOSim extenderIO;
   private final ClawMechanism claw;
-  private final ClawIOSim clawIO;
   private final DriveMechanism drive;
-  private final DriveIOSim driveIO;
   private final ShooterMechanism shooter;
-  private final ShooterIOSim shooterIO;
   private final BallSim ball1;
   private final BallSim ball2;
   private final AtomicBoolean resetStateRequested = new AtomicBoolean(false);
@@ -109,25 +104,15 @@ public class SimWorld {
 
   public SimWorld(
       ElevatorMechanism elevator,
-      first.robot.mechanisms.elevator.ElevatorIOSim elevatorIO,
       ExtenderMechanism extender,
-      first.robot.mechanisms.extender.ExtenderIOSim extenderIO,
       ClawMechanism claw,
-      ClawIOSim clawIO,
       DriveMechanism drive,
-      DriveIOSim driveIO,
-      ShooterMechanism shooter,
-      ShooterIOSim shooterIO) {
+      ShooterMechanism shooter) {
     this.elevator = elevator;
-    this.elevatorIO = elevatorIO;
     this.extender = extender;
-    this.extenderIO = extenderIO;
     this.claw = claw;
-    this.clawIO = clawIO;
     this.drive = drive;
-    this.driveIO = driveIO;
     this.shooter = shooter;
-    this.shooterIO = shooterIO;
 
     double tableFieldLeft =
         first.robot.constants.FieldConstants.ROBOT_TABLE_X
@@ -168,6 +153,7 @@ public class SimWorld {
             targetFieldRight,
             0.0);
     this.ball1.setBasketBounds(basketFieldLeft, basketFieldRight, basketHeight);
+    this.ball1.setFloorTargetBounds(targetFieldLeft, targetFieldRight);
 
     this.ball2 =
         new BallSim(
@@ -182,6 +168,7 @@ public class SimWorld {
             tableTargetFieldRight,
             first.robot.constants.FieldConstants.TABLE_HEIGHT);
     this.ball2.setBasketBounds(basketFieldLeft, basketFieldRight, basketHeight);
+    this.ball2.setFloorTargetBounds(targetFieldLeft, targetFieldRight);
 
     snapshot = buildSnapshot(false);
   }
@@ -194,8 +181,22 @@ public class SimWorld {
       ClawMechanism claw,
       ClawIOSim clawIO,
       DriveMechanism drive,
+      DriveIOSim driveIO,
+      ShooterMechanism shooter,
+      ShooterIOSim shooterIO) {
+    this(elevator, extender, claw, drive, shooter);
+  }
+
+  public SimWorld(
+      ElevatorMechanism elevator,
+      first.robot.mechanisms.elevator.ElevatorIOSim elevatorIO,
+      ExtenderMechanism extender,
+      first.robot.mechanisms.extender.ExtenderIOSim extenderIO,
+      ClawMechanism claw,
+      ClawIOSim clawIO,
+      DriveMechanism drive,
       DriveIOSim driveIO) {
-    this(elevator, elevatorIO, extender, extenderIO, claw, clawIO, drive, driveIO, null, null);
+    this(elevator, extender, claw, drive, null);
   }
 
   public SimWorld(
@@ -205,7 +206,7 @@ public class SimWorld {
       first.robot.mechanisms.extender.ExtenderIOSim extenderIO,
       ClawMechanism claw,
       ClawIOSim clawIO) {
-    this(elevator, elevatorIO, extender, extenderIO, claw, clawIO, null, null, null, null);
+    this(elevator, extender, claw, null, null);
   }
 
   public void setTeleopActivator(Runnable teleopActivator) {
@@ -223,21 +224,7 @@ public class SimWorld {
       org.wpilib.command3.Scheduler.getDefault().cancelAll();
       org.wpilib.simulation.DriverStationSim.setEnabled(false);
       org.wpilib.simulation.DriverStationSim.notifyNewData();
-      if (elevatorIO != null) {
-        elevatorIO.resetSim();
-      }
-      if (extenderIO != null) {
-        extenderIO.resetSim();
-      }
-      if (clawIO != null) {
-        clawIO.resetSim();
-      }
-      if (driveIO != null) {
-        driveIO.resetPosition();
-      }
-      if (shooterIO != null) {
-        shooterIO.reset();
-      }
+      SimMechanical.resetAll();
       if (drive != null) {
         drive.resetPosition(DriveConstants.START_POSITION);
         drive.resetSetpoint();
@@ -378,7 +365,7 @@ public class SimWorld {
     double wristExtenderX = WRIST_BASE_X + extender.getPosition();
     double wristFieldX = robotFieldX + wristExtenderX;
     double wristY = elevator.getPosition();
-    double clawAngle = clawIO.getSimAngle();
+    double clawAngle = SimMechanical.getClawMotor().getSimAngle();
     boolean ballHeld = ball1.isHeld() || ball2.isHeld();
 
     // The lowest point of the claw fingers / held ball relative to wristY
@@ -411,18 +398,14 @@ public class SimWorld {
         double maxAllowedWristFieldX = tableFieldLeft - clawFrontReach;
         double maxAllowedExtenderWrist = maxAllowedWristFieldX - robotFieldX;
         double maxExt = Math.max(0.0, maxAllowedExtenderWrist - WRIST_BASE_X);
-        if (extenderIO != null) {
-          extenderIO.setMaxExtensionLimit(maxExt);
-        }
+        SimMechanical.getExtenderMotor().setMaxExtensionLimit(maxExt);
         tableContact = true;
       } else {
-        if (extenderIO != null) {
-          extenderIO.setMaxExtensionLimit(first.robot.mechanisms.extender.ExtenderConstants.MAX_EXTENSION);
-        }
+        SimMechanical.getExtenderMotor()
+            .setMaxExtensionLimit(first.robot.mechanisms.extender.ExtenderConstants.MAX_EXTENSION);
       }
-      if (elevatorIO != null) {
-        elevatorIO.setMinHeightLimit(first.robot.mechanisms.elevator.ElevatorConstants.MIN_HEIGHT);
-      }
+      SimMechanical.getElevatorMotor()
+          .setMinHeightLimit(first.robot.mechanisms.elevator.ElevatorConstants.MIN_HEIGHT);
     } else {
       // Claw is high enough to be over the table, or wrist has moved over the table
       boolean overTable = (wristFieldX + clawFrontReach) >= tableFieldLeft
@@ -431,24 +414,20 @@ public class SimWorld {
       if (overTable) {
         // Over the table top: elevator cannot penetrate down into the table surface
         double minElevatorHeight = first.robot.constants.FieldConstants.TABLE_HEIGHT + clawDrop;
-        if (elevatorIO != null) {
-          elevatorIO.setMinHeightLimit(minElevatorHeight);
-        }
+        SimMechanical.getElevatorMotor().setMinHeightLimit(minElevatorHeight);
         if (clawLowestY <= first.robot.constants.FieldConstants.TABLE_HEIGHT + 0.015) {
           tableContact = true;
         }
       } else {
-        if (elevatorIO != null) {
-          elevatorIO.setMinHeightLimit(first.robot.mechanisms.elevator.ElevatorConstants.MIN_HEIGHT);
-        }
+        SimMechanical.getElevatorMotor()
+            .setMinHeightLimit(first.robot.mechanisms.elevator.ElevatorConstants.MIN_HEIGHT);
       }
-      if (extenderIO != null) {
-        extenderIO.setMaxExtensionLimit(first.robot.mechanisms.extender.ExtenderConstants.MAX_EXTENSION);
-      }
+      SimMechanical.getExtenderMotor()
+          .setMaxExtensionLimit(first.robot.mechanisms.extender.ExtenderConstants.MAX_EXTENSION);
     }
 
-    if (shooterIO != null) {
-      double kickStrength = shooterIO.consumeKickStrength();
+    if (shooter != null) {
+      double kickStrength = SimMechanical.getShooterMotor().consumeKickStrength();
       if (kickStrength > 0.0) {
         double ext = extender.getPosition();
         boolean armInStrikeZone =
@@ -469,12 +448,61 @@ public class SimWorld {
       }
     }
 
-    double gripStop1 = ball1.update(LOOP_PERIOD_SECONDS, wristFieldX, wristY, clawAngle);
-    double gripStop2 = ball2.update(LOOP_PERIOD_SECONDS, wristFieldX, wristY, clawAngle);
+    double robotVelX = (drive != null) ? drive.getVelocity() : 0.0;
+    ball1.checkBumperContact(robotFieldX, robotVelX);
+    ball2.checkBumperContact(robotFieldX, robotVelX);
+
+    double targetFieldLeft =
+        first.robot.constants.FieldConstants.ROBOT_TABLE_X
+            + first.robot.constants.FieldConstants.TARGET_LEFT_X;
+    double targetFieldRight =
+        first.robot.constants.FieldConstants.ROBOT_TABLE_X
+            + first.robot.constants.FieldConstants.TARGET_RIGHT_X;
+    boolean ball1InFloorTarget =
+        ball1.getState() == BallSim.State.ON_FLOOR
+            && ball1.getX() >= targetFieldLeft
+            && ball1.getX() <= targetFieldRight;
+    boolean ball2InFloorTarget =
+        ball2.getState() == BallSim.State.ON_FLOOR
+            && ball2.getX() >= targetFieldLeft
+            && ball2.getX() <= targetFieldRight;
+
+    ball1.setTableOccupied(
+        ball2.getState() == BallSim.State.ON_TABLE && !ball2.isScoredInBasket());
+    ball2.setTableOccupied(
+        ball1.getState() == BallSim.State.ON_TABLE && !ball1.isScoredInBasket());
+    ball1.setFloorTargetOccupied(ball2InFloorTarget);
+    ball2.setFloorTargetOccupied(ball1InFloorTarget);
+
+    double gripStop1;
+    double gripStop2;
+    if (ball1.isHeld()) {
+      gripStop1 = ball1.update(LOOP_PERIOD_SECONDS, wristFieldX, wristY, clawAngle);
+      gripStop2 = ball2.update(LOOP_PERIOD_SECONDS, Double.NEGATIVE_INFINITY, wristY, clawAngle);
+    } else if (ball2.isHeld()) {
+      gripStop2 = ball2.update(LOOP_PERIOD_SECONDS, wristFieldX, wristY, clawAngle);
+      gripStop1 = ball1.update(LOOP_PERIOD_SECONDS, Double.NEGATIVE_INFINITY, wristY, clawAngle);
+    } else if (ball1.isScored() && !ball2.isScored()) {
+      gripStop2 = ball2.update(LOOP_PERIOD_SECONDS, wristFieldX, wristY, clawAngle);
+      gripStop1 =
+          ball1.update(
+              LOOP_PERIOD_SECONDS,
+              ball2.isHeld() ? Double.NEGATIVE_INFINITY : wristFieldX,
+              wristY,
+              clawAngle);
+    } else {
+      gripStop1 = ball1.update(LOOP_PERIOD_SECONDS, wristFieldX, wristY, clawAngle);
+      gripStop2 =
+          ball2.update(
+              LOOP_PERIOD_SECONDS,
+              ball1.isHeld() ? Double.NEGATIVE_INFINITY : wristFieldX,
+              wristY,
+              clawAngle);
+    }
     double gripStop = Double.isNaN(gripStop1) ? gripStop2 : gripStop1;
 
-    clawIO.setGripStop(gripStop);
-    clawIO.setBallDetected(ball1.isHeld() || ball2.isHeld());
+    SimMechanical.getClawMotor().setGripStop(gripStop);
+    SimMechanical.getClawBallSensor().set(ball1.isHeld() || ball2.isHeld());
 
     boolean isAutonomous = RobotBase.isAutonomous() && RobotBase.isEnabled();
     if (isAutonomous) {
@@ -562,10 +590,8 @@ public class SimWorld {
     double ball1SideX = ball1.getX() - first.robot.constants.FieldConstants.ROBOT_TABLE_X;
     double ball2SideX = ball2.getX() - first.robot.constants.FieldConstants.ROBOT_TABLE_X;
 
-    double minElevatorLimit =
-        (elevatorIO != null) ? elevatorIO.getMinHeightLimit() : first.robot.mechanisms.elevator.ElevatorConstants.MIN_HEIGHT;
-    double maxExtenderLimit =
-        (extenderIO != null) ? extenderIO.getMaxExtensionLimit() : first.robot.mechanisms.extender.ExtenderConstants.MAX_EXTENSION;
+    double minElevatorLimit = SimMechanical.getElevatorMotor().getMinHeightLimit();
+    double maxExtenderLimit = SimMechanical.getExtenderMotor().getMaxExtensionLimit();
     boolean anyBallHeld = (ball1 != null && ball1.isHeld()) || (ball2 != null && ball2.isHeld()) || claw.hasBall();
 
     MotorState elevatorState = computeElevatorMotorState(minElevatorLimit, tableContact);

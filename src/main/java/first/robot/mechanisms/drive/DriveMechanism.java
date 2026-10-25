@@ -44,7 +44,6 @@ public class DriveMechanism implements Mechanism {
 
   public DriveMechanism(DriveIO io) {
     this.io = io;
-    Scheduler.getDefault().addPeriodic(io::updateSim);
     Scheduler.getDefault().addPeriodic(() -> io.updateInputs(inputs));
     io.updateInputs(inputs);
     setDefaultCommand(hold());

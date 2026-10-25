@@ -13,4 +13,7 @@ public final class Schematic {
 
   // ---- Digital I/O (DIO) Ports ----
   public static final int CLAW_BALL_SENSOR_DIO = 0;
+
+  // ---- Solenoid Channels ----
+  public static final int SHOOTER_SOLENOID_CHANNEL = 0;
 }

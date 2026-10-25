@@ -77,6 +77,40 @@ public final class BallCommands {
   }
 
   /**
+   * Places a held ball gently on the ground to the left of the green floor target ({@code extender
+   * = 0.0m}) while the robot is parked at the table.
+   */
+  public static Command placeBallLeftOfTarget(
+      ElevatorMechanism elevator, ExtenderMechanism extender, ClawMechanism claw) {
+    return Command.noRequirements(coroutine -> {
+      if (extender.getPosition() > 0.45
+          && elevator.getPosition() < ElevatorConstants.ABOVE_TABLE_HEIGHT - 0.05) {
+        coroutine.await(elevator.moveTo(ElevatorConstants.ABOVE_TABLE_HEIGHT));
+      }
+      coroutine.await(extender.moveTo(0.0));
+      coroutine.await(elevator.moveTo(ElevatorConstants.SCORE_HEIGHT));
+      coroutine.await(claw.open());
+    }).named("Place Ball Left Of Target");
+  }
+
+  /**
+   * Picks up a ball resting on the ground to the left of the green floor target ({@code extender =
+   * 0.0m}) while the robot is parked at the table.
+   */
+  public static Command grabBallLeftOfTarget(
+      ElevatorMechanism elevator, ExtenderMechanism extender, ClawMechanism claw) {
+    return Command.noRequirements(coroutine -> {
+      coroutine.awaitAll(
+          claw.open(),
+          extender.moveTo(0.0),
+          elevator.moveTo(ElevatorConstants.STOW_HEIGHT));
+      coroutine.await(elevator.moveTo(ElevatorConstants.GROUND_GRAB_HEIGHT));
+      coroutine.await(claw.close());
+      coroutine.await(elevator.moveTo(ElevatorConstants.STOW_HEIGHT));
+    }).named("Grab Ball Left Of Target");
+  }
+
+  /**
    * Places a held ball gently into the orange table target box:
    * lifts over table height, extends over the target box center, lowers to box rim height,
    * and opens the claw.
@@ -98,6 +132,25 @@ public final class BallCommands {
   }
 
   /**
+   * Moves the arm (elevator and extender) to the shooting position ({@code elevator = 0.60m,
+   * extender = 0.23m}) where a held ball sits directly in front of the spring-loaded shooter. If
+   * the arm is currently extended over the table, raises above the table first before retracting.
+   */
+  public static Command moveToShootPosition(
+      ElevatorMechanism elevator, ExtenderMechanism extender) {
+    return Command.noRequirements(
+            coroutine -> {
+              if (extender.getPosition() > 0.45
+                  && elevator.getPosition() < ElevatorConstants.ABOVE_TABLE_HEIGHT - 0.05) {
+                coroutine.await(elevator.moveTo(ElevatorConstants.ABOVE_TABLE_HEIGHT));
+              }
+              coroutine.await(extender.moveTo(ShooterConstants.SHOOT_EXTENSION));
+              coroutine.await(elevator.moveTo(ShooterConstants.SHOOT_HEIGHT));
+            })
+        .named("Move To Shoot Position");
+  }
+
+  /**
    * Positions a held ball close to the front of the robot in front of the spring-loaded shooter,
    * pulls the shooter back against its ratchet, and releases the solenoid to kick the ball into
    * the elevated basket.
@@ -108,20 +161,10 @@ public final class BallCommands {
       ClawMechanism claw,
       ShooterMechanism shooter) {
     return Command.noRequirements(coroutine -> {
-      // 1. If extended over the table, raise above table height first while pulling back shooter
-      if (extender.getPosition() > 0.45
-          && elevator.getPosition() < ElevatorConstants.ABOVE_TABLE_HEIGHT - 0.05) {
-        coroutine.awaitAll(
-            elevator.moveTo(ElevatorConstants.ABOVE_TABLE_HEIGHT),
-            shooter.pullBack());
-      }
-      // 2. Retract arm close to the front of the robot and ensure shooter is pulled back & locked
       coroutine.awaitAll(
-          extender.moveTo(ShooterConstants.SHOOT_EXTENSION),
+          moveToShootPosition(elevator, extender),
           shooter.pullBack());
-      // 3. Align elevator at shooting height in front of the plunger
-      coroutine.await(elevator.moveTo(ShooterConstants.SHOOT_HEIGHT));
-      // 4. Release the solenoid to kick the ball toward the basket
+      // Release the solenoid to kick the ball toward the basket
       coroutine.await(shooter.kick());
     }).named("Shoot Ball Into Basket");
   }

@@ -23,7 +23,6 @@ public class ClawMechanism implements Mechanism {
 
   public ClawMechanism(ClawIO io) {
     this.io = io;
-    Scheduler.getDefault().addPeriodic(io::updateSim);
     Scheduler.getDefault().addPeriodic(() -> io.updateInputs(inputs));
     io.updateInputs(inputs);
     setDefaultCommand(hold());

@@ -29,7 +29,7 @@ public final class ElevatorConstants {
 
   // ---- Physical limits ----
   public static final double MIN_HEIGHT = 0.25;
-  public static final double MAX_HEIGHT = 1.55;
+  public static final double MAX_HEIGHT = 1.20;
   public static final double STARTING_HEIGHT = 0.50;
 
   // ---- Simulated hardware ----
@@ -56,7 +56,7 @@ public final class ElevatorConstants {
   public static final double GROUND_GRAB_HEIGHT = FieldConstants.BALL_RADIUS + RobotConstants.GRIP_DEPTH;
 
   /** High enough to carry a ball over the table without hitting it. */
-  public static final double ABOVE_TABLE_HEIGHT = 1.35;
+  public static final double ABOVE_TABLE_HEIGHT = 1.15;
 
   /** Low height over the floor target to release the ball gently without bouncing. */
   public static final double SCORE_HEIGHT = 0.45;

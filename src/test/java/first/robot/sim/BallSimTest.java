@@ -149,4 +149,89 @@ public class BallSimTest {
     assertEquals(BALL_CONTACT_ANGLE, stop, 1e-4);
     assertTrue(ball.isHeld(), "Closing claw onto ball after opening must grab it");
   }
+
+  @Test
+  void testBumperHitsFloorBallAndKicksItDownTheLine() {
+    BallSim floorBall = new BallSim(1.0, BALL_RADIUS, BallSim.State.ON_FLOOR);
+    assertEquals(1.0, floorBall.getX(), 1e-4);
+
+    // Robot bumper is far away (robotX = 0.0 -> front bumper at 0.35), even if arm is extended to 1.0
+    floorBall.checkBumperContact(0.0, 0.0);
+    floorBall.update(0.02, 1.0, BALL_RADIUS + GRIP_DEPTH, 0.0);
+    assertEquals(1.0, floorBall.getX(), 1e-4, "Arm alone without bumper contact should not move the ball");
+
+    // Robot drives forward into the ball so front bumper (robotX + 0.35) hits ball at x = 1.0 (robotX = 0.60, vel = 2.0 m/s)
+    floorBall.checkBumperContact(0.60, 2.0);
+    for (int i = 0; i < 40; i++) {
+      floorBall.update(0.02, 0.0, 0.5, 0.0);
+    }
+
+    assertTrue(
+        floorBall.getX() > 1.35,
+        "Ball hit by the bumper should be kicked forward down the line (actual x=" + floorBall.getX() + ")");
+  }
+
+  @Test
+  void testOrangeBallBouncesAwayIfTableOccupied() {
+    BallSim orangeBall =
+        new BallSim(
+            1.0,
+            BALL_RADIUS,
+            BallSim.State.ON_FLOOR,
+            TABLE_LEFT_X,
+            TABLE_RIGHT_X,
+            TABLE_HEIGHT,
+            TABLE_TARGET_LEFT_X,
+            TABLE_TARGET_RIGHT_X,
+            TABLE_HEIGHT);
+
+    // Grab the orange ball from the floor
+    orangeBall.update(0.02, 1.0, BALL_RADIUS + GRIP_DEPTH, BALL_CONTACT_ANGLE + 0.1);
+    orangeBall.update(0.02, 1.0, BALL_RADIUS + GRIP_DEPTH, BALL_CONTACT_ANGLE);
+    assertTrue(orangeBall.isHeld());
+
+    // Carry it over the table target at gentle score height while the green ball is still on the table
+    orangeBall.setTableOccupied(true);
+    double wristX = TABLE_TARGET_CENTER_X;
+    double wristY = TABLE_HEIGHT + TARGET_BOX_WALL_HEIGHT + GRIP_DEPTH + 0.05;
+    orangeBall.update(0.02, wristX, wristY, BALL_CONTACT_ANGLE);
+    orangeBall.update(0.02, wristX, wristY, BALL_CONTACT_ANGLE);
+
+    // Release the claw
+    orangeBall.update(0.02, wristX, wristY, BALL_CONTACT_ANGLE + BallSim.RELEASE_MARGIN + 0.05);
+    assertEquals(BallSim.State.FALLING, orangeBall.getState());
+
+    for (int i = 0; i < 120; i++) {
+      orangeBall.update(0.02, wristX, wristY, BALL_CONTACT_ANGLE + 0.2);
+    }
+
+    assertFalse(
+        orangeBall.isScored(),
+        "Orange ball must bounce away and not score if placed on the table while green ball is still on it");
+    assertNotEquals(
+        BallSim.State.ON_TABLE,
+        orangeBall.getState(),
+        "Orange ball should have bounced off the occupied table");
+
+    // Reset and verify placing the orange ball onto the green floor target also bounces away
+    orangeBall.reset();
+    orangeBall.setFloorTargetBounds(TARGET_LEFT_X, TARGET_RIGHT_X);
+    orangeBall.update(0.02, 1.0, BALL_RADIUS + GRIP_DEPTH, BALL_CONTACT_ANGLE + 0.1);
+    orangeBall.update(0.02, 1.0, BALL_RADIUS + GRIP_DEPTH, BALL_CONTACT_ANGLE);
+    assertTrue(orangeBall.isHeld());
+
+    double floorTargetWristX = TARGET_CENTER_X;
+    double floorScoreWristY = 0.45;
+    orangeBall.update(0.02, floorTargetWristX, floorScoreWristY, BALL_CONTACT_ANGLE);
+    orangeBall.update(0.02, floorTargetWristX, floorScoreWristY, BALL_CONTACT_ANGLE);
+    orangeBall.update(0.02, floorTargetWristX, floorScoreWristY, BALL_CONTACT_ANGLE + BallSim.RELEASE_MARGIN + 0.05);
+
+    for (int i = 0; i < 120; i++) {
+      orangeBall.update(0.02, floorTargetWristX, floorScoreWristY, BALL_CONTACT_ANGLE + 0.2);
+    }
+
+    assertTrue(
+        orangeBall.getX() > TARGET_RIGHT_X,
+        "Orange ball placed onto the green floor target should bounce away past the target");
+  }
 }

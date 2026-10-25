@@ -15,14 +15,13 @@ import org.wpilib.opmode.OpMode;
 /**
  * Two-ball autonomous opmode:
  * <ol>
- *   <li>Drives across the field to the table.</li>
+ *   <li>Picks up Ball 2 (Orange) from the floor near the starting zone.</li>
+ *   <li>Stows the arm and drives across the field to the table.</li>
+ *   <li>Places Ball 2 on the ground to the left of the green floor target.</li>
  *   <li>Grabs Ball 1 (Green) off the table.</li>
- *   <li>Scores Ball 1 into the floor target zone.</li>
- *   <li>Stows the elevator and arm in parallel ({@code coroutine.awaitAll}).</li>
- *   <li>Drives back across the field to the starting zone.</li>
- *   <li>Picks up Ball 2 (Orange) from the floor.</li>
- *   <li>Drives back to the table carrying Ball 2.</li>
- *   <li>Places Ball 2 into the target box on top of the table.</li>
+ *   <li>Scores Ball 1 into the green floor target zone.</li>
+ *   <li>Picks up Ball 2 (Orange) from the ground to the left of the green target.</li>
+ *   <li>Places Ball 2 into the orange target box on top of the table.</li>
  * </ol>
  */
 @Autonomous(name = "Two Ball Routine")
@@ -48,30 +47,28 @@ public class TwoBallAuto implements OpMode {
       ExtenderMechanism extender,
       ClawMechanism claw) {
     return Command.noRequirements(coroutine -> {
-      // Step 1: Drive to table
-      coroutine.await(drive.driveToTable());
-
-      // Step 2: Grab Ball 1 from table
-      coroutine.await(BallCommands.grabBallFromTable(elevator, extender, claw));
-
-      // Step 3: Place Ball 1 in green floor target zone
-      coroutine.await(BallCommands.scoreBallOnGround(elevator, extender, claw));
-
-      // Step 4: Retract horizontal arm and stow elevator to safe transit height in parallel
-      coroutine.awaitAll(
-          extender.moveTo(0.0),
-          elevator.moveTo(ElevatorConstants.STOW_HEIGHT));
-
-      // Step 5: Drive back across the field to start location
-      coroutine.await(drive.driveToStart());
-
-      // Step 6: Pick up Ball 2 (Orange) resting on the ground
+      // Step 1: Pick up Ball 2 (Orange) resting on the ground in front of the robot
       coroutine.await(BallCommands.grabBallFromGround(elevator, extender, claw));
 
-      // Step 7: Drive back to the table carrying Ball 2
-      coroutine.await(drive.driveToTable());
+      // Step 2: Retract horizontal arm, stow elevator, and drive to the table in parallel
+      coroutine.awaitAll(
+          extender.moveTo(0.0),
+          elevator.moveTo(ElevatorConstants.STOW_HEIGHT),
+          drive.driveToTable());
 
-      // Step 8: Score Ball 2 gently into the orange target box on top of the table
+      // Step 3: Place Ball 2 on the ground to the left of the green target
+      coroutine.await(BallCommands.placeBallLeftOfTarget(elevator, extender, claw));
+
+      // Step 4: Grab Ball 1 (Green) from the table
+      coroutine.await(BallCommands.grabBallFromTable(elevator, extender, claw));
+
+      // Step 5: Place Ball 1 in green floor target zone
+      coroutine.await(BallCommands.scoreBallOnGround(elevator, extender, claw));
+
+      // Step 6: Pick up Ball 2 (Orange) from the ground to the left of the green target
+      coroutine.await(BallCommands.grabBallLeftOfTarget(elevator, extender, claw));
+
+      // Step 7: Score Ball 2 gently into the orange target box on top of the table
       coroutine.await(BallCommands.scoreBallOnTable(elevator, extender, claw));
     }).named("Two Ball Routine");
   }

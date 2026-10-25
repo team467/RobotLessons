@@ -1,7 +1,5 @@
 package first.robot.sim;
 
-import static first.robot.constants.SimulationConstants.LOOP_PERIOD_SECONDS;
-
 import first.robot.sim.SimMechanical.SimMotorEntry;
 
 /**
@@ -30,11 +28,6 @@ public class FakeSparkMax {
   /** Returns the CAN ID of this motor controller. */
   public int getDeviceId() {
     return canId;
-  }
-
-  /** Returns the underlying simulated motor entry from {@link SimMechanical}. */
-  public SimMotorEntry getSimMotor() {
-    return motor;
   }
 
   /** Commands the motor output voltage. */
@@ -80,21 +73,6 @@ public class FakeSparkMax {
   /** Resets the mechanism position to {@code position}. */
   public void setPosition(double position) {
     motor.setPosition(position);
-  }
-
-  /** Steps the underlying motor physics model by {@code dtSeconds}. */
-  public void updateSim(double dtSeconds) {
-    motor.update(dtSeconds);
-  }
-
-  /** Steps the underlying motor physics model by one standard robot loop period. */
-  public void updateSim() {
-    motor.update(LOOP_PERIOD_SECONDS);
-  }
-
-  /** Resets the underlying motor physics model back to its initial state. */
-  public void resetSim() {
-    motor.reset();
   }
 
   /** Simulated relative encoder attached to a {@link FakeSparkMax}. */

@@ -3,6 +3,7 @@ package first.robot;
 import static first.robot.constants.DriverConstants.*;
 
 import first.robot.constants.DriverConstants;
+import first.robot.orchestration.BallCommands;
 import org.wpilib.opmode.OpMode;
 import org.wpilib.opmode.Teleop;
 
@@ -16,6 +17,7 @@ import org.wpilib.opmode.Teleop;
  *   <li>Left bumper or X: close the claw
  *   <li>D / A (or Y / A face buttons): hold to drive forward / backward
  *   <li>C / Space (or X / B face buttons): pull back shooter / release solenoid to kick
+ *   <li>V: move the arm (elevator and extender) to the shooting position
  * </ul>
  *
  * <p>When you let go of a movement key, the command is canceled and the mechanism's default
@@ -52,5 +54,9 @@ public class DefaultTeleop implements OpMode {
     // C (or X face button) pulls back the shooter until locked by the ratchet; Space (or B face button) releases the solenoid to kick.
     pad.faceLeft().or(keys.key(DriverConstants.KEY_SHOOTER_PULL)).onTrue(robot.shooter.pullBack());
     pad.faceRight().or(keys.key(DriverConstants.KEY_SHOOTER_KICK)).onTrue(robot.shooter.kick());
+
+    // V key: move arm to shooting position (elevator = 0.60m, extender = 0.23m)
+    keys.key(DriverConstants.KEY_SHOOT_POSITION)
+        .onTrue(BallCommands.moveToShootPosition(robot.elevator, robot.extender));
   }
 }

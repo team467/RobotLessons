@@ -36,7 +36,6 @@ public class ShooterMechanism implements Mechanism {
 
   public ShooterMechanism(ShooterIO io) {
     this.io = io;
-    Scheduler.getDefault().addPeriodic(io::updateSim);
     Scheduler.getDefault().addPeriodic(() -> io.updateInputs(inputs));
     io.updateInputs(inputs);
     setDefaultCommand(hold());

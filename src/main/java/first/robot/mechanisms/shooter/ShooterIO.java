@@ -29,9 +29,6 @@ public interface ShooterIO {
     public boolean isLoaded = false;
   }
 
-  /** Steps simulation physics for the shooter. */
-  default void updateSim() {}
-
   /** Fills {@code inputs} with the latest sensor readings. */
   default void updateInputs(ShooterInputs inputs) {}
 
@@ -40,7 +37,4 @@ public interface ShooterIO {
 
   /** Sets whether the release solenoid is energized (true = release ratchet and kick). */
   default void setSolenoidReleased(boolean released) {}
-
-  /** Resets the simulation state back to resting (unloaded). */
-  default void reset() {}
 }

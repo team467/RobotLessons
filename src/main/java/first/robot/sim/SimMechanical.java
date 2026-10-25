@@ -17,12 +17,13 @@ import org.wpilib.simulation.ElevatorSim;
 import org.wpilib.simulation.SingleJointedArmSim;
 
 /**
- * Central mechanical physics simulation and CAN/DIO hardware registry for the simulated robot.
+ * Central mechanical physics simulation and CAN/DIO/Solenoid hardware registry for the simulated
+ * robot.
  *
  * <p>Instantiates WPILib physics simulation models ({@link ElevatorSim}, {@link
- * SingleJointedArmSim}) and simulated sensors for each mechanism, registering them by CAN ID or DIO
- * port so that {@code *IOSim} classes can instantiate {@link FakeSparkMax} and {@link
- * FakeDigitalInput} devices just like real hardware.
+ * SingleJointedArmSim}) and simulated sensors for each mechanism, registering them by CAN ID, DIO
+ * port, or solenoid channel so that {@code *IOSim} classes can instantiate {@link FakeSparkMax},
+ * {@link FakeDigitalInput}, and {@link FakeSolenoid} devices just like real hardware.
  */
 public final class SimMechanical {
   /** Common interface for a simulated motor entry in the CAN registry. */
@@ -44,7 +45,7 @@ public final class SimMechanical {
     void reset();
   }
 
-  /** Common interface for a simulated digital input (limit switch / beam break) in the DIO registry. */
+  /** Simulated digital input (limit switch / beam break) in the DIO registry. */
   public static final class SimDigitalInputEntry {
     private boolean value = false;
 
@@ -58,6 +59,23 @@ public final class SimMechanical {
 
     public void reset() {
       this.value = false;
+    }
+  }
+
+  /** Simulated solenoid in the solenoid registry. */
+  public static final class SimSolenoidEntry {
+    private boolean on = false;
+
+    public boolean get() {
+      return on;
+    }
+
+    public void set(boolean on) {
+      this.on = on;
+    }
+
+    public void reset() {
+      this.on = false;
     }
   }
 
@@ -348,17 +366,8 @@ public final class SimMechanical {
             false,
             ShooterConstants.STARTING_PULLBACK);
     private double requestedVolts = 0.0;
-    private boolean solenoidReleased = false;
     private double ratchetFloor = ShooterConstants.STARTING_PULLBACK;
     private double pendingKickStrength = 0.0;
-
-    public void setSolenoidReleased(boolean released) {
-      this.solenoidReleased = released;
-    }
-
-    public boolean isSolenoidReleased() {
-      return solenoidReleased;
-    }
 
     public double consumeKickStrength() {
       double strength = pendingKickStrength;
@@ -404,7 +413,7 @@ public final class SimMechanical {
     @Override
     public void update(double dtSeconds) {
       boolean enabled = RobotBase.isEnabled();
-      boolean activeRelease = enabled && solenoidReleased;
+      boolean activeRelease = enabled && getShooterSolenoid().get();
 
       if (activeRelease) {
         double currentPos = sim.getPosition();
@@ -449,26 +458,31 @@ public final class SimMechanical {
     public void reset() {
       sim.setState(ShooterConstants.STARTING_PULLBACK, 0.0);
       requestedVolts = 0.0;
-      solenoidReleased = false;
       ratchetFloor = ShooterConstants.STARTING_PULLBACK;
       pendingKickStrength = 0.0;
+      getShooterSolenoid().reset();
     }
   }
 
   private static final Map<Integer, SimMotorEntry> registry = new HashMap<>();
   private static final Map<Integer, SimDigitalInputEntry> dioRegistry = new HashMap<>();
+  private static final Map<Integer, SimSolenoidEntry> solenoidRegistry = new HashMap<>();
 
   static {
-    resetAll();
+    createMotor(DRIVE_CAN_ID);
+    createMotor(ELEVATOR_CAN_ID);
+    createMotor(EXTENDER_CAN_ID);
+    createMotor(CLAW_CAN_ID);
+    createMotor(SHOOTER_CAN_ID);
+    createDigitalInput(CLAW_BALL_SENSOR_DIO);
+    createSolenoid(SHOOTER_SOLENOID_CHANNEL);
   }
 
   private SimMechanical() {}
 
   /**
-   * Creates and registers a fresh simulated motor entry in the CAN registry for {@code canId}.
-   * Calling this when {@link FakeSparkMax} is constructed ensures each newly constructed {@code
-   * *IOSim} gets its own fresh simulation instance while remaining accessible by CAN ID in the
-   * registry.
+   * Creates and registers a fresh simulated motor entry in the CAN registry for {@code canId}, and
+   * registers its physics update with the command scheduler's periodic loop.
    */
   public static SimMotorEntry createMotor(int canId) {
     SimMotorEntry entry =
@@ -483,6 +497,13 @@ public final class SimMechanical {
                   "No simulated motor configured in SimMechanical for CAN ID: " + canId);
         };
     registry.put(canId, entry);
+    org.wpilib.command3.Scheduler.getDefault()
+        .addPeriodic(
+            () -> {
+              if (registry.get(canId) == entry) {
+                entry.update(LOOP_PERIOD_SECONDS);
+              }
+            });
     return entry;
   }
 
@@ -517,6 +538,28 @@ public final class SimMechanical {
     return entry;
   }
 
+  /** Creates and registers a fresh simulated solenoid in the solenoid registry for {@code channel}. */
+  public static SimSolenoidEntry createSolenoid(int channel) {
+    SimSolenoidEntry entry =
+        switch (channel) {
+          case SHOOTER_SOLENOID_CHANNEL -> new SimSolenoidEntry();
+          default ->
+              throw new IllegalArgumentException(
+                  "No simulated solenoid configured in SimMechanical for channel: " + channel);
+        };
+    solenoidRegistry.put(channel, entry);
+    return entry;
+  }
+
+  /** Looks up the active registered simulated solenoid by its channel. */
+  public static SimSolenoidEntry getSolenoid(int channel) {
+    SimSolenoidEntry entry = solenoidRegistry.get(channel);
+    if (entry == null) {
+      return createSolenoid(channel);
+    }
+    return entry;
+  }
+
   public static DriveMotorEntry getDriveMotor() {
     return (DriveMotorEntry) getMotor(DRIVE_CAN_ID);
   }
@@ -537,18 +580,29 @@ public final class SimMechanical {
     return (ShooterMotorEntry) getMotor(SHOOTER_CAN_ID);
   }
 
+  public static SimDigitalInputEntry getClawBallSensor() {
+    return getDigitalInput(CLAW_BALL_SENSOR_DIO);
+  }
+
+  public static SimSolenoidEntry getShooterSolenoid() {
+    return getSolenoid(SHOOTER_SOLENOID_CHANNEL);
+  }
+
   /** Steps a specific motor's simulation by {@link SimulationConstants#LOOP_PERIOD_SECONDS}. */
   public static void updateMotor(int canId) {
     getMotor(canId).update(LOOP_PERIOD_SECONDS);
   }
 
-  /** Resets all registered motors and digital inputs to fresh instances. */
+  /** Resets all active registered motors, digital inputs, and solenoids in place. */
   public static void resetAll() {
-    createMotor(DRIVE_CAN_ID);
-    createMotor(ELEVATOR_CAN_ID);
-    createMotor(EXTENDER_CAN_ID);
-    createMotor(CLAW_CAN_ID);
-    createMotor(SHOOTER_CAN_ID);
-    createDigitalInput(CLAW_BALL_SENSOR_DIO);
+    for (SimMotorEntry motor : registry.values()) {
+      motor.reset();
+    }
+    for (SimDigitalInputEntry dio : dioRegistry.values()) {
+      dio.reset();
+    }
+    for (SimSolenoidEntry solenoid : solenoidRegistry.values()) {
+      solenoid.reset();
+    }
   }
 }

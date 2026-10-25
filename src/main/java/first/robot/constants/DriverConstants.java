@@ -35,4 +35,6 @@ public final class DriverConstants {
   public static final int KEY_SHOOTER_PULL = KeyEvent.VK_C;
   /** Press to release the shooter solenoid and kick the ball toward the basket (Space key). */
   public static final int KEY_SHOOTER_KICK = KeyEvent.VK_SPACE;
+  /** Press to move the arm (elevator and extender) to the shooting position (V key). */
+  public static final int KEY_SHOOT_POSITION = KeyEvent.VK_V;
 }

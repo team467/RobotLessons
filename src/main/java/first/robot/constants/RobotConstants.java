@@ -12,7 +12,7 @@ public final class RobotConstants {
   // ---------------- Robot arm geometry ----------------
 
   /** Height of the elevator tower (meters). */
-  public static final double TOWER_HEIGHT = 1.75;
+  public static final double TOWER_HEIGHT = 1.30;
 
   /** x position of the wrist (claw pivot) when the extender is fully retracted (meters). */
   public static final double WRIST_BASE_X = 0.12;

@@ -31,14 +31,4 @@ public class FakeDigitalInput {
   public boolean get() {
     return entry.get();
   }
-
-  /** Sets the simulated state of the digital input (used by the simulation world). */
-  public void set(boolean value) {
-    entry.set(value);
-  }
-
-  /** Resets the digital input back to its initial untriggered state. */
-  public void resetSim() {
-    entry.reset();
-  }
 }

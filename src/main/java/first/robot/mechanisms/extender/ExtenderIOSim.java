@@ -4,7 +4,6 @@ import static first.robot.Schematic.EXTENDER_CAN_ID;
 
 import first.robot.sim.FakeSparkMax;
 import first.robot.sim.SimMechanical;
-import first.robot.sim.SimMechanical.ExtenderMotorEntry;
 
 /**
  * Simulated extender hardware using {@link FakeSparkMax} connected to the extender motor in {@link
@@ -12,23 +11,6 @@ import first.robot.sim.SimMechanical.ExtenderMotorEntry;
  */
 public class ExtenderIOSim implements ExtenderIO {
   private final FakeSparkMax motor = new FakeSparkMax(EXTENDER_CAN_ID);
-
-  private ExtenderMotorEntry simMotor() {
-    return (ExtenderMotorEntry) motor.getSimMotor();
-  }
-
-  public void setMaxExtensionLimit(double maxExtension) {
-    simMotor().setMaxExtensionLimit(maxExtension);
-  }
-
-  public double getMaxExtensionLimit() {
-    return simMotor().getMaxExtensionLimit();
-  }
-
-  @Override
-  public void updateSim() {
-    motor.updateSim();
-  }
 
   @Override
   public void updateInputs(ExtenderInputs inputs) {
@@ -41,9 +23,5 @@ public class ExtenderIOSim implements ExtenderIO {
   @Override
   public void setVoltage(double volts) {
     motor.setVoltage(volts);
-  }
-
-  public void resetSim() {
-    motor.resetSim();
   }
 }

@@ -24,7 +24,4 @@ public interface ExtenderIO {
 
   /** Commands the motor with a voltage. Positive extends the arm outward. */
   void setVoltage(double volts);
-
-  /** Updates simulation physics (called during simulationPeriodic). Default does nothing for real hardware. */
-  default void updateSim() {}
 }

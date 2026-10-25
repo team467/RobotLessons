@@ -23,7 +23,6 @@ public class ExtenderMechanism implements Mechanism {
 
   public ExtenderMechanism(ExtenderIO io) {
     this.io = io;
-    Scheduler.getDefault().addPeriodic(io::updateSim);
     Scheduler.getDefault().addPeriodic(() -> io.updateInputs(inputs));
     io.updateInputs(inputs);
     setDefaultCommand(hold());

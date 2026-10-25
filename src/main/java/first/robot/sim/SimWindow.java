@@ -52,7 +52,7 @@ public class SimWindow extends JFrame {
   private static final double VIEW_SPAN_X = 2.80;
   private static final double VIEW_HALF_X = VIEW_SPAN_X / 2.0;
   private static final double VIEW_MIN_Y = -0.38;
-  private static final double VIEW_MAX_Y = 1.95;
+  private static final double VIEW_MAX_Y = 2.05;
 
   private static final Color SKY_TOP = new Color(0xDCE6F0);
   private static final Color SKY_BOTTOM = new Color(0xF7F9FB);
@@ -779,13 +779,13 @@ public class SimWindow extends JFrame {
       String[] headers = {"Subsystem", "Current Position", "Setpoint", "Voltage", "Status"};
       String[][] rows = {
         {"Drive", String.format("%.2f m", s.drivePosition()), String.format("%.2f m", s.driveSetpoint()), String.format("%5.1f V", s.driveVolts()), s.driveCommand()},
-        {"Elevator", String.format("%.2f m", s.elevatorHeight()), String.format("%.2f m", s.elevatorSetpoint()), String.format("%5.1f V", s.elevatorVolts()), s.elevatorCommand()},
-        {"Extender", String.format("%.2f m", s.extenderPosition()), String.format("%.2f m", s.extenderSetpoint()), String.format("%5.1f V", s.extenderVolts()), s.extenderCommand()},
+        {"Elevator (Y)", String.format("%.2f m", s.elevatorHeight()), String.format("%.2f m", s.elevatorSetpoint()), String.format("%5.1f V", s.elevatorVolts()), s.elevatorCommand()},
+        {"Extender (X)", String.format("%.2f m", s.extenderPosition()), String.format("%.2f m", s.extenderSetpoint()), String.format("%5.1f V", s.extenderVolts()), s.extenderCommand()},
         {"Claw", String.format("%.0f deg", Math.toDegrees(s.clawAngle())), String.format("%.0f deg", Math.toDegrees(s.clawSetpoint())), String.format("%5.1f V", s.clawVolts()), s.clawCommand()},
         {"Shooter", shooterPosLabel, String.format("%.2f m", s.shooterSetpoint()), String.format("%5.1f V", s.shooterVolts()), s.shooterCommand()},
       };
 
-      int[] colWidths = {95, 135, 105, 85, 140};
+      int[] colWidths = {115, 135, 105, 85, 140};
       int totalTableW = 0;
       for (int wCol : colWidths) {
         totalTableW += wCol;
@@ -897,17 +897,12 @@ public class SimWindow extends JFrame {
         g.drawString(contactText, w - cw - 2 * pad, nextBadgeY + 18);
       }
 
-      // Elevation View Title Badge
-      g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 12));
-      g.setColor(new Color(0x475569));
-      g.drawString("SIDE ELEVATION VIEW (Robot Tracking)", pad + 4, hudY + boxH + 18);
-
       // Key legend (bottom-left)
       String[] help = {
         "D / A: drive forward / backward    Up / Down: elevator    Left / Right: extender",
-        "Z / X: open / close claw    C / Space: pull back / kick shooter    T: Teleop    R: reset",
+        "Z / X: open / close claw    V: shoot pos    C / Space: pull back / kick shooter    T: Teleop    R: reset",
         isFocusOwnerWindow()
-            ? "Keyboard active. Click buttons or use shortcuts T / R."
+            ? "Keyboard active."
             : "Click this window to use the keyboard.",
       };
       g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 12));

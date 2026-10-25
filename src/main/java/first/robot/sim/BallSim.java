@@ -43,6 +43,8 @@ public class BallSim {
   private double basketLeftX = BASKET_LEFT_X;
   private double basketRightX = BASKET_RIGHT_X;
   private double basketHeight = BASKET_HEIGHT;
+  private double floorTargetLeftX = TARGET_LEFT_X;
+  private double floorTargetRightX = TARGET_RIGHT_X;
 
   private double x;
   private double y;
@@ -52,6 +54,8 @@ public class BallSim {
   private boolean scored;
   private boolean scoredInBasket;
   private boolean readyToGrab;
+  private boolean tableOccupied;
+  private boolean floorTargetOccupied;
   private double kickCooldown = 0.0;
   private double previousClawAngle = Double.NaN;
 
@@ -121,6 +125,8 @@ public class BallSim {
     this.targetLeftX = targetLeftX;
     this.targetRightX = targetRightX;
     this.targetSurfaceY = targetSurfaceY;
+    this.floorTargetLeftX = targetLeftX;
+    this.floorTargetRightX = targetRightX;
     reset();
   }
 
@@ -129,6 +135,22 @@ public class BallSim {
     this.basketLeftX = basketLeftX;
     this.basketRightX = basketRightX;
     this.basketHeight = basketHeight;
+  }
+
+  /** Configures the world X bounds of the green floor target box. */
+  public void setFloorTargetBounds(double floorTargetLeftX, double floorTargetRightX) {
+    this.floorTargetLeftX = floorTargetLeftX;
+    this.floorTargetRightX = floorTargetRightX;
+  }
+
+  /** Sets whether another ball is currently occupying the table target. */
+  public void setTableOccupied(boolean tableOccupied) {
+    this.tableOccupied = tableOccupied;
+  }
+
+  /** Sets whether another ball is currently occupying the green floor target. */
+  public void setFloorTargetOccupied(boolean floorTargetOccupied) {
+    this.floorTargetOccupied = floorTargetOccupied;
   }
 
   /** Puts the ball back at its starting spot. */
@@ -141,6 +163,8 @@ public class BallSim {
     scored = false;
     scoredInBasket = false;
     readyToGrab = false;
+    tableOccupied = false;
+    floorTargetOccupied = false;
     kickCooldown = 0.0;
     previousClawAngle = Double.NaN;
   }
@@ -222,6 +246,20 @@ public class BallSim {
       return BALL_CONTACT_ANGLE;
     }
 
+    if (state == State.ON_FLOOR && Math.abs(vx) > 0.01) {
+      x += vx * dt;
+      // Apply rolling friction on the floor
+      double decel = 1.8 * dt;
+      if (Math.abs(vx) <= decel) {
+        vx = 0.0;
+      } else {
+        vx -= Math.signum(vx) * decel;
+      }
+      if (Math.abs(targetSurfaceY - 0.0) < 0.1) {
+        scored = Math.abs(vx) < 0.05 && x >= targetLeftX && x <= targetRightX;
+      }
+    }
+
     if (state == State.FALLING) {
       double previousBottom = y - BALL_RADIUS;
       vy -= GRAVITY * dt;
@@ -235,10 +273,10 @@ public class BallSim {
         land(basketHeight + BALL_RADIUS, State.ON_TABLE);
         scored = true;
         scoredInBasket = true;
-      } else if (overTable && bottom <= tableHeight && previousBottom >= tableHeight - 0.01) {
-        if (Math.abs(vy) > 2.4) {
+      } else if (overTable && bottom <= tableHeight && previousBottom >= tableHeight - 0.03) {
+        if (Math.abs(vy) > 2.4 || tableOccupied) {
           y = tableHeight + BALL_RADIUS;
-          vy = -vy * 0.55;
+          vy = Math.max(Math.abs(vy) * 0.55, 1.5);
           vx = (Math.abs(vx) < 0.2) ? 0.8 : vx * 0.8;
           scored = false;
           scoredInBasket = false;
@@ -249,10 +287,13 @@ public class BallSim {
           }
         }
       } else if (bottom <= 0.0) {
-        if (Math.abs(vy) > 2.4 || (Math.abs(vx) > 0.3 && Math.abs(vy) > 0.6)) {
-          // Dropped from too high or still bouncing: bounce away!
+        boolean overFloorTarget = x >= floorTargetLeftX && x <= floorTargetRightX;
+        if (Math.abs(vy) > 2.4
+            || (Math.abs(vx) > 0.3 && Math.abs(vy) > 0.6)
+            || (overFloorTarget && (floorTargetOccupied || targetSurfaceY > 0.1))) {
+          // Dropped from too high, still bouncing, or dropped onto wrong/occupied floor target: bounce away!
           y = BALL_RADIUS;
-          vy = -vy * 0.60;
+          vy = Math.max(-vy * 0.60, 1.4);
           if (Math.abs(vx) < 0.2) {
             vx = 1.6; // kick away horizontally past the target zone
           } else {
@@ -261,14 +302,54 @@ public class BallSim {
           scored = false;
           scoredInBasket = false;
         } else {
-          land(BALL_RADIUS, State.ON_FLOOR);
+          y = BALL_RADIUS;
+          vy = 0;
+          vx *= 0.7;
+          if (Math.abs(vx) < 0.08) {
+            vx = 0;
+          }
+          state = State.ON_FLOOR;
           if (Math.abs(targetSurfaceY - 0.0) < 0.1) {
-            scored = x >= targetLeftX && x <= targetRightX;
+            scored = Math.abs(vx) < 0.05 && x >= targetLeftX && x <= targetRightX;
           }
         }
       }
     }
     return Double.NaN;
+  }
+
+  /**
+   * Checks if the robot's chassis bumper (extending from {@code robotX - 0.35} to {@code robotX +
+   * 0.35} and up to height {@code 0.165m}) collides with this ball. If so, kicks the ball down the
+   * line away from the bumper. The robot arm does not affect this collision.
+   */
+  public void checkBumperContact(double robotX, double robotVelX) {
+    if (state == State.HELD || Math.abs(robotVelX) < 0.05) {
+      return;
+    }
+    double bumperHalfLength = 0.35;
+    double bumperTopY = 0.165;
+    // Only applies when the ball is low enough to be hit by the bumper
+    if (y - BALL_RADIUS > bumperTopY) {
+      return;
+    }
+    double minSeparation = bumperHalfLength + BALL_RADIUS;
+    double dx = x - robotX;
+    if (Math.abs(dx) < minSeparation) {
+      double dir = (dx >= 0.0) ? 1.0 : -1.0;
+      if (Math.abs(dx) < 1e-4 && Math.abs(robotVelX) > 1e-3) {
+        dir = Math.signum(robotVelX);
+      }
+      // Push ball outside the bumper perimeter and kick it down the line
+      x = robotX + dir * (minSeparation + 0.01);
+      double kickSpeed = Math.max(1.2, Math.abs(robotVelX) * 1.35 + 0.6);
+      vx = dir * kickSpeed;
+      vy = Math.max(vy, 0.35);
+      state = State.FALLING;
+      scored = false;
+      scoredInBasket = false;
+      readyToGrab = false;
+    }
   }
 
   private void land(double restingY, State newState) {

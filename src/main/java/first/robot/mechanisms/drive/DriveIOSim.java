@@ -14,11 +14,6 @@ public class DriveIOSim implements DriveIO {
   private final FakeSparkMax motor = new FakeSparkMax(DRIVE_CAN_ID);
 
   @Override
-  public void updateSim() {
-    motor.updateSim();
-  }
-
-  @Override
   public void updateInputs(DriveInputs inputs) {
     inputs.positionMeters = motor.getEncoder().getPosition();
     inputs.velocityMetersPerSec = motor.getEncoder().getVelocity();
@@ -39,13 +34,5 @@ public class DriveIOSim implements DriveIO {
   @Override
   public void resetPosition(double positionMeters) {
     motor.getEncoder().setPosition(positionMeters);
-  }
-
-  public double getSimPosition() {
-    return motor.getEncoder().getPosition();
-  }
-
-  public double getSimVelocity() {
-    return motor.getEncoder().getVelocity();
   }
 }
