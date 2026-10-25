@@ -1,68 +1,49 @@
 package first.robot.mechanisms.extender;
 
-import static first.robot.constants.SimulationConstants.LOOP_PERIOD_SECONDS;
-import static first.robot.mechanisms.extender.ExtenderConstants.*;
+import static first.robot.Schematic.EXTENDER_CAN_ID;
 
-import org.wpilib.framework.RobotBase;
-import org.wpilib.math.system.DCMotor;
-import org.wpilib.simulation.ElevatorSim;
+import first.robot.sim.FakeSparkMax;
+import first.robot.sim.SimMechanical;
+import first.robot.sim.SimMechanical.ExtenderMotorEntry;
 
 /**
- * Simulated extender: one NEO motor pulling a slide in and out on a belt/pulley.
- *
- * <p>A horizontal linear slide behaves just like an elevator without gravity, so we reuse WPILib's
- * {@link ElevatorSim} with gravity turned off.
+ * Simulated extender hardware using {@link FakeSparkMax} connected to the extender motor in {@link
+ * SimMechanical}.
  */
 public class ExtenderIOSim implements ExtenderIO {
-  private final ElevatorSim sim =
-      new ElevatorSim(
-          DCMotor.getNEO(1),
-          GEARING,
-          SLIDE_MASS_KG,
-          PULLEY_RADIUS_METERS,
-          MIN_EXTENSION,
-          MAX_EXTENSION,
-          false, // horizontal: no gravity
-          STARTING_EXTENSION);
+  private final FakeSparkMax motor = new FakeSparkMax(EXTENDER_CAN_ID);
 
-  private double requestedVolts = 0.0;
-  private double maxExtensionLimit = MAX_EXTENSION;
+  private ExtenderMotorEntry simMotor() {
+    return (ExtenderMotorEntry) motor.getSimMotor();
+  }
 
   public void setMaxExtensionLimit(double maxExtension) {
-    this.maxExtensionLimit = maxExtension;
+    simMotor().setMaxExtensionLimit(maxExtension);
   }
 
   public double getMaxExtensionLimit() {
-    return maxExtensionLimit;
+    return simMotor().getMaxExtensionLimit();
   }
 
   @Override
   public void updateSim() {
-    double volts = RobotBase.isEnabled() ? requestedVolts : 0.0;
-    sim.setInputVoltage(volts);
-    sim.update(LOOP_PERIOD_SECONDS);
-
-    if (sim.getPosition() > maxExtensionLimit) {
-      sim.setState(maxExtensionLimit, Math.min(0.0, sim.getVelocity()));
-    }
+    motor.updateSim();
   }
 
   @Override
   public void updateInputs(ExtenderInputs inputs) {
-    inputs.positionMeters = sim.getPosition();
-    inputs.velocityMetersPerSec = sim.getVelocity();
-    inputs.appliedVolts = RobotBase.isEnabled() ? requestedVolts : 0.0;
-    inputs.currentAmps = Math.abs(sim.getCurrentDraw());
+    inputs.positionMeters = motor.getEncoder().getPosition();
+    inputs.velocityMetersPerSec = motor.getEncoder().getVelocity();
+    inputs.appliedVolts = motor.getAppliedVolts();
+    inputs.currentAmps = motor.getOutputCurrent();
   }
 
   @Override
   public void setVoltage(double volts) {
-    requestedVolts = volts;
+    motor.setVoltage(volts);
   }
 
   public void resetSim() {
-    sim.setState(STARTING_EXTENSION, 0.0);
-    requestedVolts = 0.0;
-    maxExtensionLimit = MAX_EXTENSION;
+    motor.resetSim();
   }
 }

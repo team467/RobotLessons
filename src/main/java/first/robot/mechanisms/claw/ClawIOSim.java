@@ -1,82 +1,63 @@
 package first.robot.mechanisms.claw;
 
-import static first.robot.constants.SimulationConstants.LOOP_PERIOD_SECONDS;
-import static first.robot.mechanisms.claw.ClawConstants.*;
+import static first.robot.Schematic.CLAW_BALL_SENSOR_DIO;
+import static first.robot.Schematic.CLAW_CAN_ID;
 
-import org.wpilib.framework.RobotBase;
-import org.wpilib.math.system.DCMotor;
-import org.wpilib.simulation.SingleJointedArmSim;
+import first.robot.sim.FakeDigitalInput;
+import first.robot.sim.FakeSparkMax;
+import first.robot.sim.SimMechanical;
+import first.robot.sim.SimMechanical.ClawMotorEntry;
 
 /**
- * Simulated claw: one NEO 550 swinging the fingers open and closed.
- *
- * <p>The fingers rotate around a pivot, so we use WPILib's {@link SingleJointedArmSim} with gravity
- * turned off. The simulated world ({@code first.robot.sim.SimWorld}) tells this class when a ball
- * is between the fingers so they stop closing when they touch it.
+ * Simulated claw hardware using {@link FakeSparkMax} and {@link FakeDigitalInput} connected to the
+ * claw motor and limit switch in {@link SimMechanical}.
  */
 public class ClawIOSim implements ClawIO {
-  private final SingleJointedArmSim sim =
-      new SingleJointedArmSim(
-          DCMotor.getNeo550(1),
-          GEARING,
-          FINGERS_MOI_KG_M2,
-          FINGER_LENGTH_METERS,
-          CLOSED_ANGLE,
-          OPEN_ANGLE,
-          false, // no gravity
-          STARTING_ANGLE);
+  private final FakeSparkMax motor = new FakeSparkMax(CLAW_CAN_ID);
+  private final FakeDigitalInput ballSensor = new FakeDigitalInput(CLAW_BALL_SENSOR_DIO);
 
-  private double requestedVolts = 0.0;
-  private double gripStopAngle = Double.NaN;
-  private boolean ballDetected = false;
+  private ClawMotorEntry simMotor() {
+    return (ClawMotorEntry) motor.getSimMotor();
+  }
 
   @Override
   public void updateSim() {
-    double volts = RobotBase.isEnabled() ? requestedVolts : 0.0;
-    sim.setInputVoltage(volts);
-    sim.update(LOOP_PERIOD_SECONDS);
-
-    // A ball between the fingers physically stops them from closing any further.
-    if (!Double.isNaN(gripStopAngle) && sim.getAngle() < gripStopAngle) {
-      sim.setState(gripStopAngle, 0.0);
-    }
+    motor.updateSim();
   }
 
   @Override
   public void updateInputs(ClawInputs inputs) {
-    inputs.angleRadians = sim.getAngle();
-    inputs.velocityRadPerSec = sim.getVelocity();
-    inputs.appliedVolts = RobotBase.isEnabled() ? requestedVolts : 0.0;
-    inputs.currentAmps = Math.abs(sim.getCurrentDraw());
-    inputs.hasBall = ballDetected;
+    inputs.angleRadians = motor.getEncoder().getPosition();
+    inputs.velocityRadPerSec = motor.getEncoder().getVelocity();
+    inputs.appliedVolts = motor.getAppliedVolts();
+    inputs.currentAmps = motor.getOutputCurrent();
+    inputs.hasBall = ballSensor.get();
   }
 
   @Override
   public void setVoltage(double volts) {
-    requestedVolts = volts;
+    motor.setVoltage(volts);
   }
 
   // ---- Sim-only hooks, called by the simulated world ----
 
   /** Stops the fingers from closing past {@code angleRadians}. Pass NaN to remove the stop. */
   public void setGripStop(double angleRadians) {
-    gripStopAngle = angleRadians;
+    simMotor().setGripStop(angleRadians);
   }
 
-  /** Sets what the simulated ball sensor reports. */
+  /** Sets what the simulated ball limit switch reports. */
   public void setBallDetected(boolean detected) {
-    ballDetected = detected;
+    ballSensor.set(detected);
   }
 
   /** The true simulated angle (no one-loop delay), for the simulated world. */
   public double getSimAngle() {
-    return sim.getAngle();
+    return simMotor().getSimAngle();
   }
 
   public void resetSim() {
-    sim.setState(STARTING_ANGLE, 0.0);
-    requestedVolts = 0.0;
-    gripStopAngle = Double.NaN;
-    ballDetected = false;
+    motor.resetSim();
+    ballSensor.resetSim();
   }
 }

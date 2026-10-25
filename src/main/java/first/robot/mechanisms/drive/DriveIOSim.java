@@ -1,47 +1,34 @@
 package first.robot.mechanisms.drive;
 
-import static first.robot.constants.SimulationConstants.LOOP_PERIOD_SECONDS;
-import static first.robot.mechanisms.drive.DriveConstants.*;
+import static first.robot.Schematic.DRIVE_CAN_ID;
+import static first.robot.mechanisms.drive.DriveConstants.START_POSITION;
 
-import first.robot.constants.FieldConstants;
-import org.wpilib.framework.RobotBase;
-import org.wpilib.math.system.DCMotor;
-import org.wpilib.simulation.ElevatorSim;
+import first.robot.sim.FakeSparkMax;
+import first.robot.sim.SimMechanical;
 
-/** Simulated drivetrain hardware using WPILib's linear physics simulator. */
+/**
+ * Simulated drivetrain hardware using {@link FakeSparkMax} connected to the drivetrain motor in
+ * {@link SimMechanical}.
+ */
 public class DriveIOSim implements DriveIO {
-  // Horizontal linear carriage with 2 NEOs, toughbox gearing, robot mass, and wheels.
-  private final ElevatorSim sim =
-      new ElevatorSim(
-          DCMotor.getNEO(2),
-          GEARING,
-          ROBOT_MASS_KG,
-          WHEEL_RADIUS_METERS,
-          -1.0, // allowed range (meters)
-          FieldConstants.FIELD_LENGTH_METERS + 1.0,
-          false, // no gravity
-          START_POSITION);
-
-  private double requestedVolts = 0.0;
+  private final FakeSparkMax motor = new FakeSparkMax(DRIVE_CAN_ID);
 
   @Override
   public void updateSim() {
-    double volts = RobotBase.isEnabled() ? requestedVolts : 0.0;
-    sim.setInputVoltage(volts);
-    sim.update(LOOP_PERIOD_SECONDS);
+    motor.updateSim();
   }
 
   @Override
   public void updateInputs(DriveInputs inputs) {
-    inputs.positionMeters = sim.getPosition();
-    inputs.velocityMetersPerSec = sim.getVelocity();
-    inputs.appliedVolts = RobotBase.isEnabled() ? requestedVolts : 0.0;
-    inputs.currentAmps = Math.abs(sim.getCurrentDraw());
+    inputs.positionMeters = motor.getEncoder().getPosition();
+    inputs.velocityMetersPerSec = motor.getEncoder().getVelocity();
+    inputs.appliedVolts = motor.getAppliedVolts();
+    inputs.currentAmps = motor.getOutputCurrent();
   }
 
   @Override
   public void setVoltage(double volts) {
-    requestedVolts = volts;
+    motor.setVoltage(volts);
   }
 
   @Override
@@ -51,15 +38,14 @@ public class DriveIOSim implements DriveIO {
 
   @Override
   public void resetPosition(double positionMeters) {
-    sim.setState(positionMeters, 0.0);
-    requestedVolts = 0.0;
+    motor.getEncoder().setPosition(positionMeters);
   }
 
   public double getSimPosition() {
-    return sim.getPosition();
+    return motor.getEncoder().getPosition();
   }
 
   public double getSimVelocity() {
-    return sim.getVelocity();
+    return motor.getEncoder().getVelocity();
   }
 }
