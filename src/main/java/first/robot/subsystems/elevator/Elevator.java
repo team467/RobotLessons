@@ -66,9 +66,12 @@ public class Elevator implements Mechanism {
     String name = String.format("Elevator To %.2fm", target.in(Meters));
     StateMachine sm = new StateMachine(name);
     var moving = sm.addState(runRepeatedly(this::driveTowardSetpoint).named(name));
-    moving.onEnter(() -> setpoint = target);
+    moving.onEnter(() -> {
+      setpoint = target;
+      pid.reset();
+    });
     sm.setInitialState(moving);
-    moving.exitStateMachine().when(this::atSetpoint);
+    moving.exitStateMachine().when(() -> atSetpoint() && Math.abs(getVelocity()) <= 0.05);
     return run(coroutine -> coroutine.await(sm)).named(name);
   }
 
@@ -89,6 +92,11 @@ public class Elevator implements Mechanism {
           setpoint = Meters.of(Math.min(MAX_HEIGHT.in(Meters), setpoint.in(Meters) + MANUAL_SPEED_MPS * 0.02));
           driveTowardSetpoint();
         }).named("Elevator Up"));
+    moving.onEnter(() -> setpoint = getPosition());
+    moving.onExit(() -> {
+      setpoint = getPosition();
+      pid.reset();
+    });
     sm.setInitialState(moving);
     return run(coroutine -> coroutine.await(sm)).named("Elevator Up");
   }
@@ -101,6 +109,11 @@ public class Elevator implements Mechanism {
           setpoint = Meters.of(Math.max(MIN_HEIGHT.in(Meters), setpoint.in(Meters) - MANUAL_SPEED_MPS * 0.02));
           driveTowardSetpoint();
         }).named("Elevator Down"));
+    moving.onEnter(() -> setpoint = getPosition());
+    moving.onExit(() -> {
+      setpoint = getPosition();
+      pid.reset();
+    });
     sm.setInitialState(moving);
     return run(coroutine -> coroutine.await(sm)).named("Elevator Down");
   }
@@ -119,7 +132,7 @@ public class Elevator implements Mechanism {
           driveTowardSetpoint();
         }).named("Elevator Hold"));
     holding.onEnter(() -> {
-      if (!getPosition().isNear(setpoint, Meters.of(0.08))) {
+      if (RobotBase.isDisabled()) {
         setpoint = getPosition();
       }
     });

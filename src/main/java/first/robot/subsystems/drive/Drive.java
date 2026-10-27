@@ -58,10 +58,12 @@ public class Drive implements Mechanism {
     setpoint = target;
     StateMachine sm = new StateMachine(name);
     var driving = sm.addState(runRepeatedly(this::driveTowardSetpoint).named(name));
-    driving.onEnter(() -> setpoint = target);
-    driving.onExit(() -> motor.setVoltage(0.0));
+    driving.onEnter(() -> {
+      setpoint = target;
+      pid.reset();
+    });
     sm.setInitialState(driving);
-    driving.exitStateMachine().when(() -> atSetpoint() && Math.abs(getVelocity()) <= 0.08);
+    driving.exitStateMachine().when(() -> atSetpoint() && Math.abs(getVelocity()) <= 0.05);
     return run(coroutine -> coroutine.await(sm)).named(name);
   }
 
@@ -80,9 +82,14 @@ public class Drive implements Mechanism {
     StateMachine sm = new StateMachine("Drive Forward");
     var moving = sm.addState(
         runRepeatedly(() -> {
-          setpoint = Meters.of(Math.min(TABLE_POSITION.in(Meters) + 0.5, getPosition().in(Meters) + TELEOP_SPEED_MPS * 0.02));
+          setpoint = Meters.of(Math.min(TABLE_POSITION.in(Meters), getPosition().in(Meters) + TELEOP_SPEED_MPS * 0.02));
           driveTowardSetpoint(TELEOP_VOLTS);
         }).named("Drive Forward"));
+    moving.onExit(() -> {
+      setpoint = getPosition();
+      pid.reset();
+      motor.setVoltage(0.0);
+    });
     sm.setInitialState(moving);
     return run(coroutine -> coroutine.await(sm)).named("Drive Forward");
   }
@@ -92,9 +99,14 @@ public class Drive implements Mechanism {
     StateMachine sm = new StateMachine("Drive Backward");
     var moving = sm.addState(
         runRepeatedly(() -> {
-          setpoint = Meters.of(Math.max(START_POSITION.in(Meters) - 0.5, getPosition().in(Meters) - TELEOP_SPEED_MPS * 0.02));
+          setpoint = Meters.of(Math.max(START_POSITION.in(Meters), getPosition().in(Meters) - TELEOP_SPEED_MPS * 0.02));
           driveTowardSetpoint(TELEOP_VOLTS);
         }).named("Drive Backward"));
+    moving.onExit(() -> {
+      setpoint = getPosition();
+      pid.reset();
+      motor.setVoltage(0.0);
+    });
     sm.setInitialState(moving);
     return run(coroutine -> coroutine.await(sm)).named("Drive Backward");
   }
@@ -112,6 +124,11 @@ public class Drive implements Mechanism {
             motor.setVoltage(Math.clamp(speed * MAX_VOLTS, -MAX_VOLTS, MAX_VOLTS));
           }
         }).named("Drive Manual"));
+    manual.onExit(() -> {
+      setpoint = getPosition();
+      pid.reset();
+      motor.setVoltage(0.0);
+    });
     sm.setInitialState(manual);
     return run(coroutine -> coroutine.await(sm)).named("Drive Manual");
   }
@@ -126,7 +143,11 @@ public class Drive implements Mechanism {
           }
           driveTowardSetpoint();
         }).named("Drive Hold"));
-    holding.onEnter(() -> setpoint = getPosition());
+    holding.onEnter(() -> {
+      if (RobotBase.isDisabled()) {
+        setpoint = getPosition();
+      }
+    });
     sm.setInitialState(holding);
     return run(coroutine -> coroutine.await(sm))
         .withPriority(Command.LOWEST_PRIORITY)

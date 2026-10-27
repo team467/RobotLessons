@@ -14,7 +14,7 @@ public final class DriveConstants {
   public static final double MAX_VOLTS = 9.0;
   public static final double TELEOP_VOLTS = 11.5;
   public static final double KP = 8.5; // volts per meter of error
-  public static final double KD = 0.7;
+  public static final double KD = 1.8;
   public static final Distance TOLERANCE = Meters.of(0.03);
   public static final Distance TOLERANCE_METERS = TOLERANCE;
 

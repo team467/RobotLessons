@@ -64,9 +64,12 @@ public class Extender implements Mechanism {
     String name = String.format("Extender To %.2fm", target.in(Meters));
     StateMachine sm = new StateMachine(name);
     var moving = sm.addState(runRepeatedly(this::driveTowardSetpoint).named(name));
-    moving.onEnter(() -> setpoint = target);
+    moving.onEnter(() -> {
+      setpoint = target;
+      pid.reset();
+    });
     sm.setInitialState(moving);
-    moving.exitStateMachine().when(this::atSetpoint);
+    moving.exitStateMachine().when(() -> atSetpoint() && Math.abs(getVelocity()) <= 0.05);
     return run(coroutine -> coroutine.await(sm)).named(name);
   }
 
@@ -87,6 +90,11 @@ public class Extender implements Mechanism {
           setpoint = Meters.of(Math.min(MAX_EXTENSION.in(Meters), setpoint.in(Meters) + MANUAL_SPEED_MPS * 0.02));
           driveTowardSetpoint();
         }).named("Extender Out"));
+    moving.onEnter(() -> setpoint = getPosition());
+    moving.onExit(() -> {
+      setpoint = getPosition();
+      pid.reset();
+    });
     sm.setInitialState(moving);
     return run(coroutine -> coroutine.await(sm)).named("Extender Out");
   }
@@ -99,6 +107,11 @@ public class Extender implements Mechanism {
           setpoint = Meters.of(Math.max(MIN_EXTENSION.in(Meters), setpoint.in(Meters) - MANUAL_SPEED_MPS * 0.02));
           driveTowardSetpoint();
         }).named("Extender In"));
+    moving.onEnter(() -> setpoint = getPosition());
+    moving.onExit(() -> {
+      setpoint = getPosition();
+      pid.reset();
+    });
     sm.setInitialState(moving);
     return run(coroutine -> coroutine.await(sm)).named("Extender In");
   }
@@ -114,7 +127,7 @@ public class Extender implements Mechanism {
           driveTowardSetpoint();
         }).named("Extender Hold"));
     holding.onEnter(() -> {
-      if (!getPosition().isNear(setpoint, Meters.of(0.08))) {
+      if (RobotBase.isDisabled()) {
         setpoint = getPosition();
       }
     });
