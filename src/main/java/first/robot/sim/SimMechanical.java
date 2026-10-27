@@ -640,6 +640,9 @@ public final class SimMechanical {
     }
     DigitalInput input = new DigitalInput(channel);
     activeDigitalInputs.put(channel, input);
+    if (channel == CLAW_BALL_SENSOR_DIO) {
+      clawBallSensorSim.setValue(false);
+    }
     return input;
   }
 
