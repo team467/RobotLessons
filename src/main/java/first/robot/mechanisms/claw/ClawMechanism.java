@@ -21,16 +21,22 @@ import org.wpilib.units.measure.Angle;
 
 /** The claw opens and closes its fingers to pick up a ball. */
 public class ClawMechanism implements Mechanism {
+  /** The target goal/intent for the claw state machine. */
+  public enum Goal {
+    HOLD,
+    OPEN,
+    CLOSE,
+    MOVE
+  }
+
   private final SparkMax motor;
   private final RelativeEncoder encoder;
   private final DigitalInput ballSensor;
   private final PIDController pid = new PIDController(KP, 0.0, KD);
 
   private Angle setpoint = STARTING_ANGLE;
+  private Goal goal = Goal.HOLD;
   private Angle targetAngle = STARTING_ANGLE;
-  private boolean requestOpen = false;
-  private boolean requestClose = false;
-  private boolean requestMove = false;
 
   /** True while the claw is holding a ball. */
   public final Trigger hasBall = new Trigger(this::hasBall);
@@ -68,7 +74,7 @@ public class ClawMechanism implements Mechanism {
           driveTowardSetpoint();
         }).named("Claw Holding"));
     holding.onEnter(() -> {
-      if (!requestOpen && !requestClose && !requestMove) {
+      if (goal == Goal.HOLD) {
         setpoint = getAngle();
       }
     });
@@ -76,12 +82,10 @@ public class ClawMechanism implements Mechanism {
     StateMachine.State opening = machine.addState(
         runRepeatedly(this::driveTowardSetpoint).named("Claw Opening"));
     opening.onEnter(() -> setpoint = OPEN_ANGLE);
-    opening.onExit(() -> requestOpen = false);
 
     StateMachine.State closing = machine.addState(
         runRepeatedly(this::driveTowardSetpoint).named("Claw Closing"));
     closing.onEnter(() -> setpoint = CLOSED_ANGLE);
-    closing.onExit(() -> requestClose = false);
 
     StateMachine.State gripping = machine.addState(
         runRepeatedly(() -> {
@@ -91,77 +95,83 @@ public class ClawMechanism implements Mechanism {
             motor.setVoltage(GRIP_VOLTS);
           }
         }).named("Claw Gripping"));
-    gripping.onEnter(() -> {
-      requestClose = false;
-      requestMove = false;
-    });
 
     StateMachine.State moving = machine.addState(
         runRepeatedly(this::driveTowardSetpoint).named("Claw Moving"));
     moving.onEnter(() -> setpoint = targetAngle);
-    moving.onExit(() -> requestMove = false);
 
     // Transitions from holding
-    holding.switchTo(opening).when(() -> requestOpen);
-    holding.switchTo(closing).when(() -> requestClose);
-    holding.switchTo(moving).when(() -> requestMove);
     holding.switchTo(gripping).when(this::hasBall);
+    holding.switchTo(opening).when(() -> goal == Goal.OPEN && !atSetpoint());
+    holding.switchTo(closing).when(() -> goal == Goal.CLOSE && !atSetpoint());
+    holding.switchTo(moving).when(() -> goal == Goal.MOVE && !atSetpoint());
 
     // Transitions from opening
     opening.switchTo(holding).when(this::atSetpoint);
-    opening.switchTo(closing).when(() -> requestClose);
-    opening.switchTo(moving).when(() -> requestMove);
+    opening.switchTo(closing).when(() -> goal == Goal.CLOSE);
+    opening.switchTo(moving).when(() -> goal == Goal.MOVE);
 
     // Transitions from closing
     closing.switchTo(gripping).when(this::hasBall);
     closing.switchTo(holding).when(this::atSetpoint);
-    closing.switchTo(opening).when(() -> requestOpen);
-    closing.switchTo(moving).when(() -> requestMove);
+    closing.switchTo(opening).when(() -> goal == Goal.OPEN);
+    closing.switchTo(moving).when(() -> goal == Goal.MOVE);
 
     // Transitions from moving
     moving.switchTo(gripping).when(this::hasBall);
     moving.switchTo(holding).when(this::atSetpoint);
-    moving.switchTo(opening).when(() -> requestOpen);
-    moving.switchTo(closing).when(() -> requestClose);
+    moving.switchTo(opening).when(() -> goal == Goal.OPEN);
+    moving.switchTo(closing).when(() -> goal == Goal.CLOSE);
 
     // Transitions from gripping
-    gripping.switchTo(opening).when(() -> requestOpen);
-    gripping.switchTo(holding).when(() -> !hasBall());
-    gripping.switchTo(moving).when(() -> requestMove);
+    gripping.switchTo(opening).when(() -> goal == Goal.OPEN);
+    gripping.switchTo(closing).when(() -> !hasBall() && goal == Goal.CLOSE);
+    gripping.switchTo(moving).when(() -> goal == Goal.MOVE);
+    gripping.switchTo(holding).when(() -> !hasBall() && goal != Goal.CLOSE);
 
     machine.setInitialState(hasBall() ? gripping : holding);
     return machine;
   }
 
   // ------------------------------------------------------------------------------------------
-  // Commands and Request Triggers
+  // Goals and Commands
   // ------------------------------------------------------------------------------------------
 
-  public void requestOpen() {
-    this.targetAngle = OPEN_ANGLE;
-    this.setpoint = OPEN_ANGLE;
-    this.requestOpen = true;
-    this.requestClose = false;
-    this.requestMove = false;
+  public void setGoal(Goal goal) {
+    this.goal = goal;
+    if (goal == Goal.OPEN) {
+      this.targetAngle = OPEN_ANGLE;
+      this.setpoint = OPEN_ANGLE;
+    } else if (goal == Goal.CLOSE) {
+      this.targetAngle = CLOSED_ANGLE;
+      this.setpoint = CLOSED_ANGLE;
+    } else if (goal == Goal.HOLD) {
+      this.setpoint = getAngle();
+    }
     driveTowardSetpoint();
+  }
+
+  public void setGoal(Goal goal, Angle target) {
+    this.goal = goal;
+    this.targetAngle = target.lt(CLOSED_ANGLE) ? CLOSED_ANGLE : (target.gt(OPEN_ANGLE) ? OPEN_ANGLE : target);
+    this.setpoint = this.targetAngle;
+    driveTowardSetpoint();
+  }
+
+  public Goal getGoal() {
+    return goal;
+  }
+
+  public void requestOpen() {
+    setGoal(Goal.OPEN);
   }
 
   public void requestClose() {
-    this.targetAngle = CLOSED_ANGLE;
-    this.setpoint = CLOSED_ANGLE;
-    this.requestClose = true;
-    this.requestOpen = false;
-    this.requestMove = false;
-    driveTowardSetpoint();
+    setGoal(Goal.CLOSE);
   }
 
   public void requestMove(Angle angle) {
-    this.targetAngle = angle.lt(CLOSED_ANGLE) ? CLOSED_ANGLE : (angle.gt(OPEN_ANGLE) ? OPEN_ANGLE : angle);
-    this.setpoint = this.targetAngle;
-    this.requestMove = true;
-    this.requestOpen = false;
-    this.requestClose = false;
-    driveTowardSetpoint();
+    setGoal(Goal.MOVE, angle);
   }
 
   public void requestMove(double angle) {
@@ -176,16 +186,13 @@ public class ClawMechanism implements Mechanism {
   public Command moveTo(Angle targetAngle) {
     Angle target = targetAngle.lt(CLOSED_ANGLE) ? CLOSED_ANGLE : (targetAngle.gt(OPEN_ANGLE) ? OPEN_ANGLE : targetAngle);
     String name = String.format("Claw To %.0f deg", target.in(Degrees));
-    if (getAngle().isNear(target, TOLERANCE)) {
-      setpoint = target;
-      return Command.noRequirements(coroutine -> {}).named(name);
-    }
-    requestMove(target);
     return Command.noRequirements(coroutine -> {
-      while (requestMove) {
-        coroutine.yield();
+      setGoal(Goal.MOVE, target);
+      if (getAngle().isNear(target, TOLERANCE)) {
+        return;
       }
-    }).whenCanceled(() -> requestMove = false).named(name);
+      coroutine.waitUntil(() -> hasBall() || atSetpoint());
+    }).named(name);
   }
 
   /**
@@ -199,16 +206,13 @@ public class ClawMechanism implements Mechanism {
 
   /** Opens the claw all the way. */
   public Command open() {
-    if (getAngle().isNear(OPEN_ANGLE, TOLERANCE)) {
-      setpoint = OPEN_ANGLE;
-      return Command.noRequirements(coroutine -> {}).named("Claw Open");
-    }
-    requestOpen();
     return Command.noRequirements(coroutine -> {
-      while (requestOpen) {
-        coroutine.yield();
+      setGoal(Goal.OPEN);
+      if (getAngle().isNear(OPEN_ANGLE, TOLERANCE)) {
+        return;
       }
-    }).whenCanceled(() -> requestOpen = false).named("Claw Open");
+      coroutine.waitUntil(this::atSetpoint);
+    }).named("Claw Open");
   }
 
   /**
@@ -216,16 +220,13 @@ public class ClawMechanism implements Mechanism {
    * close any further when a ball is in the way!).
    */
   public Command close() {
-    if (hasBall() || getAngle().isNear(CLOSED_ANGLE, TOLERANCE)) {
-      setpoint = CLOSED_ANGLE;
-      return Command.noRequirements(coroutine -> {}).named("Claw Close");
-    }
-    requestClose();
     return Command.noRequirements(coroutine -> {
-      while (requestClose) {
-        coroutine.yield();
+      setGoal(Goal.CLOSE);
+      if (hasBall() || getAngle().isNear(CLOSED_ANGLE, TOLERANCE)) {
+        return;
       }
-    }).whenCanceled(() -> requestClose = false).named("Claw Close");
+      coroutine.waitUntil(() -> hasBall() || atSetpoint());
+    }).named("Claw Close");
   }
 
   /**
@@ -289,5 +290,6 @@ public class ClawMechanism implements Mechanism {
 
   public void resetSetpoint() {
     setpoint = STARTING_ANGLE;
+    goal = Goal.HOLD;
   }
 }

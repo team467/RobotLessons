@@ -26,17 +26,22 @@ import org.wpilib.units.measure.Distance;
  * in an upward arc toward the elevated basket.
  */
 public class ShooterMechanism implements Mechanism {
+  /** The target goal/intent for the shooter state machine. */
+  public enum Goal {
+    IDLE,
+    LOAD,
+    KICK,
+    WIND,
+    RELEASE
+  }
+
   private final SparkMax motor;
   private final RelativeEncoder encoder;
   private final DigitalOutput solenoid;
   private final PIDController pid = new PIDController(KP, 0.0, KD);
 
   private Distance setpoint = STARTING_PULLBACK;
-
-  private boolean requestPullBack = false;
-  private boolean requestKick = false;
-  private boolean requestWind = false;
-  private boolean requestReleaseSolenoid = false;
+  private Goal goal = Goal.IDLE;
 
   /** True when the shooter spring is pulled back and locked by the ratchet, ready to fire. */
   public final Trigger isLoaded = new Trigger(this::isLoaded);
@@ -88,10 +93,7 @@ public class ShooterMechanism implements Mechanism {
       setpoint = LOADED_PULLBACK;
       solenoid.set(false);
     });
-    pullingBack.onExit(() -> {
-      motor.setVoltage(0.0);
-      requestPullBack = false;
-    });
+    pullingBack.onExit(() -> motor.setVoltage(0.0));
 
     StateMachine.State loaded = machine.addState(
         runRepeatedly(() -> {
@@ -109,7 +111,6 @@ public class ShooterMechanism implements Mechanism {
       motor.setVoltage(0.0);
       solenoid.set(true);
     });
-    releasing.onExit(() -> requestKick = false);
 
     StateMachine.State followThrough = machine.addState(
         run(coroutine -> {
@@ -120,7 +121,12 @@ public class ShooterMechanism implements Mechanism {
             coroutine.yield();
           }
         }).named("Shooter Follow-Through"));
-    followThrough.onExit(() -> solenoid.set(false));
+    followThrough.onExit(() -> {
+      solenoid.set(false);
+      if (goal == Goal.KICK) {
+        goal = Goal.IDLE;
+      }
+    });
 
     StateMachine.State manualWind = machine.addState(
         runRepeatedly(() -> {
@@ -138,47 +144,62 @@ public class ShooterMechanism implements Mechanism {
         }).named("Shooter Release"));
     manualRelease.onExit(() -> solenoid.set(false));
 
-    // Transitions:
-    idle.switchTo(pullingBack).when(() -> requestPullBack);
-    idle.switchTo(manualWind).when(() -> requestWind);
-    idle.switchTo(manualRelease).when(() -> requestReleaseSolenoid);
-    idle.switchTo(releasing).when(() -> requestKick && isLoaded());
+    // Transitions from idle:
+    idle.switchTo(pullingBack).when(() -> goal == Goal.LOAD);
+    idle.switchTo(manualWind).when(() -> goal == Goal.WIND);
+    idle.switchTo(manualRelease).when(() -> goal == Goal.RELEASE);
+    idle.switchTo(releasing).when(() -> goal == Goal.KICK && isLoaded());
 
+    // Transitions from pullingBack:
     pullingBack.switchTo(loaded).when(this::isLoaded);
-    pullingBack.switchTo(idle).when(() -> !requestPullBack);
+    pullingBack.switchTo(idle).when(() -> goal != Goal.LOAD);
 
-    loaded.switchTo(releasing).when(() -> requestKick);
-    loaded.switchTo(pullingBack).when(() -> requestPullBack && !isLoaded());
-    loaded.switchTo(manualRelease).when(() -> requestReleaseSolenoid);
+    // Transitions from loaded:
+    loaded.switchTo(releasing).when(() -> goal == Goal.KICK);
+    loaded.switchTo(pullingBack).when(() -> goal == Goal.LOAD && !isLoaded());
+    loaded.switchTo(manualRelease).when(() -> goal == Goal.RELEASE);
+    loaded.switchTo(idle).when(() -> goal == Goal.IDLE && !isLoaded());
 
+    // Transitions from releasing:
     releasing.switchTo(followThrough).when(() -> getPosition().lte(MIN_PULLBACK.plus(TOLERANCE)));
+
+    // Transitions from followThrough:
     followThrough.switchTo(idle).whenComplete();
 
-    manualWind.switchTo(idle).when(() -> !requestWind);
-    manualRelease.switchTo(idle).when(() -> !requestReleaseSolenoid);
+    // Transitions from manual states:
+    manualWind.switchTo(idle).when(() -> goal != Goal.WIND);
+    manualRelease.switchTo(idle).when(() -> goal != Goal.RELEASE);
 
     machine.setInitialState(isLoaded() ? loaded : idle);
     return machine;
   }
 
   // ------------------------------------------------------------------------------------------
-  // Commands and Request Triggers
+  // Goals and Commands
   // ------------------------------------------------------------------------------------------
 
+  public void setGoal(Goal goal) {
+    this.goal = goal;
+  }
+
+  public Goal getGoal() {
+    return goal;
+  }
+
   public void requestPullBack() {
-    this.requestPullBack = true;
+    setGoal(Goal.LOAD);
   }
 
   public void requestKick() {
-    this.requestKick = true;
+    setGoal(Goal.KICK);
   }
 
   public void requestWind(boolean active) {
-    this.requestWind = active;
+    setGoal(active ? Goal.WIND : Goal.IDLE);
   }
 
   public void requestReleaseSolenoid(boolean active) {
-    this.requestReleaseSolenoid = active;
+    setGoal(active ? Goal.RELEASE : Goal.IDLE);
   }
 
   /**
@@ -187,12 +208,14 @@ public class ShooterMechanism implements Mechanism {
    */
   public Command pullBack() {
     return Command.noRequirements(coroutine -> {
+      setGoal(Goal.LOAD);
       if (isLoaded()) {
         return;
       }
-      requestPullBack = true;
-      while (!isLoaded()) {
-        coroutine.yield();
+      coroutine.waitUntil(this::isLoaded);
+    }).whenCanceled(() -> {
+      if (goal == Goal.LOAD && !isLoaded()) {
+        setGoal(Goal.IDLE);
       }
     }).named("Shooter Pull Back");
   }
@@ -206,12 +229,12 @@ public class ShooterMechanism implements Mechanism {
       if (!isLoaded()) {
         return;
       }
-      requestKick = true;
-      while (isRatchetLocked() && requestKick) {
-        coroutine.yield();
-      }
-      while (isSolenoidReleased()) {
-        coroutine.yield();
+      setGoal(Goal.KICK);
+      coroutine.waitUntil(() -> !isLoaded() || isSolenoidReleased());
+      coroutine.waitUntil(() -> !isSolenoidReleased() && goal != Goal.KICK);
+    }).whenCanceled(() -> {
+      if (goal == Goal.KICK) {
+        setGoal(Goal.IDLE);
       }
     }).named("Shooter Kick");
   }
@@ -222,21 +245,17 @@ public class ShooterMechanism implements Mechanism {
    */
   public Command wind() {
     return Command.noRequirements(coroutine -> {
-      requestWind = true;
-      while (true) {
-        coroutine.yield();
-      }
-    }).whenCanceled(() -> requestWind = false).named("Shooter Wind");
+      setGoal(Goal.WIND);
+      coroutine.park();
+    }).whenCanceled(() -> setGoal(Goal.IDLE)).named("Shooter Wind");
   }
 
   /** Manual command that holds the release solenoid open while active. */
   public Command releaseSolenoid() {
     return Command.noRequirements(coroutine -> {
-      requestReleaseSolenoid = true;
-      while (true) {
-        coroutine.yield();
-      }
-    }).whenCanceled(() -> requestReleaseSolenoid = false).named("Shooter Release");
+      setGoal(Goal.RELEASE);
+      coroutine.park();
+    }).whenCanceled(() -> setGoal(Goal.IDLE)).named("Shooter Release");
   }
 
   /**
@@ -299,5 +318,6 @@ public class ShooterMechanism implements Mechanism {
 
   public void resetSetpoint() {
     setpoint = STARTING_PULLBACK;
+    goal = Goal.IDLE;
   }
 }
