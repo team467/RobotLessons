@@ -2,20 +2,20 @@ package first.robot.orchestration;
 
 import static org.wpilib.units.Units.Meters;
 
-import first.robot.mechanisms.claw.ClawMechanism;
-import first.robot.mechanisms.elevator.ElevatorConstants;
-import first.robot.mechanisms.elevator.ElevatorMechanism;
-import first.robot.mechanisms.extender.ExtenderConstants;
-import first.robot.mechanisms.extender.ExtenderMechanism;
-import first.robot.mechanisms.kicker.KickerMechanism;
+import first.robot.subsystems.claw.Claw;
+import first.robot.subsystems.elevator.Elevator;
+import first.robot.subsystems.elevator.ElevatorConstants;
+import first.robot.subsystems.extender.Extender;
+import first.robot.subsystems.extender.ExtenderConstants;
+import first.robot.subsystems.kicker.Kicker;
 import org.wpilib.command3.Command;
 
 /**
- * Reusable multi-mechanism command orchestration sequences for manipulating game balls.
+ * Reusable multi-subsystem command orchestration sequences for manipulating game balls.
  *
  * <p>These compositions use {@link Command#noRequirements} with coroutines ({@code coroutine.await(...)})
- * so that child commands dynamically lock only the mechanisms they need while running, allowing
- * default holding commands to run when individual mechanisms are idle.
+ * so that child commands dynamically lock only the subsystems they need while running, allowing
+ * default holding commands to run when individual subsystems are idle.
  */
 public final class BallCommands {
   private BallCommands() {}
@@ -25,7 +25,7 @@ public final class BallCommands {
    * lowers onto the ball, and closes the claw fingers around it.
    */
   public static Command grabBallFromTable(
-      ElevatorMechanism elevator, ExtenderMechanism extender, ClawMechanism claw) {
+      Elevator elevator, Extender extender, Claw claw) {
     return Command.noRequirements(coroutine -> {
       // 1. Concurrently raise elevator above table obstacle and open claw fingers
       coroutine.awaitAll(elevator.moveTo(ElevatorConstants.ABOVE_TABLE_HEIGHT), claw.open());
@@ -46,7 +46,7 @@ public final class BallCommands {
    * this command if the ball is still on the table.
    */
   public static Command scoreBallOnGround(
-      ElevatorMechanism elevator, ExtenderMechanism extender, ClawMechanism claw) {
+      Elevator elevator, Extender extender, Claw claw) {
     return Command.noRequirements(coroutine -> {
       coroutine.await(elevator.moveTo(ElevatorConstants.ABOVE_TABLE_HEIGHT));
       coroutine.await(extender.moveTo(ExtenderConstants.TARGET_EXTENSION));
@@ -61,7 +61,7 @@ public final class BallCommands {
    * lowers to ground grab height, closes claw, and returns to stow height.
    */
   public static Command grabBallFromGround(
-      ElevatorMechanism elevator, ExtenderMechanism extender, ClawMechanism claw) {
+      Elevator elevator, Extender extender, Claw claw) {
     return Command.noRequirements(coroutine -> {
       // 1. Concurrently prepare claw open, extend to ball radius, and position elevator
       coroutine.awaitAll(
@@ -82,7 +82,7 @@ public final class BallCommands {
    * = 0.0m}) while the robot is parked at the table.
    */
   public static Command placeBallLeftOfTarget(
-      ElevatorMechanism elevator, ExtenderMechanism extender, ClawMechanism claw) {
+      Elevator elevator, Extender extender, Claw claw) {
     return Command.noRequirements(coroutine -> {
       if (extender.getPosition().gt(Meters.of(0.45))
           && elevator.getPosition().lt(ElevatorConstants.ABOVE_TABLE_HEIGHT.minus(Meters.of(0.05)))) {
@@ -99,7 +99,7 @@ public final class BallCommands {
    * 0.0m}) while the robot is parked at the table.
    */
   public static Command grabBallLeftOfTarget(
-      ElevatorMechanism elevator, ExtenderMechanism extender, ClawMechanism claw) {
+      Elevator elevator, Extender extender, Claw claw) {
     return Command.noRequirements(coroutine -> {
       coroutine.awaitAll(
           claw.open(),
@@ -117,7 +117,7 @@ public final class BallCommands {
    * and opens the claw.
    */
   public static Command scoreTableBall(
-      ElevatorMechanism elevator, ExtenderMechanism extender, ClawMechanism claw) {
+      Elevator elevator, Extender extender, Claw claw) {
     return Command.noRequirements(coroutine -> {
       coroutine.await(elevator.moveTo(ElevatorConstants.ABOVE_TABLE_HEIGHT));
       coroutine.await(extender.moveTo(ExtenderConstants.TABLE_TARGET_EXTENSION));
@@ -128,7 +128,7 @@ public final class BallCommands {
 
   /** Places a held ball gently into the table target box (alias). */
   public static Command scoreBallOnTable(
-      ElevatorMechanism elevator, ExtenderMechanism extender, ClawMechanism claw) {
+      Elevator elevator, Extender extender, Claw claw) {
     return scoreTableBall(elevator, extender, claw);
   }
 
@@ -138,7 +138,7 @@ public final class BallCommands {
    * the arm is currently extended over the table, raises above the table first before retracting.
    */
   public static Command moveToShootPosition(
-      ElevatorMechanism elevator, ExtenderMechanism extender) {
+      Elevator elevator, Extender extender) {
     return Command.noRequirements(
             coroutine -> {
               if (extender.getPosition().gt(Meters.of(0.45))
@@ -157,10 +157,10 @@ public final class BallCommands {
    * the elevated basket.
    */
   public static Command kickBallIntoBasket(
-      ElevatorMechanism elevator,
-      ExtenderMechanism extender,
-      ClawMechanism claw,
-      KickerMechanism kicker) {
+      Elevator elevator,
+      Extender extender,
+      Claw claw,
+      Kicker kicker) {
     return Command.noRequirements(coroutine -> {
       coroutine.awaitAll(
           moveToShootPosition(elevator, extender),
@@ -172,10 +172,10 @@ public final class BallCommands {
 
   /** Alias for {@link #kickBallIntoBasket}. */
   public static Command shootBallIntoBasket(
-      ElevatorMechanism elevator,
-      ExtenderMechanism extender,
-      ClawMechanism claw,
-      KickerMechanism kicker) {
+      Elevator elevator,
+      Extender extender,
+      Claw claw,
+      Kicker kicker) {
     return kickBallIntoBasket(elevator, extender, claw, kicker);
   }
 }

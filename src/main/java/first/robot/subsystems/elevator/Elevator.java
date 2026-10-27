@@ -1,6 +1,6 @@
-package first.robot.mechanisms.extender;
+package first.robot.subsystems.elevator;
 
-import static first.robot.mechanisms.extender.ExtenderConstants.*;
+import static first.robot.subsystems.elevator.ElevatorConstants.*;
 import static org.wpilib.units.Units.Meters;
 
 import com.revrobotics.RelativeEncoder;
@@ -17,25 +17,27 @@ import org.wpilib.framework.RobotBase;
 import org.wpilib.math.controller.PIDController;
 import org.wpilib.units.measure.Distance;
 
-/** The extender slides the claw in and out on a pulley (the x-axis). */
-public class ExtenderMechanism implements Mechanism {
+/** The elevator moves the whole arm up and down (the y-axis). */
+public class Elevator implements Mechanism {
   private final SparkMax motor;
   private final RelativeEncoder encoder;
   private final PIDController pid = new PIDController(KP, 0.0, KD);
 
-  private Distance setpoint = STARTING_EXTENSION;
+  /** The height we are currently trying to reach. */
+  private Distance setpoint = STARTING_HEIGHT;
 
-  /** True while the extender is within tolerance of its setpoint. */
+  /** True while the elevator is within tolerance of its setpoint. */
   public final Trigger atSetpoint = new Trigger(this::atSetpoint);
 
-  public ExtenderMechanism() {
-    this(Mechanical.createSparkMax(Schematic.EXTENDER_CAN_ID, MotorType.kBrushless));
+  public Elevator() {
+    this(Mechanical.createSparkMax(Schematic.ELEVATOR_CAN_ID, MotorType.kBrushless));
   }
 
-  public ExtenderMechanism(SparkMax motor) {
+  public Elevator(SparkMax motor) {
     this.motor = motor;
     this.encoder = motor.getEncoder();
     Mechanical.register(motor);
+    // When no other command is using the elevator, hold it where it is.
     setDefaultCommand(hold());
   }
 
@@ -43,25 +45,25 @@ public class ExtenderMechanism implements Mechanism {
   // Commands
   // ------------------------------------------------------------------------------------------
 
-  private Distance clampExtension(Distance extension) {
-    if (extension.lt(MIN_EXTENSION)) {
-      return MIN_EXTENSION;
-    } else if (extension.gt(MAX_EXTENSION)) {
-      return MAX_EXTENSION;
+  private Distance clampHeight(Distance height) {
+    if (height.lt(MIN_HEIGHT)) {
+      return MIN_HEIGHT;
+    } else if (height.gt(MAX_HEIGHT)) {
+      return MAX_HEIGHT;
     } else {
-      return extension;
+      return height;
     }
   }
 
   /**
-   * Moves the extender to a position and finishes once it gets there.
+   * Moves the elevator to a height and finishes once it gets there.
    *
-   * @param extension how far to extend, clamped to the slide's travel
+   * @param height the target wrist height, clamped to the elevator's travel
    */
-  public Command moveTo(Distance extension) {
-    Distance target = clampExtension(extension);
+  public Command moveTo(Distance height) {
+    Distance target = clampHeight(height);
     setpoint = target;
-    String name = String.format("Extender To %.2fm", target.in(Meters));
+    String name = String.format("Elevator To %.2fm", target.in(Meters));
     StateMachine sm = new StateMachine(name);
     var moving = sm.addState(runRepeatedly(this::driveTowardSetpoint).named(name));
     moving.onEnter(() -> setpoint = target);
@@ -71,48 +73,51 @@ public class ExtenderMechanism implements Mechanism {
   }
 
   /**
-   * Overload for moving the extender to a position specified in meters as a double.
+   * Overload for moving the elevator to a height specified in meters as a double.
    *
-   * @param extensionMeters how far to extend in meters
+   * @param heightMeters the target wrist height in meters
    */
-  public Command moveTo(double extensionMeters) {
-    return moveTo(Meters.of(extensionMeters));
+  public Command moveTo(double heightMeters) {
+    return moveTo(Meters.of(heightMeters));
   }
 
-  /** Extends outward smoothly while held, stopping at MAX_EXTENSION. */
-  public Command out() {
-    StateMachine sm = new StateMachine("Extender Out");
+  /** Drives up smoothly while held, stopping at MAX_HEIGHT. */
+  public Command up() {
+    StateMachine sm = new StateMachine("Elevator Up");
     var moving = sm.addState(
         runRepeatedly(() -> {
-          setpoint = Meters.of(Math.min(MAX_EXTENSION.in(Meters), setpoint.in(Meters) + MANUAL_SPEED_MPS * 0.02));
+          setpoint = Meters.of(Math.min(MAX_HEIGHT.in(Meters), setpoint.in(Meters) + MANUAL_SPEED_MPS * 0.02));
           driveTowardSetpoint();
-        }).named("Extender Out"));
+        }).named("Elevator Up"));
     sm.setInitialState(moving);
-    return run(coroutine -> coroutine.await(sm)).named("Extender Out");
+    return run(coroutine -> coroutine.await(sm)).named("Elevator Up");
   }
 
-  /** Retracts inward smoothly while held, stopping at MIN_EXTENSION. */
-  public Command in() {
-    StateMachine sm = new StateMachine("Extender In");
+  /** Drives down smoothly while held, stopping at MIN_HEIGHT. */
+  public Command down() {
+    StateMachine sm = new StateMachine("Elevator Down");
     var moving = sm.addState(
         runRepeatedly(() -> {
-          setpoint = Meters.of(Math.max(MIN_EXTENSION.in(Meters), setpoint.in(Meters) - MANUAL_SPEED_MPS * 0.02));
+          setpoint = Meters.of(Math.max(MIN_HEIGHT.in(Meters), setpoint.in(Meters) - MANUAL_SPEED_MPS * 0.02));
           driveTowardSetpoint();
-        }).named("Extender In"));
+        }).named("Elevator Down"));
     sm.setInitialState(moving);
-    return run(coroutine -> coroutine.await(sm)).named("Extender In");
+    return run(coroutine -> coroutine.await(sm)).named("Elevator Down");
   }
 
-  /** Holds the current position. This is the default command. */
+  /**
+   * Holds the elevator at the current height. This is the default command, so it runs whenever
+   * nothing else needs the elevator.
+   */
   public Command hold() {
-    StateMachine sm = new StateMachine("Extender Hold [FSM]");
+    StateMachine sm = new StateMachine("Elevator Hold [FSM]");
     var holding = sm.addState(
         runRepeatedly(() -> {
           if (RobotBase.isDisabled()) {
             setpoint = getPosition();
           }
           driveTowardSetpoint();
-        }).named("Extender Hold"));
+        }).named("Elevator Hold"));
     holding.onEnter(() -> {
       if (!getPosition().isNear(setpoint, Meters.of(0.08))) {
         setpoint = getPosition();
@@ -121,7 +126,7 @@ public class ExtenderMechanism implements Mechanism {
     sm.setInitialState(holding);
     return run(coroutine -> coroutine.await(sm))
         .withPriority(Command.LOWEST_PRIORITY)
-        .named("Extender Hold");
+        .named("Elevator Hold");
   }
 
   // ------------------------------------------------------------------------------------------
@@ -129,7 +134,7 @@ public class ExtenderMechanism implements Mechanism {
   // ------------------------------------------------------------------------------------------
 
   private void driveTowardSetpoint() {
-    double volts = pid.calculate(getPosition().in(Meters), setpoint.in(Meters));
+    double volts = KG + pid.calculate(getPosition().in(Meters), setpoint.in(Meters));
     motor.setVoltage(Math.clamp(volts, -MAX_VOLTS, MAX_VOLTS));
   }
 
@@ -140,7 +145,7 @@ public class ExtenderMechanism implements Mechanism {
   public Distance getPosition() {
     Double pos = encoder.getPosition().get();
     if (pos == null) {
-      return STARTING_EXTENSION;
+      return STARTING_HEIGHT;
     }
     return Meters.of(pos);
   }
@@ -165,7 +170,7 @@ public class ExtenderMechanism implements Mechanism {
     return vel;
   }
 
-  /** The name of the most specific command currently using the extender. */
+  /** The name of the most specific command currently using the elevator. */
   public String getCurrentCommandName() {
     List<Command> running = getRunningCommands();
     if (running.isEmpty()) {
@@ -175,6 +180,6 @@ public class ExtenderMechanism implements Mechanism {
   }
 
   public void resetSetpoint() {
-    setpoint = STARTING_EXTENSION;
+    setpoint = STARTING_HEIGHT;
   }
 }

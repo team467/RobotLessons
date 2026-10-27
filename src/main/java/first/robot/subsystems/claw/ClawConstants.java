@@ -1,4 +1,4 @@
-package first.robot.mechanisms.claw;
+package first.robot.subsystems.claw;
 
 import static org.wpilib.units.Units.Degrees;
 import static org.wpilib.units.Units.Radians;
@@ -6,7 +6,7 @@ import static org.wpilib.units.Units.Radians;
 import org.wpilib.units.measure.Angle;
 
 /**
- * Constants for the {@link ClawMechanism}. The claw angle is how far each finger swings away from
+ * Constants for the {@link Claw}. The claw angle is how far each finger swings away from
  * vertical (0 = fully closed).
  */
 public final class ClawConstants {

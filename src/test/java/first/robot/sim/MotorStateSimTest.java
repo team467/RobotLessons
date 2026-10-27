@@ -4,13 +4,13 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import first.robot.constants.FieldConstants;
 import first.robot.constants.RobotConstants;
-import first.robot.mechanisms.claw.ClawConstants;
-import first.robot.mechanisms.claw.ClawMechanism;
-import first.robot.mechanisms.drive.DriveMechanism;
-import first.robot.mechanisms.elevator.ElevatorConstants;
-import first.robot.mechanisms.elevator.ElevatorMechanism;
-import first.robot.mechanisms.extender.ExtenderConstants;
-import first.robot.mechanisms.extender.ExtenderMechanism;
+import first.robot.subsystems.claw.Claw;
+import first.robot.subsystems.claw.ClawConstants;
+import first.robot.subsystems.drive.Drive;
+import first.robot.subsystems.elevator.Elevator;
+import first.robot.subsystems.elevator.ElevatorConstants;
+import first.robot.subsystems.extender.Extender;
+import first.robot.subsystems.extender.ExtenderConstants;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,10 +19,10 @@ import org.wpilib.hardware.hal.HAL;
 import org.wpilib.simulation.DriverStationSim;
 
 public class MotorStateSimTest {
-  private ElevatorMechanism elevator;
-  private ExtenderMechanism extender;
-  private ClawMechanism claw;
-  private DriveMechanism drive;
+  private Elevator elevator;
+  private Extender extender;
+  private Claw claw;
+  private Drive drive;
   private SimWorld world;
 
   @BeforeAll
@@ -36,10 +36,10 @@ public class MotorStateSimTest {
     DriverStationSim.setEnabled(true);
     DriverStationSim.notifyNewData();
 
-    elevator = new ElevatorMechanism();
-    extender = new ExtenderMechanism();
-    claw = new ClawMechanism();
-    drive = new DriveMechanism();
+    elevator = new Elevator();
+    extender = new Extender();
+    claw = new Claw();
+    drive = new Drive();
 
     world = new SimWorld(elevator, extender, claw, drive);
   }

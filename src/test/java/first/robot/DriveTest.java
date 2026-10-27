@@ -3,9 +3,9 @@ package first.robot;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.wpilib.units.Units.Meters;
 
-import first.robot.mechanisms.drive.DriveConstants;
-import first.robot.mechanisms.drive.DriveMechanism;
 import first.robot.sim.SimMechanical;
+import first.robot.subsystems.drive.Drive;
+import first.robot.subsystems.drive.DriveConstants;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,7 +14,7 @@ import org.wpilib.command3.Scheduler;
 import org.wpilib.hardware.hal.HAL;
 import org.wpilib.simulation.DriverStationSim;
 
-public class DriveMechanismTest {
+public class DriveTest {
   @BeforeAll
   static void initHal() {
     HAL.initialize();
@@ -29,7 +29,7 @@ public class DriveMechanismTest {
 
   @Test
   void testDriveToSetpoint() {
-    DriveMechanism drive = new DriveMechanism();
+    Drive drive = new Drive();
 
     Command cmd = drive.driveTo(DriveConstants.TABLE_POSITION);
     Scheduler.getDefault().schedule(cmd);
@@ -50,7 +50,7 @@ public class DriveMechanismTest {
 
   @Test
   void testDriveToStartAndTable() {
-    DriveMechanism drive = new DriveMechanism();
+    Drive drive = new Drive();
 
     // Start by moving to table
     Scheduler.getDefault().schedule(drive.driveToTable());

@@ -1,4 +1,4 @@
-package first.robot.mechanisms.extender;
+package first.robot.subsystems.extender;
 
 import static org.wpilib.units.Units.Meters;
 
@@ -7,7 +7,7 @@ import first.robot.constants.RobotConstants;
 import org.wpilib.units.measure.Distance;
 
 /**
- * Constants for the {@link ExtenderMechanism}. Positions are how far the arm is extended
+ * Constants for the {@link Extender}. Positions are how far the arm is extended
  * (0 = fully retracted). The wrist's x position is {@code WRIST_BASE_X + extension}.
  */
 public final class ExtenderConstants {

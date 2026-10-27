@@ -5,15 +5,15 @@ import static org.wpilib.units.Units.Meters;
 
 import first.robot.constants.FieldConstants;
 import first.robot.constants.RobotConstants;
-import first.robot.mechanisms.claw.ClawMechanism;
-import first.robot.mechanisms.drive.DriveConstants;
-import first.robot.mechanisms.drive.DriveMechanism;
-import first.robot.mechanisms.elevator.ElevatorConstants;
-import first.robot.mechanisms.elevator.ElevatorMechanism;
-import first.robot.mechanisms.extender.ExtenderConstants;
-import first.robot.mechanisms.extender.ExtenderMechanism;
 import first.robot.sim.SimMechanical;
 import first.robot.sim.SimWorld;
+import first.robot.subsystems.claw.Claw;
+import first.robot.subsystems.drive.Drive;
+import first.robot.subsystems.drive.DriveConstants;
+import first.robot.subsystems.elevator.Elevator;
+import first.robot.subsystems.elevator.ElevatorConstants;
+import first.robot.subsystems.extender.Extender;
+import first.robot.subsystems.extender.ExtenderConstants;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,10 +36,10 @@ public class TwoBallSimTest {
 
   @Test
   void testInitialDualBallWorldState() {
-    ElevatorMechanism elevator = new ElevatorMechanism();
-    ExtenderMechanism extender = new ExtenderMechanism();
-    ClawMechanism claw = new ClawMechanism();
-    DriveMechanism drive = new DriveMechanism();
+    Elevator elevator = new Elevator();
+    Extender extender = new Extender();
+    Claw claw = new Claw();
+    Drive drive = new Drive();
 
     SimWorld world = new SimWorld(elevator, extender, claw, drive);
     SimWorld.Snapshot s = world.snapshot();
@@ -54,10 +54,10 @@ public class TwoBallSimTest {
 
   @Test
   void testGroundBallGrabAtStartLocation() {
-    ElevatorMechanism elevator = new ElevatorMechanism();
-    ExtenderMechanism extender = new ExtenderMechanism();
-    ClawMechanism claw = new ClawMechanism();
-    DriveMechanism drive = new DriveMechanism();
+    Elevator elevator = new Elevator();
+    Extender extender = new Extender();
+    Claw claw = new Claw();
+    Drive drive = new Drive();
 
     SimWorld world = new SimWorld(elevator, extender, claw, drive);
 

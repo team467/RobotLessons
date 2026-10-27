@@ -1,11 +1,11 @@
-package first.robot.mechanisms.kicker;
+package first.robot.subsystems.kicker;
 
 import static org.wpilib.units.Units.Meters;
 
 import org.wpilib.units.measure.Distance;
 
 /**
- * Constants for the spring-loaded {@link KickerMechanism} mounted on the front of the robot.
+ * Constants for the spring-loaded {@link Kicker} mounted on the front of the robot.
  *
  * <p>A pullback winch motor winds the plunger back against a heavy spring while a one-way ratchet
  * locks it in place. Releasing the solenoid disengages the ratchet, allowing the spring to snap

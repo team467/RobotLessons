@@ -1,43 +1,43 @@
 package first.robot;
 
 import first.robot.constants.DriverConstants;
-import first.robot.mechanisms.claw.ClawMechanism;
-import first.robot.mechanisms.drive.DriveMechanism;
-import first.robot.mechanisms.elevator.ElevatorMechanism;
-import first.robot.mechanisms.extender.ExtenderMechanism;
-import first.robot.mechanisms.kicker.KickerMechanism;
 import first.robot.sim.SimKeyboard;
 import first.robot.sim.SimWindow;
 import first.robot.sim.SimWorld;
+import first.robot.subsystems.claw.Claw;
+import first.robot.subsystems.drive.Drive;
+import first.robot.subsystems.elevator.Elevator;
+import first.robot.subsystems.extender.Extender;
+import first.robot.subsystems.kicker.Kicker;
 import org.wpilib.command3.Scheduler;
 import org.wpilib.command3.button.CommandGamepad;
 import org.wpilib.framework.OpModeRobot;
 
 /**
  * Main robot container: coordinates the drivetrain, elevator (up/down), extender (in/out),
- * claw (open/close), and spring-loaded kicker mechanisms.
+ * claw (open/close), and spring-loaded kicker subsystems.
  *
  * <p>Extends {@link OpModeRobot}, which automatically manages opmode lifecycle and discovers
  * registered {@code @Teleop} and {@code @Autonomous} classes.
  */
 public class Robot extends OpModeRobot {
-  /** Drivetrain mechanism for field translation between start and table. */
-  public final DriveMechanism drive = new DriveMechanism();
+  /** Drivetrain subsystem for field translation between start and table. */
+  public final Drive drive = new Drive();
 
-  /** Elevator mechanism controlling vertical carriage/arm motion (y-axis). */
-  public final ElevatorMechanism elevator = new ElevatorMechanism();
+  /** Elevator subsystem controlling vertical carriage/arm motion (y-axis). */
+  public final Elevator elevator = new Elevator();
 
-  /** Telescoping extender mechanism controlling horizontal arm reach (x-axis). */
-  public final ExtenderMechanism extender = new ExtenderMechanism();
+  /** Telescoping extender subsystem controlling horizontal arm reach (x-axis). */
+  public final Extender extender = new Extender();
 
-  /** Claw mechanism controlling pinchers/fingers to grasp and release game balls. */
-  public final ClawMechanism claw = new ClawMechanism();
+  /** Claw subsystem controlling pinchers/fingers to grasp and release game balls. */
+  public final Claw claw = new Claw();
 
-  /** Spring-loaded kicker mechanism with pullback motor, ratchet lock, and release solenoid. */
-  public final KickerMechanism kicker = new KickerMechanism();
+  /** Spring-loaded kicker subsystem with pullback motor, ratchet lock, and release solenoid. */
+  public final Kicker kicker = new Kicker();
 
   /** Backward-compatible alias for kicker. */
-  public final KickerMechanism shooter = kicker;
+  public final Kicker shooter = kicker;
 
   /** Driver gamepad controller on USB port 1. */
   final CommandGamepad controller = new CommandGamepad(DriverConstants.DRIVER_CONTROLLER_PORT);

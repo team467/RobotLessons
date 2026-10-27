@@ -5,20 +5,21 @@ import static org.wpilib.units.Units.Meters;
 import static org.wpilib.units.Units.Radians;
 
 import first.robot.constants.FieldConstants;
-import org.wpilib.units.measure.Distance;
-import first.robot.mechanisms.claw.ClawMechanism;
-import first.robot.mechanisms.elevator.ElevatorConstants;
-import first.robot.mechanisms.elevator.ElevatorMechanism;
-import first.robot.mechanisms.extender.ExtenderConstants;
-import first.robot.mechanisms.extender.ExtenderMechanism;
 import first.robot.sim.SimMechanical;
 import first.robot.sim.SimWorld;
+import first.robot.subsystems.claw.Claw;
+import first.robot.subsystems.claw.ClawConstants;
+import first.robot.subsystems.elevator.Elevator;
+import first.robot.subsystems.elevator.ElevatorConstants;
+import first.robot.subsystems.extender.Extender;
+import first.robot.subsystems.extender.ExtenderConstants;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.wpilib.command3.Scheduler;
 import org.wpilib.hardware.hal.HAL;
 import org.wpilib.simulation.DriverStationSim;
+import org.wpilib.units.measure.Distance;
 
 public class TeleopGrabDropTest {
   @BeforeAll
@@ -36,9 +37,9 @@ public class TeleopGrabDropTest {
 
   @Test
   void testTeleopPickUpAndDropBall() {
-    ElevatorMechanism elevator = new ElevatorMechanism();
-    ExtenderMechanism extender = new ExtenderMechanism();
-    ClawMechanism claw = new ClawMechanism();
+    Elevator elevator = new Elevator();
+    Extender extender = new Extender();
+    Claw claw = new Claw();
 
     SimWorld world = new SimWorld(elevator, extender, claw);
 
@@ -92,9 +93,9 @@ public class TeleopGrabDropTest {
 
   @Test
   void testTeleopHighDropBouncesAway() {
-    ElevatorMechanism elevator = new ElevatorMechanism();
-    ExtenderMechanism extender = new ExtenderMechanism();
-    ClawMechanism claw = new ClawMechanism();
+    Elevator elevator = new Elevator();
+    Extender extender = new Extender();
+    Claw claw = new Claw();
 
     SimWorld world = new SimWorld(elevator, extender, claw);
 
@@ -137,14 +138,14 @@ public class TeleopGrabDropTest {
 
   @Test
   void testTeleopClosedClawMovingOverBallDoesNotGrabOrPopOpen() {
-    ElevatorMechanism elevator = new ElevatorMechanism();
-    ExtenderMechanism extender = new ExtenderMechanism();
-    ClawMechanism claw = new ClawMechanism();
+    Elevator elevator = new Elevator();
+    Extender extender = new Extender();
+    Claw claw = new Claw();
 
     SimWorld world = new SimWorld(elevator, extender, claw);
 
     // Claw starts closed at 0.0 radians
-    assertEquals(first.robot.mechanisms.claw.ClawConstants.CLOSED_ANGLE.in(Radians), claw.getAngle().in(Radians), 1e-3);
+    assertEquals(ClawConstants.CLOSED_ANGLE.in(Radians), claw.getAngle().in(Radians), 1e-3);
 
     // 1. Raise elevator and extend over ball WITHOUT opening claw
     Scheduler.getDefault().schedule(elevator.moveTo(ElevatorConstants.ABOVE_TABLE_HEIGHT));
@@ -167,7 +168,7 @@ public class TeleopGrabDropTest {
     assertFalse(claw.hasBall(), "Claw must not detect ball when overlapping while closed");
     assertFalse(world.snapshot().ballHeld(), "World must not record ball as held");
     assertEquals(
-        first.robot.mechanisms.claw.ClawConstants.CLOSED_ANGLE.in(Radians),
+        ClawConstants.CLOSED_ANGLE.in(Radians),
         claw.getAngle().in(Radians),
         0.05,
         "Claw must stay closed and not pop open");
@@ -236,7 +237,7 @@ public class TeleopGrabDropTest {
       robot.simulationPeriodic();
       robot.robotPeriodic();
     }
-    assertTrue(robot.claw.getAngle().in(Radians) > first.robot.mechanisms.claw.ClawConstants.OPEN_ANGLE.in(Radians) - 0.10, "Claw should open on Z key");
+    assertTrue(robot.claw.getAngle().in(Radians) > ClawConstants.OPEN_ANGLE.in(Radians) - 0.10, "Claw should open on Z key");
 
     // Hold D key -> drive should move forward
     Distance initialDrive = robot.drive.getPosition();
@@ -269,9 +270,9 @@ public class TeleopGrabDropTest {
   private void stepUntil(
       java.util.function.BooleanSupplier condition,
       int maxTicks,
-      ElevatorMechanism elevator,
-      ExtenderMechanism extender,
-      ClawMechanism claw,
+      Elevator elevator,
+      Extender extender,
+      Claw claw,
       SimWorld world) {
     for (int i = 0; i < maxTicks; i++) {
       world.update();

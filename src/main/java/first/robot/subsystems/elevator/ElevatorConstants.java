@@ -18,7 +18,7 @@
  * 
  * 
  */
-package first.robot.mechanisms.elevator;
+package first.robot.subsystems.elevator;
 
 import static org.wpilib.units.Units.Meters;
 
@@ -26,7 +26,7 @@ import first.robot.constants.FieldConstants;
 import first.robot.constants.RobotConstants;
 import org.wpilib.units.measure.Distance;
 
-/** Constants for the {@link ElevatorMechanism}. Heights are wrist (claw pivot) heights. */
+/** Constants for the {@link Elevator}. Heights are wrist (claw pivot) heights. */
 public final class ElevatorConstants {
   private ElevatorConstants() {}
 

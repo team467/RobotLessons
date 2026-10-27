@@ -3,12 +3,12 @@ package first.robot;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.wpilib.units.Units.Meters;
 
-import first.robot.mechanisms.claw.ClawMechanism;
-import first.robot.mechanisms.elevator.ElevatorConstants;
-import first.robot.mechanisms.elevator.ElevatorMechanism;
-import first.robot.mechanisms.extender.ExtenderConstants;
-import first.robot.mechanisms.extender.ExtenderMechanism;
 import first.robot.sim.SimMechanical;
+import first.robot.subsystems.claw.Claw;
+import first.robot.subsystems.elevator.Elevator;
+import first.robot.subsystems.elevator.ElevatorConstants;
+import first.robot.subsystems.extender.Extender;
+import first.robot.subsystems.extender.ExtenderConstants;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,7 +17,7 @@ import org.wpilib.hardware.hal.HAL;
 import org.wpilib.simulation.DriverStationSim;
 import org.wpilib.units.measure.Distance;
 
-public class MechanismSimTest {
+public class SubsystemSimTest {
   @BeforeAll
   static void initHal() {
     HAL.initialize();
@@ -32,7 +32,7 @@ public class MechanismSimTest {
 
   @Test
   void testElevatorMoveToSetpoint() {
-    ElevatorMechanism elevator = new ElevatorMechanism();
+    Elevator elevator = new Elevator();
 
     Distance target = ElevatorConstants.ABOVE_TABLE_HEIGHT;
     var cmd = elevator.moveTo(target);
@@ -52,7 +52,7 @@ public class MechanismSimTest {
 
   @Test
   void testExtenderMoveToSetpoint() {
-    ExtenderMechanism extender = new ExtenderMechanism();
+    Extender extender = new Extender();
 
     Distance target = ExtenderConstants.BALL_EXTENSION;
     var cmd = extender.moveTo(target);
@@ -71,7 +71,7 @@ public class MechanismSimTest {
 
   @Test
   void testClawMoveToSetpoint() {
-    ClawMechanism claw = new ClawMechanism();
+    Claw claw = new Claw();
 
     var openCmd = claw.open();
     Scheduler.getDefault().schedule(openCmd);

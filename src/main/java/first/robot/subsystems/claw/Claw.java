@@ -1,6 +1,6 @@
-package first.robot.mechanisms.claw;
+package first.robot.subsystems.claw;
 
-import static first.robot.mechanisms.claw.ClawConstants.*;
+import static first.robot.subsystems.claw.ClawConstants.*;
 import static org.wpilib.units.Units.Degrees;
 import static org.wpilib.units.Units.Radians;
 
@@ -20,7 +20,7 @@ import org.wpilib.math.controller.PIDController;
 import org.wpilib.units.measure.Angle;
 
 /** The claw opens and closes its fingers to pick up a ball. */
-public class ClawMechanism implements Mechanism {
+public class Claw implements Mechanism {
   /** The target goal/intent for the claw state machine. */
   public enum Goal {
     HOLD,
@@ -41,13 +41,13 @@ public class ClawMechanism implements Mechanism {
   /** True while the claw is holding a ball. */
   public final Trigger hasBall = new Trigger(this::hasBall);
 
-  public ClawMechanism() {
+  public Claw() {
     this(
         Mechanical.createSparkMax(Schematic.CLAW_CAN_ID, MotorType.kBrushless),
         Mechanical.createDigitalInput(Schematic.CLAW_BALL_SENSOR_DIO));
   }
 
-  public ClawMechanism(SparkMax motor, DigitalInput ballSensor) {
+  public Claw(SparkMax motor, DigitalInput ballSensor) {
     this.motor = motor;
     this.encoder = motor.getEncoder();
     this.ballSensor = ballSensor;

@@ -2,12 +2,12 @@ package first.robot.auto;
 
 import first.robot.Robot;
 import first.robot.orchestration.BallCommands;
-import first.robot.mechanisms.claw.ClawMechanism;
-import first.robot.mechanisms.drive.DriveMechanism;
-import first.robot.mechanisms.elevator.ElevatorMechanism;
-import first.robot.mechanisms.extender.ExtenderConstants;
-import first.robot.mechanisms.extender.ExtenderMechanism;
-import first.robot.mechanisms.kicker.KickerMechanism;
+import first.robot.subsystems.claw.Claw;
+import first.robot.subsystems.drive.Drive;
+import first.robot.subsystems.elevator.Elevator;
+import first.robot.subsystems.extender.Extender;
+import first.robot.subsystems.extender.ExtenderConstants;
+import first.robot.subsystems.kicker.Kicker;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Scheduler;
 import org.wpilib.opmode.Autonomous;
@@ -36,19 +36,19 @@ public class ShootBothBallsAuto implements OpMode {
   /**
    * Constructs the two-ball basket shooting autonomous routine.
    *
-   * @param drive Drivetrain mechanism for field translation.
-   * @param elevator Elevator mechanism for vertical positioning.
-   * @param extender Extender mechanism for horizontal arm extension.
-   * @param claw Claw mechanism for ball grip and release.
-   * @param kicker Spring-loaded kicker mechanism for kicking balls into the basket.
+   * @param drive Drivetrain subsystem for field translation.
+   * @param elevator Elevator subsystem for vertical positioning.
+   * @param extender Extender subsystem for horizontal arm extension.
+   * @param claw Claw subsystem for ball grip and release.
+   * @param kicker Spring-loaded kicker subsystem for kicking balls into the basket.
    * @return A command executing the full two-ball basket shooting sequence.
    */
   public static Command shootBothBallsRoutine(
-      DriveMechanism drive,
-      ElevatorMechanism elevator,
-      ExtenderMechanism extender,
-      ClawMechanism claw,
-      KickerMechanism kicker) {
+      Drive drive,
+      Elevator elevator,
+      Extender extender,
+      Claw claw,
+      Kicker kicker) {
     return Command.noRequirements(coroutine -> {
       // Step 1: Pick up Ball 2 (Orange) from the ground while pulling back the kicker in parallel
       coroutine.awaitAll(

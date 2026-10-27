@@ -1,6 +1,6 @@
-package first.robot.mechanisms.drive;
+package first.robot.subsystems.drive;
 
-import static first.robot.mechanisms.drive.DriveConstants.*;
+import static first.robot.subsystems.drive.DriveConstants.*;
 import static org.wpilib.units.Units.Meters;
 
 import com.revrobotics.RelativeEncoder;
@@ -19,7 +19,7 @@ import org.wpilib.math.controller.PIDController;
 import org.wpilib.units.measure.Distance;
 
 /** The drivetrain moves the robot across the field between the start location and the table. */
-public class DriveMechanism implements Mechanism {
+public class Drive implements Mechanism {
   private final SparkMax motor;
   private final RelativeEncoder encoder;
   private final PIDController pid = new PIDController(KP, 0.0, KD);
@@ -29,11 +29,11 @@ public class DriveMechanism implements Mechanism {
   /** True while the robot is within tolerance of its target position. */
   public final Trigger atSetpoint = new Trigger(this::atSetpoint);
 
-  public DriveMechanism() {
+  public Drive() {
     this(Mechanical.createSparkMax(Schematic.DRIVE_CAN_ID, MotorType.kBrushless));
   }
 
-  public DriveMechanism(SparkMax motor) {
+  public Drive(SparkMax motor) {
     this.motor = motor;
     this.encoder = motor.getEncoder();
     Mechanical.register(motor);

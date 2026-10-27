@@ -5,11 +5,12 @@ import static org.wpilib.units.Units.Meters;
 
 import first.robot.constants.FieldConstants;
 import first.robot.constants.RobotConstants;
-import first.robot.mechanisms.claw.ClawMechanism;
-import first.robot.mechanisms.elevator.ElevatorMechanism;
-import first.robot.mechanisms.extender.ExtenderMechanism;
 import first.robot.sim.SimMechanical;
 import first.robot.sim.SimWorld;
+import first.robot.subsystems.claw.Claw;
+import first.robot.subsystems.elevator.Elevator;
+import first.robot.subsystems.elevator.ElevatorConstants;
+import first.robot.subsystems.extender.Extender;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,14 +33,14 @@ public class TableContactTest {
 
   @Test
   void testArmHittingTableTopSurface() {
-    ElevatorMechanism elevator = new ElevatorMechanism();
-    ExtenderMechanism extender = new ExtenderMechanism();
-    ClawMechanism claw = new ClawMechanism();
+    Elevator elevator = new Elevator();
+    Extender extender = new Extender();
+    Claw claw = new Claw();
 
     SimWorld world = new SimWorld(elevator, extender, claw);
 
     // Raise elevator above table and extend over the table
-    Scheduler.getDefault().schedule(elevator.moveTo(first.robot.mechanisms.elevator.ElevatorConstants.ABOVE_TABLE_HEIGHT));
+    Scheduler.getDefault().schedule(elevator.moveTo(ElevatorConstants.ABOVE_TABLE_HEIGHT));
     Scheduler.getDefault().schedule(extender.moveTo(FieldConstants.BALL_START_X.minus(RobotConstants.WRIST_BASE_X)));
     for (int i = 0; i < 80; i++) {
       world.update();
@@ -66,9 +67,9 @@ public class TableContactTest {
 
   @Test
   void testArmHittingTableSideEdge() {
-    ElevatorMechanism elevator = new ElevatorMechanism();
-    ExtenderMechanism extender = new ExtenderMechanism();
-    ClawMechanism claw = new ClawMechanism();
+    Elevator elevator = new Elevator();
+    Extender extender = new Extender();
+    Claw claw = new Claw();
 
     SimWorld world = new SimWorld(elevator, extender, claw);
 
@@ -96,9 +97,9 @@ public class TableContactTest {
 
   @Test
   void testArmHittingTableFromLeftDoesNotJumpVertically() {
-    ElevatorMechanism elevator = new ElevatorMechanism();
-    ExtenderMechanism extender = new ExtenderMechanism();
-    ClawMechanism claw = new ClawMechanism();
+    Elevator elevator = new Elevator();
+    Extender extender = new Extender();
+    Claw claw = new Claw();
 
     SimWorld world = new SimWorld(elevator, extender, claw);
 

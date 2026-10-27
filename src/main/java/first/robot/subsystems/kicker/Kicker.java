@@ -1,6 +1,6 @@
-package first.robot.mechanisms.kicker;
+package first.robot.subsystems.kicker;
 
-import static first.robot.mechanisms.kicker.KickerConstants.*;
+import static first.robot.subsystems.kicker.KickerConstants.*;
 import static org.wpilib.units.Units.Meters;
 
 import com.revrobotics.RelativeEncoder;
@@ -25,7 +25,7 @@ import org.wpilib.units.measure.Distance;
  * it in place. Releasing the solenoid disengages the ratchet to kick a ball held close to the robot
  * in an upward arc toward the elevated basket.
  */
-public class KickerMechanism implements Mechanism {
+public class Kicker implements Mechanism {
   /** The target goal/intent for the kicker state machine. */
   public enum Goal {
     IDLE,
@@ -49,13 +49,13 @@ public class KickerMechanism implements Mechanism {
   /** True when the plunger is within tolerance of its target pullback position. */
   public final Trigger atSetpoint = new Trigger(this::atSetpoint);
 
-  public KickerMechanism() {
+  public Kicker() {
     this(
         Mechanical.createSparkMax(Schematic.KICKER_CAN_ID, MotorType.kBrushless),
         Mechanical.createDigitalOutput(Schematic.KICKER_SOLENOID_CHANNEL));
   }
 
-  public KickerMechanism(SparkMax motor, DigitalOutput solenoid) {
+  public Kicker(SparkMax motor, DigitalOutput solenoid) {
     this.motor = motor;
     this.encoder = motor.getEncoder();
     this.solenoid = solenoid;
