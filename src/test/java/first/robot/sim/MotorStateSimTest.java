@@ -5,15 +5,11 @@ import static org.junit.jupiter.api.Assertions.*;
 import first.robot.constants.FieldConstants;
 import first.robot.constants.RobotConstants;
 import first.robot.mechanisms.claw.ClawConstants;
-import first.robot.mechanisms.claw.ClawIOSim;
 import first.robot.mechanisms.claw.ClawMechanism;
-import first.robot.mechanisms.drive.DriveIOSim;
 import first.robot.mechanisms.drive.DriveMechanism;
 import first.robot.mechanisms.elevator.ElevatorConstants;
-import first.robot.mechanisms.elevator.ElevatorIOSim;
 import first.robot.mechanisms.elevator.ElevatorMechanism;
 import first.robot.mechanisms.extender.ExtenderConstants;
-import first.robot.mechanisms.extender.ExtenderIOSim;
 import first.robot.mechanisms.extender.ExtenderMechanism;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,13 +19,9 @@ import org.wpilib.hardware.hal.HAL;
 import org.wpilib.simulation.DriverStationSim;
 
 public class MotorStateSimTest {
-  private ElevatorIOSim elevatorIO;
   private ElevatorMechanism elevator;
-  private ExtenderIOSim extenderIO;
   private ExtenderMechanism extender;
-  private ClawIOSim clawIO;
   private ClawMechanism claw;
-  private DriveIOSim driveIO;
   private DriveMechanism drive;
   private SimWorld world;
 
@@ -40,20 +32,16 @@ public class MotorStateSimTest {
 
   @BeforeEach
   void setUp() {
+    SimMechanical.resetAll();
     DriverStationSim.setEnabled(true);
     DriverStationSim.notifyNewData();
-    Scheduler.getDefault().cancelAll();
 
-    elevatorIO = new ElevatorIOSim();
-    elevator = new ElevatorMechanism(elevatorIO);
-    extenderIO = new ExtenderIOSim();
-    extender = new ExtenderMechanism(extenderIO);
-    clawIO = new ClawIOSim();
-    claw = new ClawMechanism(clawIO);
-    driveIO = new DriveIOSim();
-    drive = new DriveMechanism(driveIO);
+    elevator = new ElevatorMechanism();
+    extender = new ExtenderMechanism();
+    claw = new ClawMechanism();
+    drive = new DriveMechanism();
 
-    world = new SimWorld(elevator, elevatorIO, extender, extenderIO, claw, clawIO, drive, driveIO);
+    world = new SimWorld(elevator, extender, claw, drive);
   }
 
   private void step() {

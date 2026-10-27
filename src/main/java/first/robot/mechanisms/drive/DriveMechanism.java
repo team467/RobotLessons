@@ -1,40 +1,25 @@
-/**
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- * 
- *  DONT EDIT THIS FILE FOR THE 467 SIM BOT
- * 
- * 
- * 
- * 
- * 
- * 
- */
 package first.robot.mechanisms.drive;
 
 import static first.robot.mechanisms.drive.DriveConstants.*;
 
+import com.revrobotics.RelativeEncoder;
+import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.revrobotics.spark.SparkMax;
+import first.robot.Schematic;
+import first.robot.sim.SimMechanical;
 import java.util.List;
 import java.util.function.DoubleSupplier;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
-import org.wpilib.command3.Scheduler;
 import org.wpilib.command3.Trigger;
 import org.wpilib.framework.RobotBase;
+import org.wpilib.hardware.bus.CANPort;
 import org.wpilib.math.controller.PIDController;
 
 /** The drivetrain moves the robot across the field between the start location and the table. */
 public class DriveMechanism implements Mechanism {
-  private final DriveIO io;
-  private final DriveIO.DriveInputs inputs = new DriveIO.DriveInputs();
+  private final SparkMax motor;
+  private final RelativeEncoder encoder;
   private final PIDController pid = new PIDController(KP, 0.0, KD);
 
   private double setpoint = START_POSITION;
@@ -42,10 +27,19 @@ public class DriveMechanism implements Mechanism {
   /** True while the robot is within tolerance of its target position. */
   public final Trigger atSetpoint = new Trigger(this::atSetpoint);
 
-  public DriveMechanism(DriveIO io) {
-    this.io = io;
-    Scheduler.getDefault().addPeriodic(() -> io.updateInputs(inputs));
-    io.updateInputs(inputs);
+  public DriveMechanism() {
+    this(
+        RobotBase.isSimulation()
+            ? SimMechanical.createSparkMax(Schematic.DRIVE_CAN_ID, MotorType.kBrushless)
+            : new SparkMax(CANPort.CAN_S0, Schematic.DRIVE_CAN_ID, MotorType.kBrushless));
+  }
+
+  public DriveMechanism(SparkMax motor) {
+    this.motor = motor;
+    this.encoder = motor.getEncoder();
+    if (RobotBase.isSimulation()) {
+      SimMechanical.register(motor);
+    }
     setDefaultCommand(hold());
   }
 
@@ -65,7 +59,7 @@ public class DriveMechanism implements Mechanism {
             driveTowardSetpoint();
             coroutine.yield();
           }
-          io.setVoltage(0.0);
+          motor.setVoltage(0.0);
         })
         .named(name);
   }
@@ -113,7 +107,7 @@ public class DriveMechanism implements Mechanism {
               driveTowardSetpoint();
             } else {
               setpoint = getPosition();
-              io.setVoltage(Math.clamp(speed * MAX_VOLTS, -MAX_VOLTS, MAX_VOLTS));
+              motor.setVoltage(Math.clamp(speed * MAX_VOLTS, -MAX_VOLTS, MAX_VOLTS));
             }
             coroutine.yield();
           }
@@ -148,7 +142,7 @@ public class DriveMechanism implements Mechanism {
   private void driveTowardSetpoint(double maxVolts) {
     double pos = getPosition();
     double volts = pid.calculate(pos, setpoint);
-    io.setVoltage(Math.clamp(volts, -maxVolts, maxVolts));
+    motor.setVoltage(Math.clamp(volts, -maxVolts, maxVolts));
   }
 
   public boolean atSetpoint() {
@@ -156,11 +150,13 @@ public class DriveMechanism implements Mechanism {
   }
 
   public double getPosition() {
-    return inputs.positionMeters;
+    Double pos = encoder.getPosition().get();
+    return pos != null ? pos : START_POSITION;
   }
 
   public double getVelocity() {
-    return inputs.velocityMetersPerSec;
+    Double vel = encoder.getVelocity().get();
+    return vel != null ? vel : 0.0;
   }
 
   public double getSetpoint() {
@@ -168,7 +164,12 @@ public class DriveMechanism implements Mechanism {
   }
 
   public double getAppliedVolts() {
-    return inputs.appliedVolts;
+    Double val = motor.getAppliedOutput().get();
+    return val != null ? val * 12.0 : 0.0;
+  }
+
+  public SparkMax getMotor() {
+    return motor;
   }
 
   public void resetSetpoint() {
@@ -176,7 +177,11 @@ public class DriveMechanism implements Mechanism {
   }
 
   public void resetPosition(double pos) {
-    io.resetPosition(pos);
+    if (RobotBase.isSimulation()) {
+      SimMechanical.getDriveMotor().setPosition(pos);
+    } else {
+      encoder.setPosition(pos);
+    }
     setpoint = pos;
   }
 

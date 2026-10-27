@@ -3,16 +3,13 @@ package first.robot;
 import static org.junit.jupiter.api.Assertions.*;
 
 import first.robot.auto.TwoBallAuto;
-import first.robot.sim.SimWorld;
-import first.robot.mechanisms.claw.ClawIOSim;
 import first.robot.mechanisms.claw.ClawMechanism;
 import first.robot.mechanisms.drive.DriveConstants;
-import first.robot.mechanisms.drive.DriveIOSim;
 import first.robot.mechanisms.drive.DriveMechanism;
-import first.robot.mechanisms.elevator.ElevatorIOSim;
 import first.robot.mechanisms.elevator.ElevatorMechanism;
-import first.robot.mechanisms.extender.ExtenderIOSim;
 import first.robot.mechanisms.extender.ExtenderMechanism;
+import first.robot.sim.SimMechanical;
+import first.robot.sim.SimWorld;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,7 +26,7 @@ public class TwoBallAutoTest {
 
   @BeforeEach
   void setUp() {
-    Scheduler.getDefault().cancelAll();
+    SimMechanical.resetAll();
     DriverStationSim.setRobotMode(org.wpilib.hardware.hal.RobotMode.AUTONOMOUS);
     DriverStationSim.setEnabled(true);
     DriverStationSim.notifyNewData();
@@ -37,17 +34,12 @@ public class TwoBallAutoTest {
 
   @Test
   void testTwoBallRoutineExecution() {
-    ElevatorIOSim elevatorIO = new ElevatorIOSim();
-    ExtenderIOSim extenderIO = new ExtenderIOSim();
-    ClawIOSim clawIO = new ClawIOSim();
-    DriveIOSim driveIO = new DriveIOSim();
+    ElevatorMechanism elevator = new ElevatorMechanism();
+    ExtenderMechanism extender = new ExtenderMechanism();
+    ClawMechanism claw = new ClawMechanism();
+    DriveMechanism drive = new DriveMechanism();
 
-    ElevatorMechanism elevator = new ElevatorMechanism(elevatorIO);
-    ExtenderMechanism extender = new ExtenderMechanism(extenderIO);
-    ClawMechanism claw = new ClawMechanism(clawIO);
-    DriveMechanism drive = new DriveMechanism(driveIO);
-
-    SimWorld world = new SimWorld(elevator, elevatorIO, extender, extenderIO, claw, clawIO, drive, driveIO);
+    SimWorld world = new SimWorld(elevator, extender, claw, drive);
 
     Command twoBall = TwoBallAuto.twoBallRoutine(drive, elevator, extender, claw);
     Scheduler.getDefault().schedule(twoBall);
@@ -73,4 +65,3 @@ public class TwoBallAutoTest {
     assertTrue(completed, "Two ball autonomous routine should complete all steps and score both balls");
   }
 }
-

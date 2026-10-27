@@ -2,18 +2,25 @@ package first.robot.mechanisms.claw;
 
 import static first.robot.mechanisms.claw.ClawConstants.*;
 
+import com.revrobotics.RelativeEncoder;
+import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.revrobotics.spark.SparkMax;
+import first.robot.Schematic;
+import first.robot.sim.SimMechanical;
 import java.util.List;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
-import org.wpilib.command3.Scheduler;
 import org.wpilib.command3.Trigger;
 import org.wpilib.framework.RobotBase;
+import org.wpilib.hardware.bus.CANPort;
+import org.wpilib.hardware.discrete.DigitalInput;
 import org.wpilib.math.controller.PIDController;
 
 /** The claw opens and closes its fingers to pick up a ball. */
 public class ClawMechanism implements Mechanism {
-  private final ClawIO io;
-  private final ClawIO.ClawInputs inputs = new ClawIO.ClawInputs();
+  private final SparkMax motor;
+  private final RelativeEncoder encoder;
+  private final DigitalInput ballSensor;
   private final PIDController pid = new PIDController(KP, 0.0, KD);
 
   private double setpoint = STARTING_ANGLE;
@@ -21,10 +28,23 @@ public class ClawMechanism implements Mechanism {
   /** True while the claw is holding a ball. */
   public final Trigger hasBall = new Trigger(this::hasBall);
 
-  public ClawMechanism(ClawIO io) {
-    this.io = io;
-    Scheduler.getDefault().addPeriodic(() -> io.updateInputs(inputs));
-    io.updateInputs(inputs);
+  public ClawMechanism() {
+    this(
+        RobotBase.isSimulation()
+            ? SimMechanical.createSparkMax(Schematic.CLAW_CAN_ID, MotorType.kBrushless)
+            : new SparkMax(CANPort.CAN_S0, Schematic.CLAW_CAN_ID, MotorType.kBrushless),
+        RobotBase.isSimulation()
+            ? SimMechanical.createDigitalInput(Schematic.CLAW_BALL_SENSOR_DIO)
+            : new DigitalInput(Schematic.CLAW_BALL_SENSOR_DIO));
+  }
+
+  public ClawMechanism(SparkMax motor, DigitalInput ballSensor) {
+    this.motor = motor;
+    this.encoder = motor.getEncoder();
+    this.ballSensor = ballSensor;
+    if (RobotBase.isSimulation()) {
+      SimMechanical.register(motor);
+    }
     setDefaultCommand(hold());
   }
 
@@ -80,7 +100,7 @@ public class ClawMechanism implements Mechanism {
               setpoint = getAngle();
             }
             if (hasBall()) {
-              io.setVoltage(GRIP_VOLTS);
+              motor.setVoltage(GRIP_VOLTS);
             } else {
               driveTowardSetpoint();
             }
@@ -97,7 +117,7 @@ public class ClawMechanism implements Mechanism {
 
   private void driveTowardSetpoint() {
     double volts = pid.calculate(getAngle(), setpoint);
-    io.setVoltage(Math.clamp(volts, -MAX_VOLTS, MAX_VOLTS));
+    motor.setVoltage(Math.clamp(volts, -MAX_VOLTS, MAX_VOLTS));
   }
 
   public boolean atSetpoint() {
@@ -105,11 +125,12 @@ public class ClawMechanism implements Mechanism {
   }
 
   public boolean hasBall() {
-    return inputs.hasBall;
+    return ballSensor.get();
   }
 
   public double getAngle() {
-    return inputs.angleRadians;
+    Double pos = encoder.getPosition().get();
+    return pos != null ? pos : STARTING_ANGLE;
   }
 
   public double getSetpoint() {
@@ -117,11 +138,21 @@ public class ClawMechanism implements Mechanism {
   }
 
   public double getAppliedVolts() {
-    return inputs.appliedVolts;
+    Double val = motor.getAppliedOutput().get();
+    return val != null ? val * 12.0 : 0.0;
   }
 
   public double getVelocity() {
-    return inputs.velocityRadPerSec;
+    Double vel = encoder.getVelocity().get();
+    return vel != null ? vel : 0.0;
+  }
+
+  public SparkMax getMotor() {
+    return motor;
+  }
+
+  public DigitalInput getBallSensor() {
+    return ballSensor;
   }
 
   /** The name of the most specific command currently using the claw. */

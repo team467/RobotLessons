@@ -2,18 +2,23 @@ package first.robot.mechanisms.elevator;
 
 import static first.robot.mechanisms.elevator.ElevatorConstants.*;
 
+import com.revrobotics.RelativeEncoder;
+import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.revrobotics.spark.SparkMax;
+import first.robot.Schematic;
+import first.robot.sim.SimMechanical;
 import java.util.List;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
-import org.wpilib.command3.Scheduler;
 import org.wpilib.command3.Trigger;
 import org.wpilib.framework.RobotBase;
+import org.wpilib.hardware.bus.CANPort;
 import org.wpilib.math.controller.PIDController;
 
 /** The elevator moves the whole arm up and down (the y-axis). */
 public class ElevatorMechanism implements Mechanism {
-  private final ElevatorIO io;
-  private final ElevatorIO.ElevatorInputs inputs = new ElevatorIO.ElevatorInputs();
+  private final SparkMax motor;
+  private final RelativeEncoder encoder;
   private final PIDController pid = new PIDController(KP, 0.0, KD);
 
   /** The height we are currently trying to reach. */
@@ -22,10 +27,19 @@ public class ElevatorMechanism implements Mechanism {
   /** True while the elevator is within tolerance of its setpoint. */
   public final Trigger atSetpoint = new Trigger(this::atSetpoint);
 
-  public ElevatorMechanism(ElevatorIO io) {
-    this.io = io;
-    Scheduler.getDefault().addPeriodic(() -> io.updateInputs(inputs));
-    io.updateInputs(inputs);
+  public ElevatorMechanism() {
+    this(
+        RobotBase.isSimulation()
+            ? SimMechanical.createSparkMax(Schematic.ELEVATOR_CAN_ID, MotorType.kBrushless)
+            : new SparkMax(CANPort.CAN_S0, Schematic.ELEVATOR_CAN_ID, MotorType.kBrushless));
+  }
+
+  public ElevatorMechanism(SparkMax motor) {
+    this.motor = motor;
+    this.encoder = motor.getEncoder();
+    if (RobotBase.isSimulation()) {
+      SimMechanical.register(motor);
+    }
     // When no other command is using the elevator, hold it where it is.
     setDefaultCommand(hold());
   }
@@ -102,7 +116,7 @@ public class ElevatorMechanism implements Mechanism {
 
   private void driveTowardSetpoint() {
     double volts = KG + pid.calculate(getPosition(), setpoint);
-    io.setVoltage(Math.clamp(volts, -MAX_VOLTS, MAX_VOLTS));
+    motor.setVoltage(Math.clamp(volts, -MAX_VOLTS, MAX_VOLTS));
   }
 
   public boolean atSetpoint() {
@@ -110,7 +124,8 @@ public class ElevatorMechanism implements Mechanism {
   }
 
   public double getPosition() {
-    return inputs.positionMeters;
+    Double pos = encoder.getPosition().get();
+    return pos != null ? pos : STARTING_HEIGHT;
   }
 
   public double getSetpoint() {
@@ -118,11 +133,17 @@ public class ElevatorMechanism implements Mechanism {
   }
 
   public double getAppliedVolts() {
-    return inputs.appliedVolts;
+    Double val = motor.getAppliedOutput().get();
+    return val != null ? val * 12.0 : 0.0;
   }
 
   public double getVelocity() {
-    return inputs.velocityMetersPerSec;
+    Double vel = encoder.getVelocity().get();
+    return vel != null ? vel : 0.0;
+  }
+
+  public SparkMax getMotor() {
+    return motor;
   }
 
   /** The name of the most specific command currently using the elevator. */

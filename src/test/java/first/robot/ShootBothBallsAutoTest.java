@@ -3,18 +3,14 @@ package first.robot;
 import static org.junit.jupiter.api.Assertions.*;
 
 import first.robot.auto.ShootBothBallsAuto;
-import first.robot.sim.SimWorld;
-import first.robot.mechanisms.claw.ClawIOSim;
 import first.robot.mechanisms.claw.ClawMechanism;
-import first.robot.mechanisms.drive.DriveIOSim;
 import first.robot.mechanisms.drive.DriveMechanism;
-import first.robot.mechanisms.elevator.ElevatorIOSim;
 import first.robot.mechanisms.elevator.ElevatorMechanism;
-import first.robot.mechanisms.extender.ExtenderIOSim;
 import first.robot.mechanisms.extender.ExtenderMechanism;
 import first.robot.mechanisms.shooter.ShooterConstants;
-import first.robot.mechanisms.shooter.ShooterIOSim;
 import first.robot.mechanisms.shooter.ShooterMechanism;
+import first.robot.sim.SimMechanical;
+import first.robot.sim.SimWorld;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,15 +27,14 @@ public class ShootBothBallsAutoTest {
 
   @BeforeEach
   void setUp() {
-    Scheduler.getDefault().cancelAll();
+    SimMechanical.resetAll();
     DriverStationSim.setEnabled(true);
     DriverStationSim.notifyNewData();
   }
 
   @Test
   void testShooterPullBackRatchetLockAndSolenoidKick() {
-    ShooterIOSim io = new ShooterIOSim();
-    ShooterMechanism shooter = new ShooterMechanism(io);
+    ShooterMechanism shooter = new ShooterMechanism();
 
     // 1. Pull back the shooter against the spring
     Scheduler.getDefault().schedule(shooter.pullBack());
@@ -78,21 +73,13 @@ public class ShootBothBallsAutoTest {
 
   @Test
   void testShootBothBallsIntoBasketAuto() {
-    ElevatorIOSim elevatorIO = new ElevatorIOSim();
-    ExtenderIOSim extenderIO = new ExtenderIOSim();
-    ClawIOSim clawIO = new ClawIOSim();
-    DriveIOSim driveIO = new DriveIOSim();
-    ShooterIOSim shooterIO = new ShooterIOSim();
+    ElevatorMechanism elevator = new ElevatorMechanism();
+    ExtenderMechanism extender = new ExtenderMechanism();
+    ClawMechanism claw = new ClawMechanism();
+    DriveMechanism drive = new DriveMechanism();
+    ShooterMechanism shooter = new ShooterMechanism();
 
-    ElevatorMechanism elevator = new ElevatorMechanism(elevatorIO);
-    ExtenderMechanism extender = new ExtenderMechanism(extenderIO);
-    ClawMechanism claw = new ClawMechanism(clawIO);
-    DriveMechanism drive = new DriveMechanism(driveIO);
-    ShooterMechanism shooter = new ShooterMechanism(shooterIO);
-
-    SimWorld world =
-        new SimWorld(
-            elevator, elevatorIO, extender, extenderIO, claw, clawIO, drive, driveIO, shooter, shooterIO);
+    SimWorld world = new SimWorld(elevator, extender, claw, drive, shooter);
 
     Command auto =
         ShootBothBallsAuto.shootBothBallsRoutine(drive, elevator, extender, claw, shooter);
@@ -120,21 +107,13 @@ public class ShootBothBallsAutoTest {
 
   @Test
   void testShooterDoesNothingWhenBallTooCloseToRobot() {
-    ElevatorIOSim elevatorIO = new ElevatorIOSim();
-    ExtenderIOSim extenderIO = new ExtenderIOSim();
-    ClawIOSim clawIO = new ClawIOSim();
-    DriveIOSim driveIO = new DriveIOSim();
-    ShooterIOSim shooterIO = new ShooterIOSim();
+    ElevatorMechanism elevator = new ElevatorMechanism();
+    ExtenderMechanism extender = new ExtenderMechanism();
+    ClawMechanism claw = new ClawMechanism();
+    DriveMechanism drive = new DriveMechanism();
+    ShooterMechanism shooter = new ShooterMechanism();
 
-    ElevatorMechanism elevator = new ElevatorMechanism(elevatorIO);
-    ExtenderMechanism extender = new ExtenderMechanism(extenderIO);
-    ClawMechanism claw = new ClawMechanism(clawIO);
-    DriveMechanism drive = new DriveMechanism(driveIO);
-    ShooterMechanism shooter = new ShooterMechanism(shooterIO);
-
-    SimWorld world =
-        new SimWorld(
-            elevator, elevatorIO, extender, extenderIO, claw, clawIO, drive, driveIO, shooter, shooterIO);
+    SimWorld world = new SimWorld(elevator, extender, claw, drive, shooter);
 
     // Grab Ball 2 at start zone, then retract extender all the way to 0.0m (too close to the robot)
     Command grabAndRetractTooClose =

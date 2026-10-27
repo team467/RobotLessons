@@ -2,12 +2,18 @@ package first.robot.mechanisms.shooter;
 
 import static first.robot.mechanisms.shooter.ShooterConstants.*;
 
+import com.revrobotics.RelativeEncoder;
+import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.revrobotics.spark.SparkMax;
+import first.robot.Schematic;
+import first.robot.sim.SimMechanical;
 import java.util.List;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
-import org.wpilib.command3.Scheduler;
 import org.wpilib.command3.Trigger;
 import org.wpilib.framework.RobotBase;
+import org.wpilib.hardware.bus.CANPort;
+import org.wpilib.hardware.discrete.DigitalOutput;
 import org.wpilib.math.controller.PIDController;
 
 /**
@@ -18,8 +24,9 @@ import org.wpilib.math.controller.PIDController;
  * in an upward arc toward the elevated basket.
  */
 public class ShooterMechanism implements Mechanism {
-  private final ShooterIO io;
-  private final ShooterIO.ShooterInputs inputs = new ShooterIO.ShooterInputs();
+  private final SparkMax motor;
+  private final RelativeEncoder encoder;
+  private final DigitalOutput solenoid;
   private final PIDController pid = new PIDController(KP, 0.0, KD);
 
   private double setpoint = STARTING_PULLBACK;
@@ -31,13 +38,22 @@ public class ShooterMechanism implements Mechanism {
   public final Trigger atSetpoint = new Trigger(this::atSetpoint);
 
   public ShooterMechanism() {
-    this(new ShooterIOSim());
+    this(
+        RobotBase.isSimulation()
+            ? SimMechanical.createSparkMax(Schematic.SHOOTER_CAN_ID, MotorType.kBrushless)
+            : new SparkMax(CANPort.CAN_S0, Schematic.SHOOTER_CAN_ID, MotorType.kBrushless),
+        RobotBase.isSimulation()
+            ? SimMechanical.createDigitalOutput(Schematic.SHOOTER_SOLENOID_CHANNEL)
+            : new DigitalOutput(Schematic.SHOOTER_SOLENOID_CHANNEL));
   }
 
-  public ShooterMechanism(ShooterIO io) {
-    this.io = io;
-    Scheduler.getDefault().addPeriodic(() -> io.updateInputs(inputs));
-    io.updateInputs(inputs);
+  public ShooterMechanism(SparkMax motor, DigitalOutput solenoid) {
+    this.motor = motor;
+    this.encoder = motor.getEncoder();
+    this.solenoid = solenoid;
+    if (RobotBase.isSimulation()) {
+      SimMechanical.register(motor);
+    }
     setDefaultCommand(hold());
   }
 
@@ -52,13 +68,13 @@ public class ShooterMechanism implements Mechanism {
   public Command pullBack() {
     return run(coroutine -> {
           setpoint = LOADED_PULLBACK;
-          io.setSolenoidReleased(false);
+          solenoid.set(false);
           while (!isLoaded()) {
             double volts = Math.max(PULLBACK_VOLTS, pid.calculate(getPosition(), setpoint));
-            io.setMotorVoltage(Math.clamp(volts, 0.0, MAX_VOLTS));
+            motor.setVoltage(Math.clamp(volts, 0.0, MAX_VOLTS));
             coroutine.yield();
           }
-          io.setMotorVoltage(0.0);
+          motor.setVoltage(0.0);
         })
         .named("Shooter Pull Back");
   }
@@ -70,18 +86,18 @@ public class ShooterMechanism implements Mechanism {
   public Command kick() {
     return run(coroutine -> {
           setpoint = MIN_PULLBACK;
-          io.setMotorVoltage(0.0);
-          io.setSolenoidReleased(true);
+          motor.setVoltage(0.0);
+          solenoid.set(true);
           while (getPosition() > MIN_PULLBACK + TOLERANCE_METERS) {
-            io.setMotorVoltage(0.0);
-            io.setSolenoidReleased(true);
+            motor.setVoltage(0.0);
+            solenoid.set(true);
             coroutine.yield();
           }
           // Brief follow-through before re-latching the solenoid
           for (int i = 0; i < 3; i++) {
             coroutine.yield();
           }
-          io.setSolenoidReleased(false);
+          solenoid.set(false);
         })
         .named("Shooter Kick");
   }
@@ -92,10 +108,10 @@ public class ShooterMechanism implements Mechanism {
    */
   public Command wind() {
     return run(coroutine -> {
-          io.setSolenoidReleased(false);
+          solenoid.set(false);
           while (true) {
             setpoint = MAX_PULLBACK;
-            io.setMotorVoltage(PULLBACK_VOLTS);
+            motor.setVoltage(PULLBACK_VOLTS);
             coroutine.yield();
           }
         })
@@ -107,8 +123,8 @@ public class ShooterMechanism implements Mechanism {
     return run(coroutine -> {
           while (true) {
             setpoint = MIN_PULLBACK;
-            io.setMotorVoltage(0.0);
-            io.setSolenoidReleased(true);
+            motor.setVoltage(0.0);
+            solenoid.set(true);
             coroutine.yield();
           }
         })
@@ -125,8 +141,8 @@ public class ShooterMechanism implements Mechanism {
             if (RobotBase.isDisabled()) {
               setpoint = getPosition();
             }
-            io.setMotorVoltage(0.0);
-            io.setSolenoidReleased(false);
+            motor.setVoltage(0.0);
+            solenoid.set(false);
             coroutine.yield();
           }
         })
@@ -139,15 +155,15 @@ public class ShooterMechanism implements Mechanism {
   // ------------------------------------------------------------------------------------------
 
   public boolean isLoaded() {
-    return inputs.isLoaded;
+    return getPosition() >= LOADED_PULLBACK - TOLERANCE_METERS;
   }
 
   public boolean isRatchetLocked() {
-    return inputs.ratchetLocked;
+    return !isSolenoidReleased();
   }
 
   public boolean isSolenoidReleased() {
-    return inputs.solenoidReleased;
+    return solenoid.get();
   }
 
   public boolean atSetpoint() {
@@ -155,11 +171,13 @@ public class ShooterMechanism implements Mechanism {
   }
 
   public double getPosition() {
-    return inputs.pullbackMeters;
+    Double pos = encoder.getPosition().get();
+    return pos != null ? pos : STARTING_PULLBACK;
   }
 
   public double getVelocity() {
-    return inputs.velocityMetersPerSec;
+    Double vel = encoder.getVelocity().get();
+    return vel != null ? vel : 0.0;
   }
 
   public double getSetpoint() {
@@ -167,7 +185,16 @@ public class ShooterMechanism implements Mechanism {
   }
 
   public double getAppliedVolts() {
-    return inputs.appliedVolts;
+    Double val = motor.getAppliedOutput().get();
+    return val != null ? val * 12.0 : 0.0;
+  }
+
+  public SparkMax getMotor() {
+    return motor;
+  }
+
+  public DigitalOutput getSolenoid() {
+    return solenoid;
   }
 
   public String getCurrentCommandName() {

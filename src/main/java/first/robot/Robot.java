@@ -1,19 +1,14 @@
 package first.robot;
 
 import first.robot.constants.DriverConstants;
+import first.robot.mechanisms.claw.ClawMechanism;
+import first.robot.mechanisms.drive.DriveMechanism;
+import first.robot.mechanisms.elevator.ElevatorMechanism;
+import first.robot.mechanisms.extender.ExtenderMechanism;
+import first.robot.mechanisms.shooter.ShooterMechanism;
 import first.robot.sim.SimKeyboard;
 import first.robot.sim.SimWindow;
 import first.robot.sim.SimWorld;
-import first.robot.mechanisms.claw.ClawIOSim;
-import first.robot.mechanisms.claw.ClawMechanism;
-import first.robot.mechanisms.drive.DriveIOSim;
-import first.robot.mechanisms.drive.DriveMechanism;
-import first.robot.mechanisms.elevator.ElevatorIOSim;
-import first.robot.mechanisms.elevator.ElevatorMechanism;
-import first.robot.mechanisms.extender.ExtenderIOSim;
-import first.robot.mechanisms.extender.ExtenderMechanism;
-import first.robot.mechanisms.shooter.ShooterIOSim;
-import first.robot.mechanisms.shooter.ShooterMechanism;
 import org.wpilib.command3.Scheduler;
 import org.wpilib.command3.button.CommandGamepad;
 import org.wpilib.framework.OpModeRobot;
@@ -24,34 +19,22 @@ import org.wpilib.framework.OpModeRobot;
  *
  * <p>Extends {@link OpModeRobot}, which automatically manages opmode lifecycle and discovers
  * registered {@code @Teleop} and {@code @Autonomous} classes.
- *
- * <p>Hardware IO layers are injected via simulation implementations (e.g. {@link DriveIOSim},
- * {@link ElevatorIOSim}), allowing the same mechanism logic to run on physical robot hardware
- * simply by swapping IO implementations (such as CAN SparkMax or TalonFX).
  */
 public class Robot extends OpModeRobot {
-  // Simulated hardware IO implementations. To run on a real robot, implement matching
-  // hardware classes (e.g., DriveIOTalonFX, ElevatorIOSparkMax) and pass them in here.
-  private final DriveIOSim driveIO = new DriveIOSim();
-  private final ElevatorIOSim elevatorIO = new ElevatorIOSim();
-  private final ExtenderIOSim extenderIO = new ExtenderIOSim();
-  private final ClawIOSim clawIO = new ClawIOSim();
-  private final ShooterIOSim shooterIO = new ShooterIOSim();
-
   /** Drivetrain mechanism for field translation between start and table. */
-  public final DriveMechanism drive = new DriveMechanism(driveIO);
+  public final DriveMechanism drive = new DriveMechanism();
 
   /** Elevator mechanism controlling vertical carriage/arm motion (y-axis). */
-  public final ElevatorMechanism elevator = new ElevatorMechanism(elevatorIO);
+  public final ElevatorMechanism elevator = new ElevatorMechanism();
 
   /** Telescoping extender mechanism controlling horizontal arm reach (x-axis). */
-  public final ExtenderMechanism extender = new ExtenderMechanism(extenderIO);
+  public final ExtenderMechanism extender = new ExtenderMechanism();
 
   /** Claw mechanism controlling pinchers/fingers to grasp and release game balls. */
-  public final ClawMechanism claw = new ClawMechanism(clawIO);
+  public final ClawMechanism claw = new ClawMechanism();
 
   /** Spring-loaded shooter mechanism with pullback motor, ratchet lock, and release solenoid. */
-  public final ShooterMechanism shooter = new ShooterMechanism(shooterIO);
+  public final ShooterMechanism shooter = new ShooterMechanism();
 
   /** Driver gamepad controller on USB port 1. */
   final CommandGamepad controller = new CommandGamepad(DriverConstants.DRIVER_CONTROLLER_PORT);
@@ -87,9 +70,7 @@ public class Robot extends OpModeRobot {
     activateTeleop();
 
     // Create the simulation physics world with all mechanisms
-    simWorld =
-        new SimWorld(
-            elevator, elevatorIO, extender, extenderIO, claw, clawIO, drive, driveIO, shooter, shooterIO);
+    simWorld = new SimWorld(elevator, extender, claw, drive, shooter);
     simWorld.setTeleopActivator(this::activateTeleop);
 
     // Launch the Swing graphical user interface

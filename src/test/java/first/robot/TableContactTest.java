@@ -4,14 +4,13 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import first.robot.constants.FieldConstants;
 import first.robot.constants.RobotConstants;
-import first.robot.sim.SimWorld;
-import first.robot.mechanisms.claw.ClawIOSim;
 import first.robot.mechanisms.claw.ClawMechanism;
-import first.robot.mechanisms.elevator.ElevatorIOSim;
 import first.robot.mechanisms.elevator.ElevatorMechanism;
-import first.robot.mechanisms.extender.ExtenderIOSim;
 import first.robot.mechanisms.extender.ExtenderMechanism;
+import first.robot.sim.SimMechanical;
+import first.robot.sim.SimWorld;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.wpilib.command3.Scheduler;
 import org.wpilib.hardware.hal.HAL;
@@ -21,21 +20,22 @@ public class TableContactTest {
   @BeforeAll
   static void initHal() {
     HAL.initialize();
+  }
+
+  @BeforeEach
+  void setUp() {
+    SimMechanical.resetAll();
     DriverStationSim.setEnabled(true);
     DriverStationSim.notifyNewData();
   }
 
   @Test
   void testArmHittingTableTopSurface() {
-    ElevatorIOSim elevatorIO = new ElevatorIOSim();
-    ExtenderIOSim extenderIO = new ExtenderIOSim();
-    ClawIOSim clawIO = new ClawIOSim();
+    ElevatorMechanism elevator = new ElevatorMechanism();
+    ExtenderMechanism extender = new ExtenderMechanism();
+    ClawMechanism claw = new ClawMechanism();
 
-    ElevatorMechanism elevator = new ElevatorMechanism(elevatorIO);
-    ExtenderMechanism extender = new ExtenderMechanism(extenderIO);
-    ClawMechanism claw = new ClawMechanism(clawIO);
-
-    SimWorld world = new SimWorld(elevator, elevatorIO, extender, extenderIO, claw, clawIO);
+    SimWorld world = new SimWorld(elevator, extender, claw);
 
     // Raise elevator above table and extend over the table
     Scheduler.getDefault().schedule(elevator.moveTo(first.robot.mechanisms.elevator.ElevatorConstants.ABOVE_TABLE_HEIGHT));
@@ -56,7 +56,7 @@ public class TableContactTest {
     assertTrue(world.snapshot().tableContact(), "Table contact should be true when claw reaches table surface");
 
     // The claw must physically stop on the table top and NOT penetrate through it
-    double clawAngle = first.robot.sim.SimMechanical.getClawMotor().getSimAngle();
+    double clawAngle = SimMechanical.getClawMotor().getSimAngle();
     double clawDrop = 0.02 + RobotConstants.FINGER_LENGTH * Math.cos(clawAngle);
     double lowestClawY = elevator.getPosition() - clawDrop;
     assertTrue(lowestClawY >= FieldConstants.TABLE_HEIGHT - 0.02,
@@ -65,15 +65,11 @@ public class TableContactTest {
 
   @Test
   void testArmHittingTableSideEdge() {
-    ElevatorIOSim elevatorIO = new ElevatorIOSim();
-    ExtenderIOSim extenderIO = new ExtenderIOSim();
-    ClawIOSim clawIO = new ClawIOSim();
+    ElevatorMechanism elevator = new ElevatorMechanism();
+    ExtenderMechanism extender = new ExtenderMechanism();
+    ClawMechanism claw = new ClawMechanism();
 
-    ElevatorMechanism elevator = new ElevatorMechanism(elevatorIO);
-    ExtenderMechanism extender = new ExtenderMechanism(extenderIO);
-    ClawMechanism claw = new ClawMechanism(clawIO);
-
-    SimWorld world = new SimWorld(elevator, elevatorIO, extender, extenderIO, claw, clawIO);
+    SimWorld world = new SimWorld(elevator, extender, claw);
 
     // Keep elevator low (below table top, e.g. 0.50m)
     // Try to extend out all the way into the side of the table
@@ -92,22 +88,18 @@ public class TableContactTest {
         wristX
             + 0.03
             + RobotConstants.FINGER_LENGTH
-                * Math.sin(first.robot.sim.SimMechanical.getClawMotor().getSimAngle());
+                * Math.sin(SimMechanical.getClawMotor().getSimAngle());
     assertTrue(clawTipX <= FieldConstants.TABLE_LEFT_X + 0.02,
         "Claw must not penetrate past table left edge (" + clawTipX + " vs " + FieldConstants.TABLE_LEFT_X + ")");
   }
 
   @Test
   void testArmHittingTableFromLeftDoesNotJumpVertically() {
-    ElevatorIOSim elevatorIO = new ElevatorIOSim();
-    ExtenderIOSim extenderIO = new ExtenderIOSim();
-    ClawIOSim clawIO = new ClawIOSim();
+    ElevatorMechanism elevator = new ElevatorMechanism();
+    ExtenderMechanism extender = new ExtenderMechanism();
+    ClawMechanism claw = new ClawMechanism();
 
-    ElevatorMechanism elevator = new ElevatorMechanism(elevatorIO);
-    ExtenderMechanism extender = new ExtenderMechanism(extenderIO);
-    ClawMechanism claw = new ClawMechanism(clawIO);
-
-    SimWorld world = new SimWorld(elevator, elevatorIO, extender, extenderIO, claw, clawIO);
+    SimWorld world = new SimWorld(elevator, extender, claw);
 
     // Position elevator at 0.80m (wrist is above table height 0.75m, but claw hangs down to 0.56m)
     Scheduler.getDefault().schedule(elevator.moveTo(0.80));
@@ -133,7 +125,7 @@ public class TableContactTest {
         wristX
             + 0.03
             + RobotConstants.FINGER_LENGTH
-                * Math.sin(first.robot.sim.SimMechanical.getClawMotor().getSimAngle());
+                * Math.sin(SimMechanical.getClawMotor().getSimAngle());
     assertTrue(clawTipX <= FieldConstants.TABLE_LEFT_X + 0.02,
         "Claw must stop at the table left edge");
 

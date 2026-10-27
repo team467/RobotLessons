@@ -2,18 +2,23 @@ package first.robot.mechanisms.extender;
 
 import static first.robot.mechanisms.extender.ExtenderConstants.*;
 
+import com.revrobotics.RelativeEncoder;
+import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.revrobotics.spark.SparkMax;
+import first.robot.Schematic;
+import first.robot.sim.SimMechanical;
 import java.util.List;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
-import org.wpilib.command3.Scheduler;
 import org.wpilib.command3.Trigger;
 import org.wpilib.framework.RobotBase;
+import org.wpilib.hardware.bus.CANPort;
 import org.wpilib.math.controller.PIDController;
 
 /** The extender slides the claw in and out on a pulley (the x-axis). */
 public class ExtenderMechanism implements Mechanism {
-  private final ExtenderIO io;
-  private final ExtenderIO.ExtenderInputs inputs = new ExtenderIO.ExtenderInputs();
+  private final SparkMax motor;
+  private final RelativeEncoder encoder;
   private final PIDController pid = new PIDController(KP, 0.0, KD);
 
   private double setpoint = STARTING_EXTENSION;
@@ -21,10 +26,19 @@ public class ExtenderMechanism implements Mechanism {
   /** True while the extender is within tolerance of its setpoint. */
   public final Trigger atSetpoint = new Trigger(this::atSetpoint);
 
-  public ExtenderMechanism(ExtenderIO io) {
-    this.io = io;
-    Scheduler.getDefault().addPeriodic(() -> io.updateInputs(inputs));
-    io.updateInputs(inputs);
+  public ExtenderMechanism() {
+    this(
+        RobotBase.isSimulation()
+            ? SimMechanical.createSparkMax(Schematic.EXTENDER_CAN_ID, MotorType.kBrushless)
+            : new SparkMax(CANPort.CAN_S0, Schematic.EXTENDER_CAN_ID, MotorType.kBrushless));
+  }
+
+  public ExtenderMechanism(SparkMax motor) {
+    this.motor = motor;
+    this.encoder = motor.getEncoder();
+    if (RobotBase.isSimulation()) {
+      SimMechanical.register(motor);
+    }
     setDefaultCommand(hold());
   }
 
@@ -97,7 +111,7 @@ public class ExtenderMechanism implements Mechanism {
 
   private void driveTowardSetpoint() {
     double volts = pid.calculate(getPosition(), setpoint);
-    io.setVoltage(Math.clamp(volts, -MAX_VOLTS, MAX_VOLTS));
+    motor.setVoltage(Math.clamp(volts, -MAX_VOLTS, MAX_VOLTS));
   }
 
   public boolean atSetpoint() {
@@ -105,7 +119,8 @@ public class ExtenderMechanism implements Mechanism {
   }
 
   public double getPosition() {
-    return inputs.positionMeters;
+    Double pos = encoder.getPosition().get();
+    return pos != null ? pos : STARTING_EXTENSION;
   }
 
   public double getSetpoint() {
@@ -113,11 +128,17 @@ public class ExtenderMechanism implements Mechanism {
   }
 
   public double getAppliedVolts() {
-    return inputs.appliedVolts;
+    Double val = motor.getAppliedOutput().get();
+    return val != null ? val * 12.0 : 0.0;
   }
 
   public double getVelocity() {
-    return inputs.velocityMetersPerSec;
+    Double vel = encoder.getVelocity().get();
+    return vel != null ? vel : 0.0;
+  }
+
+  public SparkMax getMotor() {
+    return motor;
   }
 
   /** The name of the most specific command currently using the extender. */

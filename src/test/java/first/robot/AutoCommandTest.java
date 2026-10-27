@@ -4,16 +4,14 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import first.robot.auto.ScoreBallAuto;
 import first.robot.orchestration.BallCommands;
+import first.robot.sim.SimMechanical;
 import first.robot.sim.SimWorld;
-import first.robot.mechanisms.claw.ClawIOSim;
 import first.robot.mechanisms.claw.ClawMechanism;
-import first.robot.mechanisms.drive.DriveIOSim;
 import first.robot.mechanisms.drive.DriveMechanism;
-import first.robot.mechanisms.elevator.ElevatorIOSim;
 import first.robot.mechanisms.elevator.ElevatorMechanism;
-import first.robot.mechanisms.extender.ExtenderIOSim;
 import first.robot.mechanisms.extender.ExtenderMechanism;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Scheduler;
@@ -24,21 +22,22 @@ public class AutoCommandTest {
   @BeforeAll
   static void initHal() {
     HAL.initialize();
+  }
+
+  @BeforeEach
+  void setUp() {
+    SimMechanical.resetAll();
     DriverStationSim.setEnabled(true);
     DriverStationSim.notifyNewData();
   }
 
   @Test
   void testGrabBallAutoExecutesAndGrabsBall() {
-    ElevatorIOSim elevatorIO = new ElevatorIOSim();
-    ExtenderIOSim extenderIO = new ExtenderIOSim();
-    ClawIOSim clawIO = new ClawIOSim();
+    ElevatorMechanism elevator = new ElevatorMechanism();
+    ExtenderMechanism extender = new ExtenderMechanism();
+    ClawMechanism claw = new ClawMechanism();
 
-    ElevatorMechanism elevator = new ElevatorMechanism(elevatorIO);
-    ExtenderMechanism extender = new ExtenderMechanism(extenderIO);
-    ClawMechanism claw = new ClawMechanism(clawIO);
-
-    SimWorld world = new SimWorld(elevator, elevatorIO, extender, extenderIO, claw, clawIO);
+    SimWorld world = new SimWorld(elevator, extender, claw);
 
     Command grabBall = BallCommands.grabBallFromTable(elevator, extender, claw);
     Scheduler.getDefault().schedule(grabBall);
@@ -61,17 +60,12 @@ public class AutoCommandTest {
 
   @Test
   void testScoreBallAutoCompletesAndScores() {
-    ElevatorIOSim elevatorIO = new ElevatorIOSim();
-    ExtenderIOSim extenderIO = new ExtenderIOSim();
-    ClawIOSim clawIO = new ClawIOSim();
-    DriveIOSim driveIO = new DriveIOSim();
+    ElevatorMechanism elevator = new ElevatorMechanism();
+    ExtenderMechanism extender = new ExtenderMechanism();
+    ClawMechanism claw = new ClawMechanism();
+    DriveMechanism drive = new DriveMechanism();
 
-    ElevatorMechanism elevator = new ElevatorMechanism(elevatorIO);
-    ExtenderMechanism extender = new ExtenderMechanism(extenderIO);
-    ClawMechanism claw = new ClawMechanism(clawIO);
-    DriveMechanism drive = new DriveMechanism(driveIO);
-
-    SimWorld world = new SimWorld(elevator, elevatorIO, extender, extenderIO, claw, clawIO, drive, driveIO);
+    SimWorld world = new SimWorld(elevator, extender, claw, drive);
 
     Command scoreBall = ScoreBallAuto.driveAndScoreBall(drive, elevator, extender, claw);
     Scheduler.getDefault().schedule(scoreBall);

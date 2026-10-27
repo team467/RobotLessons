@@ -4,18 +4,15 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import first.robot.constants.FieldConstants;
 import first.robot.constants.RobotConstants;
-import first.robot.sim.SimWorld;
-import first.robot.mechanisms.claw.ClawIOSim;
 import first.robot.mechanisms.claw.ClawMechanism;
 import first.robot.mechanisms.drive.DriveConstants;
-import first.robot.mechanisms.drive.DriveIOSim;
 import first.robot.mechanisms.drive.DriveMechanism;
 import first.robot.mechanisms.elevator.ElevatorConstants;
-import first.robot.mechanisms.elevator.ElevatorIOSim;
 import first.robot.mechanisms.elevator.ElevatorMechanism;
 import first.robot.mechanisms.extender.ExtenderConstants;
-import first.robot.mechanisms.extender.ExtenderIOSim;
 import first.robot.mechanisms.extender.ExtenderMechanism;
+import first.robot.sim.SimMechanical;
+import first.robot.sim.SimWorld;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,24 +28,19 @@ public class TwoBallSimTest {
 
   @BeforeEach
   void setUp() {
-    Scheduler.getDefault().cancelAll();
+    SimMechanical.resetAll();
     DriverStationSim.setEnabled(true);
     DriverStationSim.notifyNewData();
   }
 
   @Test
   void testInitialDualBallWorldState() {
-    ElevatorIOSim elevatorIO = new ElevatorIOSim();
-    ExtenderIOSim extenderIO = new ExtenderIOSim();
-    ClawIOSim clawIO = new ClawIOSim();
-    DriveIOSim driveIO = new DriveIOSim();
+    ElevatorMechanism elevator = new ElevatorMechanism();
+    ExtenderMechanism extender = new ExtenderMechanism();
+    ClawMechanism claw = new ClawMechanism();
+    DriveMechanism drive = new DriveMechanism();
 
-    ElevatorMechanism elevator = new ElevatorMechanism(elevatorIO);
-    ExtenderMechanism extender = new ExtenderMechanism(extenderIO);
-    ClawMechanism claw = new ClawMechanism(clawIO);
-    DriveMechanism drive = new DriveMechanism(driveIO);
-
-    SimWorld world = new SimWorld(elevator, elevatorIO, extender, extenderIO, claw, clawIO, drive, driveIO);
+    SimWorld world = new SimWorld(elevator, extender, claw, drive);
     SimWorld.Snapshot s = world.snapshot();
 
     assertEquals(DriveConstants.START_POSITION, s.drivePosition(), 1e-3);
@@ -61,17 +53,12 @@ public class TwoBallSimTest {
 
   @Test
   void testGroundBallGrabAtStartLocation() {
-    ElevatorIOSim elevatorIO = new ElevatorIOSim();
-    ExtenderIOSim extenderIO = new ExtenderIOSim();
-    ClawIOSim clawIO = new ClawIOSim();
-    DriveIOSim driveIO = new DriveIOSim();
+    ElevatorMechanism elevator = new ElevatorMechanism();
+    ExtenderMechanism extender = new ExtenderMechanism();
+    ClawMechanism claw = new ClawMechanism();
+    DriveMechanism drive = new DriveMechanism();
 
-    ElevatorMechanism elevator = new ElevatorMechanism(elevatorIO);
-    ExtenderMechanism extender = new ExtenderMechanism(extenderIO);
-    ClawMechanism claw = new ClawMechanism(clawIO);
-    DriveMechanism drive = new DriveMechanism(driveIO);
-
-    SimWorld world = new SimWorld(elevator, elevatorIO, extender, extenderIO, claw, clawIO, drive, driveIO);
+    SimWorld world = new SimWorld(elevator, extender, claw, drive);
 
     // Grab Ball 2 off the ground while parked at start:
     // 1. Open claw and extend over ground ball

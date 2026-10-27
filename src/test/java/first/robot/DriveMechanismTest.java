@@ -3,8 +3,8 @@ package first.robot;
 import static org.junit.jupiter.api.Assertions.*;
 
 import first.robot.mechanisms.drive.DriveConstants;
-import first.robot.mechanisms.drive.DriveIOSim;
 import first.robot.mechanisms.drive.DriveMechanism;
+import first.robot.sim.SimMechanical;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,15 +21,14 @@ public class DriveMechanismTest {
 
   @BeforeEach
   void setUp() {
-    Scheduler.getDefault().cancelAll();
+    SimMechanical.resetAll();
     DriverStationSim.setEnabled(true);
     DriverStationSim.notifyNewData();
   }
 
   @Test
   void testDriveToSetpoint() {
-    DriveIOSim io = new DriveIOSim();
-    DriveMechanism drive = new DriveMechanism(io);
+    DriveMechanism drive = new DriveMechanism();
 
     Command cmd = drive.driveTo(DriveConstants.TABLE_POSITION);
     Scheduler.getDefault().schedule(cmd);
@@ -50,8 +49,7 @@ public class DriveMechanismTest {
 
   @Test
   void testDriveToStartAndTable() {
-    DriveIOSim io = new DriveIOSim();
-    DriveMechanism drive = new DriveMechanism(io);
+    DriveMechanism drive = new DriveMechanism();
 
     // Start by moving to table
     Scheduler.getDefault().schedule(drive.driveToTable());

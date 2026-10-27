@@ -2,15 +2,14 @@ package first.robot;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import first.robot.mechanisms.claw.ClawIOSim;
 import first.robot.mechanisms.claw.ClawMechanism;
 import first.robot.mechanisms.elevator.ElevatorConstants;
-import first.robot.mechanisms.elevator.ElevatorIOSim;
 import first.robot.mechanisms.elevator.ElevatorMechanism;
 import first.robot.mechanisms.extender.ExtenderConstants;
-import first.robot.mechanisms.extender.ExtenderIOSim;
 import first.robot.mechanisms.extender.ExtenderMechanism;
+import first.robot.sim.SimMechanical;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.wpilib.command3.Scheduler;
 import org.wpilib.hardware.hal.HAL;
@@ -20,14 +19,18 @@ public class MechanismSimTest {
   @BeforeAll
   static void initHal() {
     HAL.initialize();
+  }
+
+  @BeforeEach
+  void setUp() {
+    SimMechanical.resetAll();
     DriverStationSim.setEnabled(true);
     DriverStationSim.notifyNewData();
   }
 
   @Test
   void testElevatorMoveToSetpoint() {
-    ElevatorIOSim io = new ElevatorIOSim();
-    ElevatorMechanism elevator = new ElevatorMechanism(io);
+    ElevatorMechanism elevator = new ElevatorMechanism();
 
     double target = ElevatorConstants.ABOVE_TABLE_HEIGHT;
     var cmd = elevator.moveTo(target);
@@ -47,8 +50,7 @@ public class MechanismSimTest {
 
   @Test
   void testExtenderMoveToSetpoint() {
-    ExtenderIOSim io = new ExtenderIOSim();
-    ExtenderMechanism extender = new ExtenderMechanism(io);
+    ExtenderMechanism extender = new ExtenderMechanism();
 
     double target = ExtenderConstants.BALL_EXTENSION;
     var cmd = extender.moveTo(target);
@@ -67,8 +69,7 @@ public class MechanismSimTest {
 
   @Test
   void testClawMoveToSetpoint() {
-    ClawIOSim io = new ClawIOSim();
-    ClawMechanism claw = new ClawMechanism(io);
+    ClawMechanism claw = new ClawMechanism();
 
     var openCmd = claw.open();
     Scheduler.getDefault().schedule(openCmd);

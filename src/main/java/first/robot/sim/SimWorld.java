@@ -3,15 +3,12 @@ package first.robot.sim;
 import static first.robot.constants.RobotConstants.WRIST_BASE_X;
 import static first.robot.constants.SimulationConstants.LOOP_PERIOD_SECONDS;
 
-import first.robot.mechanisms.claw.ClawIOSim;
 import first.robot.mechanisms.claw.ClawMechanism;
 import first.robot.mechanisms.drive.DriveConstants;
-import first.robot.mechanisms.drive.DriveIOSim;
 import first.robot.mechanisms.drive.DriveMechanism;
 import first.robot.mechanisms.elevator.ElevatorMechanism;
 import first.robot.mechanisms.extender.ExtenderMechanism;
 import first.robot.mechanisms.shooter.ShooterConstants;
-import first.robot.mechanisms.shooter.ShooterIOSim;
 import first.robot.mechanisms.shooter.ShooterMechanism;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.wpilib.framework.RobotBase;
@@ -175,37 +172,16 @@ public class SimWorld {
 
   public SimWorld(
       ElevatorMechanism elevator,
-      first.robot.mechanisms.elevator.ElevatorIOSim elevatorIO,
       ExtenderMechanism extender,
-      first.robot.mechanisms.extender.ExtenderIOSim extenderIO,
       ClawMechanism claw,
-      ClawIOSim clawIO,
-      DriveMechanism drive,
-      DriveIOSim driveIO,
-      ShooterMechanism shooter,
-      ShooterIOSim shooterIO) {
-    this(elevator, extender, claw, drive, shooter);
-  }
-
-  public SimWorld(
-      ElevatorMechanism elevator,
-      first.robot.mechanisms.elevator.ElevatorIOSim elevatorIO,
-      ExtenderMechanism extender,
-      first.robot.mechanisms.extender.ExtenderIOSim extenderIO,
-      ClawMechanism claw,
-      ClawIOSim clawIO,
-      DriveMechanism drive,
-      DriveIOSim driveIO) {
+      DriveMechanism drive) {
     this(elevator, extender, claw, drive, null);
   }
 
   public SimWorld(
       ElevatorMechanism elevator,
-      first.robot.mechanisms.elevator.ElevatorIOSim elevatorIO,
       ExtenderMechanism extender,
-      first.robot.mechanisms.extender.ExtenderIOSim extenderIO,
-      ClawMechanism claw,
-      ClawIOSim clawIO) {
+      ClawMechanism claw) {
     this(elevator, extender, claw, null, null);
   }
 
@@ -502,7 +478,7 @@ public class SimWorld {
     double gripStop = Double.isNaN(gripStop1) ? gripStop2 : gripStop1;
 
     SimMechanical.getClawMotor().setGripStop(gripStop);
-    SimMechanical.getClawBallSensor().set(ball1.isHeld() || ball2.isHeld());
+    SimMechanical.getClawBallSensor().setValue(ball1.isHeld() || ball2.isHeld());
 
     boolean isAutonomous = RobotBase.isAutonomous() && RobotBase.isEnabled();
     if (isAutonomous) {
