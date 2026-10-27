@@ -189,5 +189,6 @@ public class Extender implements Mechanism {
 
   public void resetSetpoint() {
     setpoint = STARTING_EXTENSION;
+    pid.reset();
   }
 }

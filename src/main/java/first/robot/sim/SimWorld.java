@@ -212,9 +212,7 @@ public class SimWorld {
       autoRunning = false;
       autoComplete = false;
       org.wpilib.command3.Scheduler.getDefault().cancelAll();
-      org.wpilib.simulation.DriverStationSim.setEnabled(false);
-      org.wpilib.simulation.DriverStationSim.notifyNewData();
-      SimMechanical.resetAll();
+      SimMechanical.resetHardware();
       if (drive != null) {
         drive.resetPosition(DriveConstants.START_POSITION);
         drive.resetSetpoint();
@@ -225,6 +223,12 @@ public class SimWorld {
       elevator.resetSetpoint();
       extender.resetSetpoint();
       claw.resetSetpoint();
+      if (RobotBase.isAutonomous()) {
+        org.wpilib.simulation.DriverStationSim.setRobotMode(org.wpilib.hardware.hal.RobotMode.TELEOPERATED);
+      }
+      if (teleopActivator != null) {
+        teleopActivator.run();
+      }
     }
 
     if (disableRequested.getAndSet(false)) {

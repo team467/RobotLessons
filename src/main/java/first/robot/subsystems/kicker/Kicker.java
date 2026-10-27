@@ -343,5 +343,6 @@ public class Kicker implements Mechanism {
   public void resetSetpoint() {
     setpoint = STARTING_PULLBACK;
     goal = Goal.IDLE;
+    pid.reset();
   }
 }

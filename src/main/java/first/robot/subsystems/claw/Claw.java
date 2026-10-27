@@ -317,5 +317,6 @@ public class Claw implements Mechanism {
   public void resetSetpoint() {
     setpoint = STARTING_ANGLE;
     goal = Goal.HOLD;
+    pid.reset();
   }
 }

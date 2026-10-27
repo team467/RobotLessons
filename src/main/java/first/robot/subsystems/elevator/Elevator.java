@@ -194,5 +194,6 @@ public class Elevator implements Mechanism {
 
   public void resetSetpoint() {
     setpoint = STARTING_HEIGHT;
+    pid.reset();
   }
 }

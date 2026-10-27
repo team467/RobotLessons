@@ -205,6 +205,17 @@ public final class SimMechanical {
     }
 
     public void update(double dtSeconds) {
+      if (!RobotBase.isEnabled()) {
+        sim.setState(sim.getPosition(), 0.0);
+        if (sparkSim != null) {
+          sparkSim.setPosition(sim.getPosition());
+          sparkSim.setVelocity(0.0);
+          sparkSim.getRelativeEncoderSim().setPosition(sim.getPosition());
+          sparkSim.getRelativeEncoderSim().setVelocity(0.0);
+          sparkSim.setAppliedOutput(0.0);
+        }
+        return;
+      }
       double volts = getAppliedVolts();
       sim.setInputVoltage(volts);
       sim.update(dtSeconds);
@@ -757,9 +768,8 @@ public final class SimMechanical {
     }
   }
 
-  /** Resets all active simulated motors and DIOs to their initial starting positions. */
-  public static void resetAll() {
-    resetScheduler();
+  /** Resets active simulated motors and DIOs to their initial starting positions without clearing the scheduler. */
+  public static void resetHardware() {
     driveEntry.reset();
     elevatorEntry.reset();
     extenderEntry.reset();
@@ -767,5 +777,11 @@ public final class SimMechanical {
     kickerEntry.reset();
     clawBallSensorSim.setValue(false);
     kickerSolenoidSim.setValue(false);
+  }
+
+  /** Resets both scheduler bindings and simulated motor hardware (intended for unit tests). */
+  public static void resetAll() {
+    resetScheduler();
+    resetHardware();
   }
 }

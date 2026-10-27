@@ -202,11 +202,13 @@ public class Drive implements Mechanism {
 
   public void resetSetpoint() {
     setpoint = getPosition();
+    pid.reset();
   }
 
   public void resetPosition(Distance pos) {
     Mechanical.setEncoderPosition(motor, encoder, pos.in(Meters));
     setpoint = pos;
+    pid.reset();
   }
 
   public void resetPosition(double pos) {
