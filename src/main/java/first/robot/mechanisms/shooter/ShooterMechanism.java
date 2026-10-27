@@ -170,7 +170,11 @@ public class ShooterMechanism implements Mechanism {
     manualWind.switchTo(idle).when(() -> goal != Goal.WIND);
     manualRelease.switchTo(idle).when(() -> goal != Goal.RELEASE);
 
-    machine.setInitialState(isLoaded() ? loaded : idle);
+    if (isLoaded()) {
+      machine.setInitialState(loaded);
+    } else {
+      machine.setInitialState(idle);
+    }
     return machine;
   }
 
@@ -195,11 +199,19 @@ public class ShooterMechanism implements Mechanism {
   }
 
   public void requestWind(boolean active) {
-    setGoal(active ? Goal.WIND : Goal.IDLE);
+    if (active) {
+      setGoal(Goal.WIND);
+    } else {
+      setGoal(Goal.IDLE);
+    }
   }
 
   public void requestReleaseSolenoid(boolean active) {
-    setGoal(active ? Goal.RELEASE : Goal.IDLE);
+    if (active) {
+      setGoal(Goal.RELEASE);
+    } else {
+      setGoal(Goal.IDLE);
+    }
   }
 
   /**
@@ -290,12 +302,18 @@ public class ShooterMechanism implements Mechanism {
 
   public Distance getPosition() {
     Double pos = encoder.getPosition().get();
-    return pos != null ? Meters.of(pos) : STARTING_PULLBACK;
+    if (pos == null) {
+      return STARTING_PULLBACK;
+    }
+    return Meters.of(pos);
   }
 
   public double getVelocity() {
     Double vel = encoder.getVelocity().get();
-    return vel != null ? vel : 0.0;
+    if (vel == null) {
+      return 0.0;
+    }
+    return vel;
   }
 
   public Distance getSetpoint() {
@@ -304,7 +322,10 @@ public class ShooterMechanism implements Mechanism {
 
   public double getAppliedVolts() {
     Double val = motor.getAppliedOutput().get();
-    return val != null ? val * 12.0 : 0.0;
+    if (val == null) {
+      return 0.0;
+    }
+    return val * 12.0;
   }
 
   public DigitalOutput getSolenoid() {
@@ -313,7 +334,10 @@ public class ShooterMechanism implements Mechanism {
 
   public String getCurrentCommandName() {
     List<Command> running = getRunningCommands();
-    return running.isEmpty() ? "(none)" : running.get(running.size() - 1).name();
+    if (running.isEmpty()) {
+      return "(none)";
+    }
+    return running.get(running.size() - 1).name();
   }
 
   public void resetSetpoint() {

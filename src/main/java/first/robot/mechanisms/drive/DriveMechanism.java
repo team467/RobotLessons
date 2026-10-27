@@ -153,12 +153,18 @@ public class DriveMechanism implements Mechanism {
 
   public Distance getPosition() {
     Double pos = encoder.getPosition().get();
-    return pos != null ? Meters.of(pos) : START_POSITION;
+    if (pos == null) {
+      return START_POSITION;
+    }
+    return Meters.of(pos);
   }
 
   public double getVelocity() {
     Double vel = encoder.getVelocity().get();
-    return vel != null ? vel : 0.0;
+    if (vel == null) {
+      return 0.0;
+    }
+    return vel;
   }
 
   public Distance getSetpoint() {
@@ -167,7 +173,10 @@ public class DriveMechanism implements Mechanism {
 
   public double getAppliedVolts() {
     Double val = motor.getAppliedOutput().get();
-    return val != null ? val * 12.0 : 0.0;
+    if (val == null) {
+      return 0.0;
+    }
+    return val * 12.0;
   }
 
   public void resetSetpoint() {
@@ -185,6 +194,9 @@ public class DriveMechanism implements Mechanism {
 
   public String getCurrentCommandName() {
     List<Command> running = getRunningCommands();
-    return running.isEmpty() ? "(none)" : running.get(running.size() - 1).name();
+    if (running.isEmpty()) {
+      return "(none)";
+    }
+    return running.get(running.size() - 1).name();
   }
 }

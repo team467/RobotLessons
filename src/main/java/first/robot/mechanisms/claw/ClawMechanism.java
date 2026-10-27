@@ -129,7 +129,11 @@ public class ClawMechanism implements Mechanism {
     gripping.switchTo(moving).when(() -> goal == Goal.MOVE);
     gripping.switchTo(holding).when(() -> !hasBall() && goal != Goal.CLOSE);
 
-    machine.setInitialState(hasBall() ? gripping : holding);
+    if (hasBall()) {
+      machine.setInitialState(gripping);
+    } else {
+      machine.setInitialState(holding);
+    }
     return machine;
   }
 
@@ -151,9 +155,19 @@ public class ClawMechanism implements Mechanism {
     driveTowardSetpoint();
   }
 
+  private Angle clampAngle(Angle angle) {
+    if (angle.lt(CLOSED_ANGLE)) {
+      return CLOSED_ANGLE;
+    } else if (angle.gt(OPEN_ANGLE)) {
+      return OPEN_ANGLE;
+    } else {
+      return angle;
+    }
+  }
+
   public void setGoal(Goal goal, Angle target) {
     this.goal = goal;
-    this.targetAngle = target.lt(CLOSED_ANGLE) ? CLOSED_ANGLE : (target.gt(OPEN_ANGLE) ? OPEN_ANGLE : target);
+    this.targetAngle = clampAngle(target);
     this.setpoint = this.targetAngle;
     driveTowardSetpoint();
   }
@@ -184,7 +198,7 @@ public class ClawMechanism implements Mechanism {
    * @param targetAngle target angle of the fingers
    */
   public Command moveTo(Angle targetAngle) {
-    Angle target = targetAngle.lt(CLOSED_ANGLE) ? CLOSED_ANGLE : (targetAngle.gt(OPEN_ANGLE) ? OPEN_ANGLE : targetAngle);
+    Angle target = clampAngle(targetAngle);
     String name = String.format("Claw To %.0f deg", target.in(Degrees));
     return Command.noRequirements(coroutine -> {
       setGoal(Goal.MOVE, target);
@@ -261,7 +275,10 @@ public class ClawMechanism implements Mechanism {
 
   public Angle getAngle() {
     Double pos = encoder.getPosition().get();
-    return pos != null ? Radians.of(pos) : STARTING_ANGLE;
+    if (pos == null) {
+      return STARTING_ANGLE;
+    }
+    return Radians.of(pos);
   }
 
   public Angle getSetpoint() {
@@ -270,12 +287,18 @@ public class ClawMechanism implements Mechanism {
 
   public double getAppliedVolts() {
     Double val = motor.getAppliedOutput().get();
-    return val != null ? val * 12.0 : 0.0;
+    if (val == null) {
+      return 0.0;
+    }
+    return val * 12.0;
   }
 
   public double getVelocity() {
     Double vel = encoder.getVelocity().get();
-    return vel != null ? vel : 0.0;
+    if (vel == null) {
+      return 0.0;
+    }
+    return vel;
   }
 
   public DigitalInput getBallSensor() {
@@ -285,7 +308,10 @@ public class ClawMechanism implements Mechanism {
   /** The name of the most specific command currently using the claw. */
   public String getCurrentCommandName() {
     List<Command> running = getRunningCommands();
-    return running.isEmpty() ? "(none)" : running.get(running.size() - 1).name();
+    if (running.isEmpty()) {
+      return "(none)";
+    }
+    return running.get(running.size() - 1).name();
   }
 
   public void resetSetpoint() {

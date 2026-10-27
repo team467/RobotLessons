@@ -45,13 +45,23 @@ public class ElevatorMechanism implements Mechanism {
   // Commands
   // ------------------------------------------------------------------------------------------
 
+  private Distance clampHeight(Distance height) {
+    if (height.lt(MIN_HEIGHT)) {
+      return MIN_HEIGHT;
+    } else if (height.gt(MAX_HEIGHT)) {
+      return MAX_HEIGHT;
+    } else {
+      return height;
+    }
+  }
+
   /**
    * Moves the elevator to a height and finishes once it gets there.
    *
    * @param height the target wrist height, clamped to the elevator's travel
    */
   public Command moveTo(Distance height) {
-    Distance target = height.lt(MIN_HEIGHT) ? MIN_HEIGHT : (height.gt(MAX_HEIGHT) ? MAX_HEIGHT : height);
+    Distance target = clampHeight(height);
     setpoint = target;
     String name = String.format("Elevator To %.2fm", target.in(Meters));
     StateMachine sm = new StateMachine(name);
@@ -134,7 +144,10 @@ public class ElevatorMechanism implements Mechanism {
 
   public Distance getPosition() {
     Double pos = encoder.getPosition().get();
-    return pos != null ? Meters.of(pos) : STARTING_HEIGHT;
+    if (pos == null) {
+      return STARTING_HEIGHT;
+    }
+    return Meters.of(pos);
   }
 
   public Distance getSetpoint() {
@@ -143,18 +156,27 @@ public class ElevatorMechanism implements Mechanism {
 
   public double getAppliedVolts() {
     Double val = motor.getAppliedOutput().get();
-    return val != null ? val * 12.0 : 0.0;
+    if (val == null) {
+      return 0.0;
+    }
+    return val * 12.0;
   }
 
   public double getVelocity() {
     Double vel = encoder.getVelocity().get();
-    return vel != null ? vel : 0.0;
+    if (vel == null) {
+      return 0.0;
+    }
+    return vel;
   }
 
   /** The name of the most specific command currently using the elevator. */
   public String getCurrentCommandName() {
     List<Command> running = getRunningCommands();
-    return running.isEmpty() ? "(none)" : running.get(running.size() - 1).name();
+    if (running.isEmpty()) {
+      return "(none)";
+    }
+    return running.get(running.size() - 1).name();
   }
 
   public void resetSetpoint() {
