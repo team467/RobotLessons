@@ -12,11 +12,6 @@ public final class ClawConstants {
   public static final double OPEN_ANGLE = Math.toRadians(60);
   public static final double STARTING_ANGLE = CLOSED_ANGLE;
 
-  // ---- Simulated hardware ----
-  public static final double GEARING = 100.0;
-  public static final double FINGERS_MOI_KG_M2 = 0.005; // moment of inertia of the fingers
-  public static final double FINGER_LENGTH_METERS = 0.22;
-
   // ---- Control ----
   public static final double KP = 12.0; // volts per radian of error
   public static final double KD = 0.3;

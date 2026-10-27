@@ -407,13 +407,13 @@ public class SimWorld {
       if (kickStrength > 0.0) {
         double ext = extender.getPosition();
         boolean armInStrikeZone =
-            ext >= ShooterConstants.MIN_STRIKE_EXTENSION
-                && ext <= ShooterConstants.MAX_STRIKE_EXTENSION
-                && wristY >= ShooterConstants.MIN_STRIKE_WRIST_Y
-                && wristY <= ShooterConstants.MAX_STRIKE_WRIST_Y;
+            ext >= SimConstants.SHOOTER_MIN_STRIKE_EXTENSION
+                && ext <= SimConstants.SHOOTER_MAX_STRIKE_EXTENSION
+                && wristY >= SimConstants.SHOOTER_MIN_STRIKE_WRIST_Y
+                && wristY <= SimConstants.SHOOTER_MAX_STRIKE_WRIST_Y;
         if (armInStrikeZone) {
-          double launchVx = ShooterConstants.LAUNCH_VX_MPS * kickStrength;
-          double launchVy = ShooterConstants.LAUNCH_VY_MPS * kickStrength;
+          double launchVx = SimConstants.SHOOTER_LAUNCH_VX_MPS * kickStrength;
+          double launchVy = SimConstants.SHOOTER_LAUNCH_VY_MPS * kickStrength;
           if (ball1.isHeld()) {
             ball1.kick(launchVx, launchVy);
           }

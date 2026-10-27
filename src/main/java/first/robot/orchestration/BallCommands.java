@@ -5,7 +5,6 @@ import first.robot.mechanisms.elevator.ElevatorConstants;
 import first.robot.mechanisms.elevator.ElevatorMechanism;
 import first.robot.mechanisms.extender.ExtenderConstants;
 import first.robot.mechanisms.extender.ExtenderMechanism;
-import first.robot.mechanisms.shooter.ShooterConstants;
 import first.robot.mechanisms.shooter.ShooterMechanism;
 import org.wpilib.command3.Command;
 
@@ -144,8 +143,8 @@ public final class BallCommands {
                   && elevator.getPosition() < ElevatorConstants.ABOVE_TABLE_HEIGHT - 0.05) {
                 coroutine.await(elevator.moveTo(ElevatorConstants.ABOVE_TABLE_HEIGHT));
               }
-              coroutine.await(extender.moveTo(ShooterConstants.SHOOT_EXTENSION));
-              coroutine.await(elevator.moveTo(ShooterConstants.SHOOT_HEIGHT));
+              coroutine.await(extender.moveTo(ExtenderConstants.SHOOT_EXTENSION));
+              coroutine.await(elevator.moveTo(ElevatorConstants.SHOOT_HEIGHT));
             })
         .named("Move To Shoot Position");
   }

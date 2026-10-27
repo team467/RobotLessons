@@ -6,13 +6,12 @@ import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 import first.robot.Schematic;
-import first.robot.sim.SimMechanical;
+import first.robot.mechanical.Mechanical;
 import java.util.List;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
 import org.wpilib.command3.Trigger;
 import org.wpilib.framework.RobotBase;
-import org.wpilib.hardware.bus.CANPort;
 import org.wpilib.hardware.discrete.DigitalOutput;
 import org.wpilib.math.controller.PIDController;
 
@@ -39,21 +38,15 @@ public class ShooterMechanism implements Mechanism {
 
   public ShooterMechanism() {
     this(
-        RobotBase.isSimulation()
-            ? SimMechanical.createSparkMax(Schematic.SHOOTER_CAN_ID, MotorType.kBrushless)
-            : new SparkMax(CANPort.CAN_S0, Schematic.SHOOTER_CAN_ID, MotorType.kBrushless),
-        RobotBase.isSimulation()
-            ? SimMechanical.createDigitalOutput(Schematic.SHOOTER_SOLENOID_CHANNEL)
-            : new DigitalOutput(Schematic.SHOOTER_SOLENOID_CHANNEL));
+        Mechanical.createSparkMax(Schematic.SHOOTER_CAN_ID, MotorType.kBrushless),
+        Mechanical.createDigitalOutput(Schematic.SHOOTER_SOLENOID_CHANNEL));
   }
 
   public ShooterMechanism(SparkMax motor, DigitalOutput solenoid) {
     this.motor = motor;
     this.encoder = motor.getEncoder();
     this.solenoid = solenoid;
-    if (RobotBase.isSimulation()) {
-      SimMechanical.register(motor);
-    }
+    Mechanical.register(motor);
     setDefaultCommand(hold());
   }
 
@@ -187,10 +180,6 @@ public class ShooterMechanism implements Mechanism {
   public double getAppliedVolts() {
     Double val = motor.getAppliedOutput().get();
     return val != null ? val * 12.0 : 0.0;
-  }
-
-  public SparkMax getMotor() {
-    return motor;
   }
 
   public DigitalOutput getSolenoid() {

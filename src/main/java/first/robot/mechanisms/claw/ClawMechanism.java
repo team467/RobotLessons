@@ -6,13 +6,12 @@ import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 import first.robot.Schematic;
-import first.robot.sim.SimMechanical;
+import first.robot.mechanical.Mechanical;
 import java.util.List;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
 import org.wpilib.command3.Trigger;
 import org.wpilib.framework.RobotBase;
-import org.wpilib.hardware.bus.CANPort;
 import org.wpilib.hardware.discrete.DigitalInput;
 import org.wpilib.math.controller.PIDController;
 
@@ -30,21 +29,15 @@ public class ClawMechanism implements Mechanism {
 
   public ClawMechanism() {
     this(
-        RobotBase.isSimulation()
-            ? SimMechanical.createSparkMax(Schematic.CLAW_CAN_ID, MotorType.kBrushless)
-            : new SparkMax(CANPort.CAN_S0, Schematic.CLAW_CAN_ID, MotorType.kBrushless),
-        RobotBase.isSimulation()
-            ? SimMechanical.createDigitalInput(Schematic.CLAW_BALL_SENSOR_DIO)
-            : new DigitalInput(Schematic.CLAW_BALL_SENSOR_DIO));
+        Mechanical.createSparkMax(Schematic.CLAW_CAN_ID, MotorType.kBrushless),
+        Mechanical.createDigitalInput(Schematic.CLAW_BALL_SENSOR_DIO));
   }
 
   public ClawMechanism(SparkMax motor, DigitalInput ballSensor) {
     this.motor = motor;
     this.encoder = motor.getEncoder();
     this.ballSensor = ballSensor;
-    if (RobotBase.isSimulation()) {
-      SimMechanical.register(motor);
-    }
+    Mechanical.register(motor);
     setDefaultCommand(hold());
   }
 
@@ -145,10 +138,6 @@ public class ClawMechanism implements Mechanism {
   public double getVelocity() {
     Double vel = encoder.getVelocity().get();
     return vel != null ? vel : 0.0;
-  }
-
-  public SparkMax getMotor() {
-    return motor;
   }
 
   public DigitalInput getBallSensor() {

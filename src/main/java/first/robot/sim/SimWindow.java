@@ -4,7 +4,6 @@ import static first.robot.constants.FieldConstants.*;
 import static first.robot.constants.RobotConstants.*;
 
 import first.robot.constants.DriverConstants;
-import first.robot.mechanisms.drive.DriveConstants;
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -494,7 +493,7 @@ public class SimWindow extends JFrame {
     }
 
     private void drawWheelsSide(Graphics2D g, double rx) {
-      double wr = DriveConstants.WHEEL_RADIUS_METERS;
+      double wr = SimConstants.DRIVE_WHEEL_RADIUS_METERS;
       double[] wheelCentersX = {rx - 0.20, rx + 0.14};
 
       for (double wx : wheelCentersX) {

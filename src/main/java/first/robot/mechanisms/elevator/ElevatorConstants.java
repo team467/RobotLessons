@@ -32,11 +32,6 @@ public final class ElevatorConstants {
   public static final double MAX_HEIGHT = 1.20;
   public static final double STARTING_HEIGHT = 0.50;
 
-  // ---- Simulated hardware ----
-  public static final double GEARING = 10.0; // 10:1 reduction
-  public static final double CARRIAGE_MASS_KG = 6.0; // carriage + extender + claw
-  public static final double DRUM_RADIUS_METERS = 0.025;
-
   // ---- Control ----
   /** Volts needed to hold the carriage still against gravity. */
   public static final double KG = 0.70;

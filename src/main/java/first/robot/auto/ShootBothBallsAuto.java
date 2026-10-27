@@ -5,8 +5,8 @@ import first.robot.orchestration.BallCommands;
 import first.robot.mechanisms.claw.ClawMechanism;
 import first.robot.mechanisms.drive.DriveMechanism;
 import first.robot.mechanisms.elevator.ElevatorMechanism;
+import first.robot.mechanisms.extender.ExtenderConstants;
 import first.robot.mechanisms.extender.ExtenderMechanism;
-import first.robot.mechanisms.shooter.ShooterConstants;
 import first.robot.mechanisms.shooter.ShooterMechanism;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Scheduler;
@@ -57,7 +57,7 @@ public class ShootBothBallsAuto implements OpMode {
 
       // Step 2: Retract the arm close to the robot while driving to the table
       coroutine.awaitAll(
-          extender.moveTo(ShooterConstants.SHOOT_EXTENSION),
+          extender.moveTo(ExtenderConstants.SHOOT_EXTENSION),
           drive.driveToTable());
 
       // Step 3: Kick Ball 2 into the basket

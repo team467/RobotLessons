@@ -15,11 +15,6 @@ public final class ExtenderConstants {
   public static final double MAX_EXTENSION = 1.10;
   public static final double STARTING_EXTENSION = 0.33;
 
-  // ---- Simulated hardware ----
-  public static final double GEARING = 8.0;
-  public static final double SLIDE_MASS_KG = 3.0;
-  public static final double PULLEY_RADIUS_METERS = 0.02;
-
   // ---- Control ----
   public static final double KP = 25.0; // volts per meter of error
   public static final double KD = 1.0;

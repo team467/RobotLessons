@@ -40,9 +40,9 @@ public final class SimMechanical {
     private final ElevatorSim sim =
         new ElevatorSim(
             DCMotor.getNEO(2),
-            DriveConstants.GEARING,
-            DriveConstants.ROBOT_MASS_KG,
-            DriveConstants.WHEEL_RADIUS_METERS,
+            SimConstants.DRIVE_GEARING,
+            SimConstants.DRIVE_ROBOT_MASS_KG,
+            SimConstants.DRIVE_WHEEL_RADIUS_METERS,
             -1.0,
             FieldConstants.FIELD_LENGTH_METERS + 1.0,
             false,
@@ -132,9 +132,9 @@ public final class SimMechanical {
     private final ElevatorSim sim =
         new ElevatorSim(
             DCMotor.getNEO(1),
-            ElevatorConstants.GEARING,
-            ElevatorConstants.CARRIAGE_MASS_KG,
-            ElevatorConstants.DRUM_RADIUS_METERS,
+            SimConstants.ELEVATOR_GEARING,
+            SimConstants.ELEVATOR_CARRIAGE_MASS_KG,
+            SimConstants.ELEVATOR_DRUM_RADIUS_METERS,
             ElevatorConstants.MIN_HEIGHT,
             ElevatorConstants.MAX_HEIGHT,
             true, // simulate gravity
@@ -237,9 +237,9 @@ public final class SimMechanical {
     private final ElevatorSim sim =
         new ElevatorSim(
             DCMotor.getNEO(1),
-            ExtenderConstants.GEARING,
-            ExtenderConstants.SLIDE_MASS_KG,
-            ExtenderConstants.PULLEY_RADIUS_METERS,
+            SimConstants.EXTENDER_GEARING,
+            SimConstants.EXTENDER_SLIDE_MASS_KG,
+            SimConstants.EXTENDER_PULLEY_RADIUS_METERS,
             ExtenderConstants.MIN_EXTENSION,
             ExtenderConstants.MAX_EXTENSION,
             false, // horizontal: no gravity
@@ -342,9 +342,9 @@ public final class SimMechanical {
     private final SingleJointedArmSim sim =
         new SingleJointedArmSim(
             DCMotor.getNeo550(1),
-            ClawConstants.GEARING,
-            ClawConstants.FINGERS_MOI_KG_M2,
-            ClawConstants.FINGER_LENGTH_METERS,
+            SimConstants.CLAW_GEARING,
+            SimConstants.CLAW_FINGERS_MOI_KG_M2,
+            SimConstants.CLAW_FINGER_LENGTH_METERS,
             ClawConstants.CLOSED_ANGLE,
             ClawConstants.OPEN_ANGLE,
             false, // no gravity
@@ -447,9 +447,9 @@ public final class SimMechanical {
     private final ElevatorSim sim =
         new ElevatorSim(
             DCMotor.getNEO(1),
-            ShooterConstants.GEARING,
-            ShooterConstants.PLUNGER_MASS_KG,
-            ShooterConstants.DRUM_RADIUS_METERS,
+            SimConstants.SHOOTER_GEARING,
+            SimConstants.SHOOTER_PLUNGER_MASS_KG,
+            SimConstants.SHOOTER_DRUM_RADIUS_METERS,
             ShooterConstants.MIN_PULLBACK,
             ShooterConstants.MAX_PULLBACK,
             false,
@@ -536,10 +536,10 @@ public final class SimMechanical {
         double nextPos =
             Math.max(
                 ShooterConstants.MIN_PULLBACK,
-                currentPos - ShooterConstants.SPRING_RELEASE_SPEED_MPS * dtSeconds);
+                currentPos - SimConstants.SHOOTER_SPRING_RELEASE_SPEED_MPS * dtSeconds);
         double nextVel =
             (nextPos > ShooterConstants.MIN_PULLBACK)
-                ? -ShooterConstants.SPRING_RELEASE_SPEED_MPS
+                ? -SimConstants.SHOOTER_SPRING_RELEASE_SPEED_MPS
                 : 0.0;
         sim.setInputVoltage(0.0);
         sim.setState(nextPos, nextVel);
@@ -670,6 +670,18 @@ public final class SimMechanical {
       case EXTENDER_CAN_ID -> extenderEntry.attachSparkMax(motor);
       case CLAW_CAN_ID -> clawEntry.attachSparkMax(motor);
       case SHOOTER_CAN_ID -> shooterEntry.attachSparkMax(motor);
+      default -> throw new IllegalArgumentException("Unknown motor CAN ID: " + canId);
+    }
+  }
+
+  /** Sets the simulated position of the motor specified by its CAN ID. */
+  public static void setPosition(int canId, double pos) {
+    switch (canId) {
+      case DRIVE_CAN_ID -> driveEntry.setPosition(pos);
+      case ELEVATOR_CAN_ID -> elevatorEntry.setPosition(pos);
+      case EXTENDER_CAN_ID -> extenderEntry.setPosition(pos);
+      case CLAW_CAN_ID -> clawEntry.setPosition(pos);
+      case SHOOTER_CAN_ID -> shooterEntry.setPosition(pos);
       default -> throw new IllegalArgumentException("Unknown motor CAN ID: " + canId);
     }
   }

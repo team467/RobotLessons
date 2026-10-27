@@ -6,14 +6,13 @@ import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 import first.robot.Schematic;
-import first.robot.sim.SimMechanical;
+import first.robot.mechanical.Mechanical;
 import java.util.List;
 import java.util.function.DoubleSupplier;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
 import org.wpilib.command3.Trigger;
 import org.wpilib.framework.RobotBase;
-import org.wpilib.hardware.bus.CANPort;
 import org.wpilib.math.controller.PIDController;
 
 /** The drivetrain moves the robot across the field between the start location and the table. */
@@ -28,18 +27,13 @@ public class DriveMechanism implements Mechanism {
   public final Trigger atSetpoint = new Trigger(this::atSetpoint);
 
   public DriveMechanism() {
-    this(
-        RobotBase.isSimulation()
-            ? SimMechanical.createSparkMax(Schematic.DRIVE_CAN_ID, MotorType.kBrushless)
-            : new SparkMax(CANPort.CAN_S0, Schematic.DRIVE_CAN_ID, MotorType.kBrushless));
+    this(Mechanical.createSparkMax(Schematic.DRIVE_CAN_ID, MotorType.kBrushless));
   }
 
   public DriveMechanism(SparkMax motor) {
     this.motor = motor;
     this.encoder = motor.getEncoder();
-    if (RobotBase.isSimulation()) {
-      SimMechanical.register(motor);
-    }
+    Mechanical.register(motor);
     setDefaultCommand(hold());
   }
 
@@ -168,20 +162,12 @@ public class DriveMechanism implements Mechanism {
     return val != null ? val * 12.0 : 0.0;
   }
 
-  public SparkMax getMotor() {
-    return motor;
-  }
-
   public void resetSetpoint() {
     setpoint = getPosition();
   }
 
   public void resetPosition(double pos) {
-    if (RobotBase.isSimulation()) {
-      SimMechanical.getDriveMotor().setPosition(pos);
-    } else {
-      encoder.setPosition(pos);
-    }
+    Mechanical.setEncoderPosition(motor, encoder, pos);
     setpoint = pos;
   }
 
