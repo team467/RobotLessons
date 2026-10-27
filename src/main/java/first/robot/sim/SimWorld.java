@@ -10,8 +10,8 @@ import first.robot.mechanisms.drive.DriveConstants;
 import first.robot.mechanisms.drive.DriveMechanism;
 import first.robot.mechanisms.elevator.ElevatorMechanism;
 import first.robot.mechanisms.extender.ExtenderMechanism;
-import first.robot.mechanisms.shooter.ShooterConstants;
-import first.robot.mechanisms.shooter.ShooterMechanism;
+import first.robot.mechanisms.kicker.KickerConstants;
+import first.robot.mechanisms.kicker.KickerMechanism;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.wpilib.framework.RobotBase;
 
@@ -70,20 +70,29 @@ public class SimWorld {
       MotorState clawMotorState,
       MotorState driveMotorState,
       boolean basketScored,
-      double shooterPullback,
-      double shooterSetpoint,
-      double shooterVolts,
-      boolean shooterRatchetLocked,
-      boolean shooterSolenoidReleased,
-      boolean shooterLoaded,
-      String shooterCommand,
-      MotorState shooterMotorState) {}
+      double kickerPullback,
+      double kickerSetpoint,
+      double kickerVolts,
+      boolean kickerRatchetLocked,
+      boolean kickerSolenoidReleased,
+      boolean kickerLoaded,
+      String kickerCommand,
+      MotorState kickerMotorState) {
+    public double shooterPullback() { return kickerPullback; }
+    public double shooterSetpoint() { return kickerSetpoint; }
+    public double shooterVolts() { return kickerVolts; }
+    public boolean shooterRatchetLocked() { return kickerRatchetLocked; }
+    public boolean shooterSolenoidReleased() { return kickerSolenoidReleased; }
+    public boolean shooterLoaded() { return kickerLoaded; }
+    public String shooterCommand() { return kickerCommand; }
+    public MotorState shooterMotorState() { return kickerMotorState; }
+  }
 
   private final ElevatorMechanism elevator;
   private final ExtenderMechanism extender;
   private final ClawMechanism claw;
   private final DriveMechanism drive;
-  private final ShooterMechanism shooter;
+  private final KickerMechanism kicker;
   private final BallSim ball1;
   private final BallSim ball2;
   private final AtomicBoolean resetStateRequested = new AtomicBoolean(false);
@@ -106,12 +115,12 @@ public class SimWorld {
       ExtenderMechanism extender,
       ClawMechanism claw,
       DriveMechanism drive,
-      ShooterMechanism shooter) {
+      KickerMechanism kicker) {
     this.elevator = elevator;
     this.extender = extender;
     this.claw = claw;
     this.drive = drive;
-    this.shooter = shooter;
+    this.kicker = kicker;
 
     double tableFieldLeft =
         first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters)
@@ -207,8 +216,8 @@ public class SimWorld {
         drive.resetPosition(DriveConstants.START_POSITION);
         drive.resetSetpoint();
       }
-      if (shooter != null) {
-        shooter.resetSetpoint();
+      if (kicker != null) {
+        kicker.resetSetpoint();
       }
       elevator.resetSetpoint();
       extender.resetSetpoint();
@@ -330,11 +339,11 @@ public class SimWorld {
       }
       org.wpilib.simulation.DriverStationSim.setEnabled(true);
       org.wpilib.simulation.DriverStationSim.notifyNewData();
-      if (drive != null && shooter != null) {
+      if (drive != null && kicker != null) {
         org.wpilib.command3.Scheduler.getDefault()
             .schedule(
                 first.robot.auto.ShootBothBallsAuto.shootBothBallsRoutine(
-                    drive, elevator, extender, claw, shooter));
+                    drive, elevator, extender, claw, kicker));
       }
     }
 
@@ -404,18 +413,18 @@ public class SimWorld {
           .setMaxExtensionLimit(first.robot.mechanisms.extender.ExtenderConstants.MAX_EXTENSION.in(Meters));
     }
 
-    if (shooter != null) {
-      double kickStrength = SimMechanical.getShooterMotor().consumeKickStrength();
+    if (kicker != null) {
+      double kickStrength = SimMechanical.getKickerMotor().consumeKickStrength();
       if (kickStrength > 0.0) {
         double ext = extender.getPosition().in(Meters);
         boolean armInStrikeZone =
-            ext >= SimConstants.SHOOTER_MIN_STRIKE_EXTENSION
-                && ext <= SimConstants.SHOOTER_MAX_STRIKE_EXTENSION
-                && wristY >= SimConstants.SHOOTER_MIN_STRIKE_WRIST_Y
-                && wristY <= SimConstants.SHOOTER_MAX_STRIKE_WRIST_Y;
+            ext >= SimConstants.KICKER_MIN_STRIKE_EXTENSION
+                && ext <= SimConstants.KICKER_MAX_STRIKE_EXTENSION
+                && wristY >= SimConstants.KICKER_MIN_STRIKE_WRIST_Y
+                && wristY <= SimConstants.KICKER_MAX_STRIKE_WRIST_Y;
         if (armInStrikeZone) {
-          double launchVx = SimConstants.SHOOTER_LAUNCH_VX_MPS * kickStrength;
-          double launchVy = SimConstants.SHOOTER_LAUNCH_VY_MPS * kickStrength;
+          double launchVx = SimConstants.KICKER_LAUNCH_VX_MPS * kickStrength;
+          double launchVy = SimConstants.KICKER_LAUNCH_VY_MPS * kickStrength;
           if (ball1.isHeld()) {
             ball1.kick(launchVx, launchVy);
           }
@@ -576,7 +585,7 @@ public class SimWorld {
     MotorState extenderState = computeExtenderMotorState(maxExtenderLimit, tableContact);
     MotorState clawState = computeClawMotorState(anyBallHeld);
     MotorState driveState = computeDriveMotorState();
-    MotorState shooterState = computeShooterMotorState();
+    MotorState kickerState = computeKickerMotorState();
 
     boolean basketScored = ball1.isScoredInBasket() || ball2.isScoredInBasket();
 
@@ -619,14 +628,14 @@ public class SimWorld {
         clawState,
         driveState,
         basketScored,
-        shooter != null ? shooter.getPosition().in(Meters) : 0.0,
-        shooter != null ? shooter.getSetpoint().in(Meters) : 0.0,
-        shooter != null ? shooter.getAppliedVolts() : 0.0,
-        shooter == null || shooter.isRatchetLocked(),
-        shooter != null && shooter.isSolenoidReleased(),
-        shooter != null && shooter.isLoaded(),
-        shooter != null ? shooter.getCurrentCommandName() : "(none)",
-        shooterState);
+        kicker != null ? kicker.getPosition().in(Meters) : 0.0,
+        kicker != null ? kicker.getSetpoint().in(Meters) : 0.0,
+        kicker != null ? kicker.getAppliedVolts() : 0.0,
+        kicker == null || kicker.isRatchetLocked(),
+        kicker != null && kicker.isSolenoidReleased(),
+        kicker != null && kicker.isLoaded(),
+        kicker != null ? kicker.getCurrentCommandName() : "(none)",
+        kickerState);
   }
 
   private MotorState computeElevatorMotorState(double minLimit, boolean tableContact) {
@@ -722,16 +731,16 @@ public class SimWorld {
     return MotorState.IDLE;
   }
 
-  private MotorState computeShooterMotorState() {
-    if (!RobotBase.isEnabled() || shooter == null) {
+  private MotorState computeKickerMotorState() {
+    if (!RobotBase.isEnabled() || kicker == null) {
       return MotorState.IDLE;
     }
-    double vel = shooter.getVelocity();
-    double volts = shooter.getAppliedVolts();
-    double pos = shooter.getPosition().in(Meters);
+    double vel = kicker.getVelocity();
+    double volts = kicker.getAppliedVolts();
+    double pos = kicker.getPosition().in(Meters);
 
-    boolean atMaxPullback = pos >= (ShooterConstants.MAX_PULLBACK.in(Meters) - 0.015) && (volts > 0.5);
-    boolean againstRatchet = shooter.isRatchetLocked() && (volts < -0.5);
+    boolean atMaxPullback = pos >= (KickerConstants.MAX_PULLBACK.in(Meters) - 0.015) && (volts > 0.5);
+    boolean againstRatchet = kicker.isRatchetLocked() && (volts < -0.5);
 
     if (Math.abs(vel) < 0.02 && (atMaxPullback || againstRatchet)) {
       return MotorState.STALLED;
@@ -742,5 +751,9 @@ public class SimWorld {
     }
 
     return MotorState.IDLE;
+  }
+
+  private MotorState computeShooterMotorState() {
+    return computeKickerMotorState();
   }
 }

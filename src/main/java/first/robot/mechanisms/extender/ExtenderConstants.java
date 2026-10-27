@@ -39,6 +39,7 @@ public final class ExtenderConstants {
   public static final Distance TABLE_TARGET_EXTENSION =
       FieldConstants.TABLE_TARGET_CENTER_X.minus(RobotConstants.WRIST_BASE_X);
 
-  /** Positions the arm so the held ball sits directly in front of the shooter kicker. */
+  /** Positions the arm so the held ball sits directly in front of the kicker. */
   public static final Distance SHOOT_EXTENSION = Meters.of(0.23);
+  public static final Distance KICK_EXTENSION = SHOOT_EXTENSION;
 }

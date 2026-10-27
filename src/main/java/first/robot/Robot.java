@@ -5,7 +5,7 @@ import first.robot.mechanisms.claw.ClawMechanism;
 import first.robot.mechanisms.drive.DriveMechanism;
 import first.robot.mechanisms.elevator.ElevatorMechanism;
 import first.robot.mechanisms.extender.ExtenderMechanism;
-import first.robot.mechanisms.shooter.ShooterMechanism;
+import first.robot.mechanisms.kicker.KickerMechanism;
 import first.robot.sim.SimKeyboard;
 import first.robot.sim.SimWindow;
 import first.robot.sim.SimWorld;
@@ -15,7 +15,7 @@ import org.wpilib.framework.OpModeRobot;
 
 /**
  * Main robot container: coordinates the drivetrain, elevator (up/down), extender (in/out),
- * claw (open/close), and spring-loaded shooter mechanisms.
+ * claw (open/close), and spring-loaded kicker mechanisms.
  *
  * <p>Extends {@link OpModeRobot}, which automatically manages opmode lifecycle and discovers
  * registered {@code @Teleop} and {@code @Autonomous} classes.
@@ -33,8 +33,11 @@ public class Robot extends OpModeRobot {
   /** Claw mechanism controlling pinchers/fingers to grasp and release game balls. */
   public final ClawMechanism claw = new ClawMechanism();
 
-  /** Spring-loaded shooter mechanism with pullback motor, ratchet lock, and release solenoid. */
-  public final ShooterMechanism shooter = new ShooterMechanism();
+  /** Spring-loaded kicker mechanism with pullback motor, ratchet lock, and release solenoid. */
+  public final KickerMechanism kicker = new KickerMechanism();
+
+  /** Backward-compatible alias for kicker. */
+  public final KickerMechanism shooter = kicker;
 
   /** Driver gamepad controller on USB port 1. */
   final CommandGamepad controller = new CommandGamepad(DriverConstants.DRIVER_CONTROLLER_PORT);
@@ -70,7 +73,7 @@ public class Robot extends OpModeRobot {
     activateTeleop();
 
     // Create the simulation physics world with all mechanisms
-    simWorld = new SimWorld(elevator, extender, claw, drive, shooter);
+    simWorld = new SimWorld(elevator, extender, claw, drive, kicker);
     simWorld.setTeleopActivator(this::activateTeleop);
 
     // Launch the Swing graphical user interface

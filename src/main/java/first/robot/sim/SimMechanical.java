@@ -13,7 +13,7 @@ import first.robot.mechanisms.claw.ClawConstants;
 import first.robot.mechanisms.drive.DriveConstants;
 import first.robot.mechanisms.elevator.ElevatorConstants;
 import first.robot.mechanisms.extender.ExtenderConstants;
-import first.robot.mechanisms.shooter.ShooterConstants;
+import first.robot.mechanisms.kicker.KickerConstants;
 import java.util.HashMap;
 import java.util.Map;
 import org.wpilib.command3.Scheduler;
@@ -444,21 +444,21 @@ public final class SimMechanical {
     }
   }
 
-  /** Shooter motor entry (CAN ID 5). */
-  public static final class ShooterMotorEntry {
+  /** Kicker motor entry (CAN ID 5). */
+  public static final class KickerMotorEntry {
     private final ElevatorSim sim =
         new ElevatorSim(
             DCMotor.getNEO(1),
-            SimConstants.SHOOTER_GEARING,
-            SimConstants.SHOOTER_PLUNGER_MASS_KG,
-            SimConstants.SHOOTER_DRUM_RADIUS_METERS,
-            ShooterConstants.MIN_PULLBACK.in(Meters),
-            ShooterConstants.MAX_PULLBACK.in(Meters),
+            SimConstants.KICKER_GEARING,
+            SimConstants.KICKER_PLUNGER_MASS_KG,
+            SimConstants.KICKER_DRUM_RADIUS_METERS,
+            KickerConstants.MIN_PULLBACK.in(Meters),
+            KickerConstants.MAX_PULLBACK.in(Meters),
             false,
-            ShooterConstants.STARTING_PULLBACK.in(Meters));
+            KickerConstants.STARTING_PULLBACK.in(Meters));
     private SparkMax motor;
     private SparkMaxSim sparkSim;
-    private double ratchetFloor = ShooterConstants.STARTING_PULLBACK.in(Meters);
+    private double ratchetFloor = KickerConstants.STARTING_PULLBACK.in(Meters);
     private double pendingKickStrength = 0.0;
 
     public void attachSparkMax(SparkMax sparkMax) {
@@ -524,24 +524,24 @@ public final class SimMechanical {
 
     public void update(double dtSeconds) {
       boolean enabled = RobotBase.isEnabled();
-      boolean activeRelease = enabled && shooterSolenoidSim.getValue();
+      boolean activeRelease = enabled && kickerSolenoidSim.getValue();
 
       if (activeRelease) {
         double currentPos = sim.getPosition();
-        if (ratchetFloor >= ShooterConstants.LOADED_PULLBACK.in(Meters) - ShooterConstants.TOLERANCE.in(Meters)) {
+        if (ratchetFloor >= KickerConstants.LOADED_PULLBACK.in(Meters) - KickerConstants.TOLERANCE.in(Meters)) {
           pendingKickStrength = 1.0;
         } else if (ratchetFloor > 0.05) {
-          pendingKickStrength = Math.clamp(currentPos / ShooterConstants.LOADED_PULLBACK.in(Meters), 0.0, 1.0);
+          pendingKickStrength = Math.clamp(currentPos / KickerConstants.LOADED_PULLBACK.in(Meters), 0.0, 1.0);
         }
-        ratchetFloor = ShooterConstants.MIN_PULLBACK.in(Meters);
+        ratchetFloor = KickerConstants.MIN_PULLBACK.in(Meters);
 
         double nextPos =
             Math.max(
-                ShooterConstants.MIN_PULLBACK.in(Meters),
-                currentPos - SimConstants.SHOOTER_SPRING_RELEASE_SPEED_MPS * dtSeconds);
+                KickerConstants.MIN_PULLBACK.in(Meters),
+                currentPos - SimConstants.KICKER_SPRING_RELEASE_SPEED_MPS * dtSeconds);
         double nextVel =
-            (nextPos > ShooterConstants.MIN_PULLBACK.in(Meters))
-                ? -SimConstants.SHOOTER_SPRING_RELEASE_SPEED_MPS
+            (nextPos > KickerConstants.MIN_PULLBACK.in(Meters))
+                ? -SimConstants.KICKER_SPRING_RELEASE_SPEED_MPS
                 : 0.0;
         sim.setInputVoltage(0.0);
         sim.setState(nextPos, nextVel);
@@ -553,9 +553,9 @@ public final class SimMechanical {
           if (sim.getPosition() > ratchetFloor) {
             ratchetFloor = sim.getPosition();
           }
-          if (sim.getPosition() >= ShooterConstants.MAX_PULLBACK.in(Meters)) {
-            ratchetFloor = ShooterConstants.MAX_PULLBACK.in(Meters);
-            sim.setState(ShooterConstants.MAX_PULLBACK.in(Meters), 0.0);
+          if (sim.getPosition() >= KickerConstants.MAX_PULLBACK.in(Meters)) {
+            ratchetFloor = KickerConstants.MAX_PULLBACK.in(Meters);
+            sim.setState(KickerConstants.MAX_PULLBACK.in(Meters), 0.0);
           }
         } else {
           sim.setInputVoltage(volts);
@@ -574,11 +574,11 @@ public final class SimMechanical {
     }
 
     public void reset() {
-      sim.setState(ShooterConstants.STARTING_PULLBACK.in(Meters), 0.0);
-      ratchetFloor = ShooterConstants.STARTING_PULLBACK.in(Meters);
+      sim.setState(KickerConstants.STARTING_PULLBACK.in(Meters), 0.0);
+      ratchetFloor = KickerConstants.STARTING_PULLBACK.in(Meters);
       pendingKickStrength = 0.0;
-      shooterSolenoidSim.setValue(false);
-      setPosition(ShooterConstants.STARTING_PULLBACK.in(Meters));
+      kickerSolenoidSim.setValue(false);
+      setPosition(KickerConstants.STARTING_PULLBACK.in(Meters));
       if (sparkSim != null) {
         sparkSim.setAppliedOutput(0.0);
       }
@@ -592,10 +592,10 @@ public final class SimMechanical {
   private static final ElevatorMotorEntry elevatorEntry = new ElevatorMotorEntry();
   private static final ExtenderMotorEntry extenderEntry = new ExtenderMotorEntry();
   private static final ClawMotorEntry clawEntry = new ClawMotorEntry();
-  private static final ShooterMotorEntry shooterEntry = new ShooterMotorEntry();
+  private static final KickerMotorEntry kickerEntry = new KickerMotorEntry();
 
   private static final DIOSim clawBallSensorSim = new DIOSim(CLAW_BALL_SENSOR_DIO);
-  private static final DIOSim shooterSolenoidSim = new DIOSim(SHOOTER_SOLENOID_CHANNEL);
+  private static final DIOSim kickerSolenoidSim = new DIOSim(KICKER_SOLENOID_CHANNEL);
 
   private static final Map<Integer, SparkMax> activeMotors = new HashMap<>();
   private static final Map<Integer, DigitalInput> activeDigitalInputs = new HashMap<>();
@@ -607,7 +607,7 @@ public final class SimMechanical {
         elevatorEntry.update(LOOP_PERIOD_SECONDS);
         extenderEntry.update(LOOP_PERIOD_SECONDS);
         clawEntry.update(LOOP_PERIOD_SECONDS);
-        shooterEntry.update(LOOP_PERIOD_SECONDS);
+        kickerEntry.update(LOOP_PERIOD_SECONDS);
       };
 
   static {
@@ -674,7 +674,7 @@ public final class SimMechanical {
       case ELEVATOR_CAN_ID -> elevatorEntry.attachSparkMax(motor);
       case EXTENDER_CAN_ID -> extenderEntry.attachSparkMax(motor);
       case CLAW_CAN_ID -> clawEntry.attachSparkMax(motor);
-      case SHOOTER_CAN_ID -> shooterEntry.attachSparkMax(motor);
+      case KICKER_CAN_ID -> kickerEntry.attachSparkMax(motor);
       default -> throw new IllegalArgumentException("Unknown motor CAN ID: " + canId);
     }
   }
@@ -686,7 +686,7 @@ public final class SimMechanical {
       case ELEVATOR_CAN_ID -> elevatorEntry.setPosition(pos);
       case EXTENDER_CAN_ID -> extenderEntry.setPosition(pos);
       case CLAW_CAN_ID -> clawEntry.setPosition(pos);
-      case SHOOTER_CAN_ID -> shooterEntry.setPosition(pos);
+      case KICKER_CAN_ID -> kickerEntry.setPosition(pos);
       default -> throw new IllegalArgumentException("Unknown motor CAN ID: " + canId);
     }
   }
@@ -707,16 +707,24 @@ public final class SimMechanical {
     return clawEntry;
   }
 
-  public static ShooterMotorEntry getShooterMotor() {
-    return shooterEntry;
+  public static KickerMotorEntry getKickerMotor() {
+    return kickerEntry;
+  }
+
+  public static KickerMotorEntry getShooterMotor() {
+    return getKickerMotor();
   }
 
   public static DIOSim getClawBallSensor() {
     return clawBallSensorSim;
   }
 
+  public static DIOSim getKickerSolenoid() {
+    return kickerSolenoidSim;
+  }
+
   public static DIOSim getShooterSolenoid() {
-    return shooterSolenoidSim;
+    return getKickerSolenoid();
   }
 
   /** Clears all scheduled commands, event loops, triggers, and default command bindings. */
@@ -756,8 +764,8 @@ public final class SimMechanical {
     elevatorEntry.reset();
     extenderEntry.reset();
     clawEntry.reset();
-    shooterEntry.reset();
+    kickerEntry.reset();
     clawBallSensorSim.setValue(false);
-    shooterSolenoidSim.setValue(false);
+    kickerSolenoidSim.setValue(false);
   }
 }

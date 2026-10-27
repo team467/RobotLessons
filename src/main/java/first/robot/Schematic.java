@@ -9,9 +9,11 @@ public final class Schematic {
   public static final int ELEVATOR_CAN_ID = 2;
   public static final int EXTENDER_CAN_ID = 3;
   public static final int CLAW_CAN_ID = 4;
-  public static final int SHOOTER_CAN_ID = 5;
+  public static final int KICKER_CAN_ID = 5;
+  public static final int SHOOTER_CAN_ID = KICKER_CAN_ID;
 
   // ---- Digital I/O (DIO) Ports ----
   public static final int CLAW_BALL_SENSOR_DIO = 0;
-  public static final int SHOOTER_SOLENOID_CHANNEL = 1;
+  public static final int KICKER_SOLENOID_CHANNEL = 1;
+  public static final int SHOOTER_SOLENOID_CHANNEL = KICKER_SOLENOID_CHANNEL;
 }

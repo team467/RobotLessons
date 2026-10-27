@@ -343,7 +343,7 @@ public class SimWindow extends JFrame {
       drawTower(g, robFieldX, s);
       drawBumperSide(g, robFieldX);
       drawCarriageAndExtender(g, robFieldX, wristY, wristFieldX, s);
-      drawShooter(g, robFieldX, s);
+      drawKicker(g, robFieldX, s);
       drawClaw(g, wristFieldX, wristY, s.clawAngle(), s);
       drawSetpointMarkers(g, robFieldX, s, wristY);
 
@@ -601,25 +601,25 @@ public class SimWindow extends JFrame {
     }
 
     /**
-     * Draws the spring-loaded shooter mounted on the front of the robot tower:
+     * Draws the spring-loaded kicker mounted on the front of the robot tower:
      * mounting bracket, pullback motor, ratchet wheel & pawl, release solenoid, coil spring, and kicker foot.
      * Positioned so its extended kicker strikes a ball held near elevator=0.60m, extender=0.23m (ball center ~ rx+0.35, y=0.46),
      * while balls held too close to the robot (extender < 0.17m) sit behind the kicker.
      */
-    private void drawShooter(Graphics2D g, double rx, SimWorld.Snapshot s) {
+    private void drawKicker(Graphics2D g, double rx, SimWorld.Snapshot s) {
       double baseX = rx + 0.09;
       double baseY = 0.31;
-      double pullback = s.shooterPullback(); // 0.0 (extended) to 0.25 (pulled back)
+      double pullback = s.kickerPullback(); // 0.0 (extended) to 0.25 (pulled back)
       double extension = Math.max(0.03, 0.19 - pullback * 0.58);
 
       // Mounting bracket attached to front of tower
       fillOutlined(g, rect(rx + 0.055, baseY - 0.01, baseX + 0.125, baseY + 0.095), ALUMINUM_DARK, Color.DARK_GRAY);
 
       // Pullback winch motor housing (colored green when running, red when stalled)
-      fillOutlined(g, roundRect(baseX, baseY, baseX + 0.12, baseY + 0.075, 0.015), motorColor(s.shooterMotorState()), Color.BLACK);
-      label(g, "Shooter", baseX + 0.06, baseY - 0.025);
+      fillOutlined(g, roundRect(baseX, baseY, baseX + 0.12, baseY + 0.075, 0.015), motorColor(s.kickerMotorState()), Color.BLACK);
+      label(g, "Kicker", baseX + 0.06, baseY - 0.025);
 
-      // Ratchet wheel on the shooter shaft
+      // Ratchet wheel on the kicker shaft
       double gearCx = baseX + 0.06;
       double gearCy = baseY + 0.038;
       double gearR = 0.022;
@@ -628,24 +628,24 @@ public class SimWindow extends JFrame {
       fillOutlined(
           g,
           ratchetWheel,
-          s.shooterRatchetLocked() ? new Color(0xFBBF24) : ALUMINUM_LIGHT,
+          s.kickerRatchetLocked() ? new Color(0xFBBF24) : ALUMINUM_LIGHT,
           Color.BLACK);
 
-      // Solenoid cylinder & ratchet locking pawl on top of shooter housing
+      // Solenoid cylinder & ratchet locking pawl on top of kicker housing
       Color solenoidCol =
-          s.shooterSolenoidReleased()
+          s.kickerSolenoidReleased()
               ? new Color(0x38BDF8) // Bright cyan when solenoid releases ratchet
-              : (s.shooterLoaded() ? new Color(0xF59E0B) : new Color(0x64748B));
+              : (s.kickerLoaded() ? new Color(0xF59E0B) : new Color(0x64748B));
       fillOutlined(g, roundRect(baseX + 0.01, baseY + 0.08, baseX + 0.11, baseY + 0.12, 0.01), solenoidCol, Color.BLACK);
-      label(g, s.shooterSolenoidReleased() ? "Solenoid: OPEN" : "Ratchet LOCK", baseX + 0.06, baseY + 0.13);
+      label(g, s.kickerSolenoidReleased() ? "Solenoid: OPEN" : "Ratchet LOCK", baseX + 0.06, baseY + 0.13);
 
-      // Coil spring extending from front of shooter housing toward the kicker plate (aimed at ball when elevator=0.60, extender=0.23)
+      // Coil spring extending from front of kicker housing toward the kicker plate (aimed at ball when elevator=0.60, extender=0.23)
       double startX = baseX + 0.12;
       double startY = baseY + 0.045;
       double tipX = startX + extension;
       double tipY = startY + extension * 0.45;
 
-      g.setColor(s.shooterLoaded() ? new Color(0xF59E0B) : new Color(0xEA580C));
+      g.setColor(s.kickerLoaded() ? new Color(0xF59E0B) : new Color(0xEA580C));
       g.setStroke(new BasicStroke((float) Math.max(2.5, len(0.010))));
       int coils = 6;
       Path2D spring = new Path2D.Double();
@@ -789,11 +789,11 @@ public class SimWindow extends JFrame {
       Font monoBold = new Font(Font.MONOSPACED, Font.BOLD, 12);
       Font bold = new Font(Font.SANS_SERIF, Font.BOLD, 14);
 
-      String shooterPosLabel =
+      String kickerPosLabel =
           String.format(
               "%.2f m %s",
-              s.shooterPullback(),
-              s.shooterSolenoidReleased() ? "[REL]" : (s.shooterLoaded() ? "[LOCK]" : ""));
+              s.kickerPullback(),
+              s.kickerSolenoidReleased() ? "[REL]" : (s.kickerLoaded() ? "[LOCK]" : ""));
 
       // Subsystem table columns: Subsystem | Current Position | Setpoint | Voltage | Status
       String[] headers = {"Subsystem", "Current Position", "Setpoint", "Voltage", "Status"};
@@ -802,7 +802,7 @@ public class SimWindow extends JFrame {
         {"Elevator (Y)", String.format("%.2f m", s.elevatorHeight()), String.format("%.2f m", s.elevatorSetpoint()), String.format("%5.1f V", s.elevatorVolts()), s.elevatorCommand()},
         {"Extender (X)", String.format("%.2f m", s.extenderPosition()), String.format("%.2f m", s.extenderSetpoint()), String.format("%5.1f V", s.extenderVolts()), s.extenderCommand()},
         {"Claw", String.format("%.0f deg", Math.toDegrees(s.clawAngle())), String.format("%.0f deg", Math.toDegrees(s.clawSetpoint())), String.format("%5.1f V", s.clawVolts()), s.clawCommand()},
-        {"Shooter", shooterPosLabel, String.format("%.2f m", s.shooterSetpoint()), String.format("%5.1f V", s.shooterVolts()), s.shooterCommand()},
+        {"Kicker", kickerPosLabel, String.format("%.2f m", s.kickerSetpoint()), String.format("%5.1f V", s.kickerVolts()), s.kickerCommand()},
       };
 
       int[] colWidths = {115, 135, 105, 85, 140};
@@ -846,7 +846,7 @@ public class SimWindow extends JFrame {
         s.elevatorMotorState(),
         s.extenderMotorState(),
         s.clawMotorState(),
-        s.shooterMotorState()
+        s.kickerMotorState()
       };
       for (int r = 0; r < rows.length; r++) {
         int rowY = tableY + 6 + lineH * (r + 1);
@@ -920,7 +920,7 @@ public class SimWindow extends JFrame {
       // Key legend (bottom-left)
       String[] help = {
         "D / A: drive forward / backward    Up / Down: elevator    Left / Right: extender",
-        "Z / X: open / close claw    V: shoot pos    C / Space: pull back / kick shooter    T: Teleop    R: reset",
+        "Z / X: open / close claw    V: kick pos    C / Space: pull back / kick    T: Teleop    R: reset",
         isFocusOwnerWindow()
             ? "Keyboard active."
             : "Click this window to use the keyboard.",

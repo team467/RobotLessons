@@ -7,7 +7,7 @@ import first.robot.mechanisms.elevator.ElevatorConstants;
 import first.robot.mechanisms.elevator.ElevatorMechanism;
 import first.robot.mechanisms.extender.ExtenderConstants;
 import first.robot.mechanisms.extender.ExtenderMechanism;
-import first.robot.mechanisms.shooter.ShooterMechanism;
+import first.robot.mechanisms.kicker.KickerMechanism;
 import org.wpilib.command3.Command;
 
 /**
@@ -134,7 +134,7 @@ public final class BallCommands {
 
   /**
    * Moves the arm (elevator and extender) to the shooting position ({@code elevator = 0.60m,
-   * extender = 0.23m}) where a held ball sits directly in front of the spring-loaded shooter. If
+   * extender = 0.23m}) where a held ball sits directly in front of the spring-loaded kicker. If
    * the arm is currently extended over the table, raises above the table first before retracting.
    */
   public static Command moveToShootPosition(
@@ -152,21 +152,30 @@ public final class BallCommands {
   }
 
   /**
-   * Positions a held ball close to the front of the robot in front of the spring-loaded shooter,
-   * pulls the shooter back against its ratchet, and releases the solenoid to kick the ball into
+   * Positions a held ball close to the front of the robot in front of the spring-loaded kicker,
+   * pulls the kicker back against its ratchet, and releases the solenoid to kick the ball into
    * the elevated basket.
    */
+  public static Command kickBallIntoBasket(
+      ElevatorMechanism elevator,
+      ExtenderMechanism extender,
+      ClawMechanism claw,
+      KickerMechanism kicker) {
+    return Command.noRequirements(coroutine -> {
+      coroutine.awaitAll(
+          moveToShootPosition(elevator, extender),
+          kicker.pullBack());
+      // Release the solenoid to kick the ball toward the basket
+      coroutine.await(kicker.kick());
+    }).named("Kick Ball Into Basket");
+  }
+
+  /** Alias for {@link #kickBallIntoBasket}. */
   public static Command shootBallIntoBasket(
       ElevatorMechanism elevator,
       ExtenderMechanism extender,
       ClawMechanism claw,
-      ShooterMechanism shooter) {
-    return Command.noRequirements(coroutine -> {
-      coroutine.awaitAll(
-          moveToShootPosition(elevator, extender),
-          shooter.pullBack());
-      // Release the solenoid to kick the ball toward the basket
-      coroutine.await(shooter.kick());
-    }).named("Shoot Ball Into Basket");
+      KickerMechanism kicker) {
+    return kickBallIntoBasket(elevator, extender, claw, kicker);
   }
 }

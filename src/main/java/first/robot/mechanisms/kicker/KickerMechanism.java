@@ -1,6 +1,6 @@
-package first.robot.mechanisms.shooter;
+package first.robot.mechanisms.kicker;
 
-import static first.robot.mechanisms.shooter.ShooterConstants.*;
+import static first.robot.mechanisms.kicker.KickerConstants.*;
 import static org.wpilib.units.Units.Meters;
 
 import com.revrobotics.RelativeEncoder;
@@ -19,14 +19,14 @@ import org.wpilib.math.controller.PIDController;
 import org.wpilib.units.measure.Distance;
 
 /**
- * Spring-loaded shooter subsystem mounted on the front of the robot.
+ * Spring-loaded kicker subsystem mounted on the front of the robot.
  *
  * <p>A pullback motor spins to pull the spring-loaded plunger back while a mechanical ratchet locks
  * it in place. Releasing the solenoid disengages the ratchet to kick a ball held close to the robot
  * in an upward arc toward the elevated basket.
  */
-public class ShooterMechanism implements Mechanism {
-  /** The target goal/intent for the shooter state machine. */
+public class KickerMechanism implements Mechanism {
+  /** The target goal/intent for the kicker state machine. */
   public enum Goal {
     IDLE,
     LOAD,
@@ -43,19 +43,19 @@ public class ShooterMechanism implements Mechanism {
   private Distance setpoint = STARTING_PULLBACK;
   private Goal goal = Goal.IDLE;
 
-  /** True when the shooter spring is pulled back and locked by the ratchet, ready to fire. */
+  /** True when the kicker spring is pulled back and locked by the ratchet, ready to fire. */
   public final Trigger isLoaded = new Trigger(this::isLoaded);
 
   /** True when the plunger is within tolerance of its target pullback position. */
   public final Trigger atSetpoint = new Trigger(this::atSetpoint);
 
-  public ShooterMechanism() {
+  public KickerMechanism() {
     this(
-        Mechanical.createSparkMax(Schematic.SHOOTER_CAN_ID, MotorType.kBrushless),
-        Mechanical.createDigitalOutput(Schematic.SHOOTER_SOLENOID_CHANNEL));
+        Mechanical.createSparkMax(Schematic.KICKER_CAN_ID, MotorType.kBrushless),
+        Mechanical.createDigitalOutput(Schematic.KICKER_SOLENOID_CHANNEL));
   }
 
-  public ShooterMechanism(SparkMax motor, DigitalOutput solenoid) {
+  public KickerMechanism(SparkMax motor, DigitalOutput solenoid) {
     this.motor = motor;
     this.encoder = motor.getEncoder();
     this.solenoid = solenoid;
@@ -68,11 +68,11 @@ public class ShooterMechanism implements Mechanism {
   // ------------------------------------------------------------------------------------------
 
   /**
-   * The overarching state machine managing the shooter's lifecycle: idle, winding/pullback,
+   * The overarching state machine managing the kicker's lifecycle: idle, winding/pullback,
    * ratchet lock (loaded), solenoid release (kick), follow-through, and manual jogging.
    */
   public StateMachine stateMachine() {
-    StateMachine machine = new StateMachine("Shooter");
+    StateMachine machine = new StateMachine("Kicker");
 
     StateMachine.State idle = machine.addState(
         runRepeatedly(() -> {
@@ -81,14 +81,14 @@ public class ShooterMechanism implements Mechanism {
           }
           motor.setVoltage(0.0);
           solenoid.set(false);
-        }).named("Shooter Idle"));
+        }).named("Kicker Idle"));
 
     StateMachine.State pullingBack = machine.addState(
         runRepeatedly(() -> {
           solenoid.set(false);
           double volts = Math.max(PULLBACK_VOLTS, pid.calculate(getPosition().in(Meters), setpoint.in(Meters)));
           motor.setVoltage(Math.clamp(volts, 0.0, MAX_VOLTS));
-        }).named("Shooter Pulling Back"));
+        }).named("Kicker Pulling Back"));
     pullingBack.onEnter(() -> {
       setpoint = LOADED_PULLBACK;
       solenoid.set(false);
@@ -99,13 +99,13 @@ public class ShooterMechanism implements Mechanism {
         runRepeatedly(() -> {
           motor.setVoltage(0.0);
           solenoid.set(false);
-        }).named("Shooter Loaded"));
+        }).named("Kicker Loaded"));
 
     StateMachine.State releasing = machine.addState(
         runRepeatedly(() -> {
           motor.setVoltage(0.0);
           solenoid.set(true);
-        }).named("Shooter Releasing"));
+        }).named("Kicker Releasing"));
     releasing.onEnter(() -> {
       setpoint = MIN_PULLBACK;
       motor.setVoltage(0.0);
@@ -120,7 +120,7 @@ public class ShooterMechanism implements Mechanism {
           for (int i = 0; i < 3; i++) {
             coroutine.yield();
           }
-        }).named("Shooter Follow-Through"));
+        }).named("Kicker Follow-Through"));
     followThrough.onExit(() -> {
       solenoid.set(false);
       if (goal == Goal.KICK) {
@@ -133,7 +133,7 @@ public class ShooterMechanism implements Mechanism {
           solenoid.set(false);
           setpoint = MAX_PULLBACK;
           motor.setVoltage(PULLBACK_VOLTS);
-        }).named("Shooter Wind"));
+        }).named("Kicker Wind"));
     manualWind.onExit(() -> motor.setVoltage(0.0));
 
     StateMachine.State manualRelease = machine.addState(
@@ -141,7 +141,7 @@ public class ShooterMechanism implements Mechanism {
           setpoint = MIN_PULLBACK;
           motor.setVoltage(0.0);
           solenoid.set(true);
-        }).named("Shooter Release"));
+        }).named("Kicker Release"));
     manualRelease.onExit(() -> solenoid.set(false));
 
     // Transitions from idle:
@@ -215,7 +215,7 @@ public class ShooterMechanism implements Mechanism {
   }
 
   /**
-   * Spins the pullback motor to wind the spring back to {@link ShooterConstants#LOADED_PULLBACK}
+   * Spins the pullback motor to wind the spring back to {@link KickerConstants#LOADED_PULLBACK}
    * with the ratchet engaged, then stops the motor so the ratchet holds it cocked.
    */
   public Command pullBack() {
@@ -229,7 +229,7 @@ public class ShooterMechanism implements Mechanism {
       if (goal == Goal.LOAD && !isLoaded()) {
         setGoal(Goal.IDLE);
       }
-    }).named("Shooter Pull Back");
+    }).named("Kicker Pull Back");
   }
 
   /**
@@ -248,18 +248,18 @@ public class ShooterMechanism implements Mechanism {
       if (goal == Goal.KICK) {
         setGoal(Goal.IDLE);
       }
-    }).named("Shooter Kick");
+    }).named("Kicker Kick");
   }
 
   /**
    * Manual command that winds the pullback motor while held (will stall at {@link
-   * ShooterConstants#MAX_PULLBACK} if held past the limit).
+   * KickerConstants#MAX_PULLBACK} if held past the limit).
    */
   public Command wind() {
     return Command.noRequirements(coroutine -> {
       setGoal(Goal.WIND);
       coroutine.park();
-    }).whenCanceled(() -> setGoal(Goal.IDLE)).named("Shooter Wind");
+    }).whenCanceled(() -> setGoal(Goal.IDLE)).named("Kicker Wind");
   }
 
   /** Manual command that holds the release solenoid open while active. */
@@ -267,17 +267,17 @@ public class ShooterMechanism implements Mechanism {
     return Command.noRequirements(coroutine -> {
       setGoal(Goal.RELEASE);
       coroutine.park();
-    }).whenCanceled(() -> setGoal(Goal.IDLE)).named("Shooter Release");
+    }).whenCanceled(() -> setGoal(Goal.IDLE)).named("Kicker Release");
   }
 
   /**
-   * Default command: runs the shooter state machine, maintaining idle or holding cocked spring
+   * Default command: runs the kicker state machine, maintaining idle or holding cocked spring
    * tension without drawing motor current.
    */
   public Command hold() {
     return run(coroutine -> coroutine.await(stateMachine()))
         .withPriority(Command.LOWEST_PRIORITY)
-        .named("Shooter Hold");
+        .named("Kicker Hold");
   }
 
   // ------------------------------------------------------------------------------------------

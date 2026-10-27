@@ -7,7 +7,7 @@ import first.robot.mechanisms.drive.DriveMechanism;
 import first.robot.mechanisms.elevator.ElevatorMechanism;
 import first.robot.mechanisms.extender.ExtenderConstants;
 import first.robot.mechanisms.extender.ExtenderMechanism;
-import first.robot.mechanisms.shooter.ShooterMechanism;
+import first.robot.mechanisms.kicker.KickerMechanism;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Scheduler;
 import org.wpilib.opmode.Autonomous;
@@ -16,10 +16,10 @@ import org.wpilib.opmode.OpMode;
 /**
  * Autonomous opmode that shoots both balls into the elevated basket to the right of the table:
  * <ol>
- *   <li>Picks up Ball 2 (Orange) from the floor while winding the spring-loaded shooter back against its ratchet.</li>
+ *   <li>Picks up Ball 2 (Orange) from the floor while winding the spring-loaded kicker back against its ratchet.</li>
  *   <li>Retracts the arm close to the robot and drives to the table in parallel.</li>
  *   <li>Releases the solenoid to kick Ball 2 into the basket.</li>
- *   <li>Grabs Ball 1 (Green) off the table while re-cocking the shooter in parallel.</li>
+ *   <li>Grabs Ball 1 (Green) off the table while re-cocking the kicker in parallel.</li>
  *   <li>Retracts the arm close to the robot and releases the solenoid to kick Ball 1 into the basket.</li>
  * </ol>
  */
@@ -30,7 +30,7 @@ public class ShootBothBallsAuto implements OpMode {
   public ShootBothBallsAuto(Robot robot) {
     auto =
         shootBothBallsRoutine(
-            robot.drive, robot.elevator, robot.extender, robot.claw, robot.shooter);
+            robot.drive, robot.elevator, robot.extender, robot.claw, robot.kicker);
   }
 
   /**
@@ -40,7 +40,7 @@ public class ShootBothBallsAuto implements OpMode {
    * @param elevator Elevator mechanism for vertical positioning.
    * @param extender Extender mechanism for horizontal arm extension.
    * @param claw Claw mechanism for ball grip and release.
-   * @param shooter Spring-loaded shooter mechanism for kicking balls into the basket.
+   * @param kicker Spring-loaded kicker mechanism for kicking balls into the basket.
    * @return A command executing the full two-ball basket shooting sequence.
    */
   public static Command shootBothBallsRoutine(
@@ -48,12 +48,12 @@ public class ShootBothBallsAuto implements OpMode {
       ElevatorMechanism elevator,
       ExtenderMechanism extender,
       ClawMechanism claw,
-      ShooterMechanism shooter) {
+      KickerMechanism kicker) {
     return Command.noRequirements(coroutine -> {
-      // Step 1: Pick up Ball 2 (Orange) from the ground while pulling back the shooter in parallel
+      // Step 1: Pick up Ball 2 (Orange) from the ground while pulling back the kicker in parallel
       coroutine.awaitAll(
           BallCommands.grabBallFromGround(elevator, extender, claw),
-          shooter.pullBack());
+          kicker.pullBack());
 
       // Step 2: Retract the arm close to the robot while driving to the table
       coroutine.awaitAll(
@@ -61,15 +61,15 @@ public class ShootBothBallsAuto implements OpMode {
           drive.driveToTable());
 
       // Step 3: Kick Ball 2 into the basket
-      coroutine.await(BallCommands.shootBallIntoBasket(elevator, extender, claw, shooter));
+      coroutine.await(BallCommands.shootBallIntoBasket(elevator, extender, claw, kicker));
 
-      // Step 4: Grab Ball 1 (Green) from the table while re-cocking the shooter in parallel
+      // Step 4: Grab Ball 1 (Green) from the table while re-cocking the kicker in parallel
       coroutine.awaitAll(
           BallCommands.grabBallFromTable(elevator, extender, claw),
-          shooter.pullBack());
+          kicker.pullBack());
 
       // Step 5: Bring Ball 1 close to the robot and kick it into the basket
-      coroutine.await(BallCommands.shootBallIntoBasket(elevator, extender, claw, shooter));
+      coroutine.await(BallCommands.shootBallIntoBasket(elevator, extender, claw, kicker));
     }).named("Shoot Both Balls");
   }
 

@@ -31,10 +31,15 @@ public final class DriverConstants {
   public static final int KEY_DRIVE_FORWARD = KeyEvent.VK_D;
   /** Hold to drive backward towards the start zone (A key). */
   public static final int KEY_DRIVE_BACKWARD = KeyEvent.VK_A;
-  /** Press to pull back / cock the spring-loaded shooter against its ratchet (C key). */
-  public static final int KEY_SHOOTER_PULL = KeyEvent.VK_C;
-  /** Press to release the shooter solenoid and kick the ball toward the basket (Space key). */
-  public static final int KEY_SHOOTER_KICK = KeyEvent.VK_SPACE;
-  /** Press to move the arm (elevator and extender) to the shooting position (V key). */
-  public static final int KEY_SHOOT_POSITION = KeyEvent.VK_V;
+  /** Press to pull back / cock the spring-loaded kicker against its ratchet (C key). */
+  public static final int KEY_KICKER_PULL = KeyEvent.VK_C;
+  public static final int KEY_SHOOTER_PULL = KEY_KICKER_PULL;
+
+  /** Press to release the kicker solenoid and kick the ball toward the basket (Space key). */
+  public static final int KEY_KICKER_KICK = KeyEvent.VK_SPACE;
+  public static final int KEY_SHOOTER_KICK = KEY_KICKER_KICK;
+
+  /** Press to move the arm (elevator and extender) to the kicking/shooting position (V key). */
+  public static final int KEY_KICK_POSITION = KeyEvent.VK_V;
+  public static final int KEY_SHOOT_POSITION = KEY_KICK_POSITION;
 }

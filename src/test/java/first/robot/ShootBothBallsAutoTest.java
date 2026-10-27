@@ -8,8 +8,8 @@ import first.robot.mechanisms.claw.ClawMechanism;
 import first.robot.mechanisms.drive.DriveMechanism;
 import first.robot.mechanisms.elevator.ElevatorMechanism;
 import first.robot.mechanisms.extender.ExtenderMechanism;
-import first.robot.mechanisms.shooter.ShooterConstants;
-import first.robot.mechanisms.shooter.ShooterMechanism;
+import first.robot.mechanisms.kicker.KickerConstants;
+import first.robot.mechanisms.kicker.KickerMechanism;
 import first.robot.sim.SimMechanical;
 import first.robot.sim.SimWorld;
 import org.junit.jupiter.api.BeforeAll;
@@ -34,42 +34,42 @@ public class ShootBothBallsAutoTest {
   }
 
   @Test
-  void testShooterPullBackRatchetLockAndSolenoidKick() {
-    ShooterMechanism shooter = new ShooterMechanism();
+  void testKickerPullBackRatchetLockAndSolenoidKick() {
+    KickerMechanism kicker = new KickerMechanism();
 
-    // 1. Pull back the shooter against the spring
-    Scheduler.getDefault().schedule(shooter.pullBack());
+    // 1. Pull back the kicker against the spring
+    Scheduler.getDefault().schedule(kicker.pullBack());
     for (int i = 0; i < 60; i++) {
       Scheduler.getDefault().run();
-      if (shooter.isLoaded()) {
+      if (kicker.isLoaded()) {
         break;
       }
     }
 
-    assertTrue(shooter.isLoaded(), "Shooter should reach loaded pullback position");
-    assertTrue(shooter.isRatchetLocked(), "Ratchet should be locked");
+    assertTrue(kicker.isLoaded(), "Kicker should reach loaded pullback position");
+    assertTrue(kicker.isRatchetLocked(), "Ratchet should be locked");
 
     // 2. Let default hold() command run with 0V and verify ratchet holds the spring in place
     for (int i = 0; i < 20; i++) {
       Scheduler.getDefault().run();
     }
-    assertEquals(0.0, shooter.getAppliedVolts(), 1e-4, "Hold command should apply 0V");
+    assertEquals(0.0, kicker.getAppliedVolts(), 1e-4, "Hold command should apply 0V");
     assertTrue(
-        shooter.getPosition().in(Meters) >= ShooterConstants.LOADED_PULLBACK.in(Meters) - ShooterConstants.TOLERANCE.in(Meters),
+        kicker.getPosition().in(Meters) >= KickerConstants.LOADED_PULLBACK.in(Meters) - KickerConstants.TOLERANCE.in(Meters),
         "Ratchet should hold the plunger pulled back with 0V motor output");
 
     // 3. Release solenoid to kick
-    Scheduler.getDefault().schedule(shooter.kick());
+    Scheduler.getDefault().schedule(kicker.kick());
     for (int i = 0; i < 30; i++) {
       Scheduler.getDefault().run();
     }
 
     assertEquals(
-        ShooterConstants.MIN_PULLBACK.in(Meters),
-        shooter.getPosition().in(Meters),
-        ShooterConstants.TOLERANCE.in(Meters),
+        KickerConstants.MIN_PULLBACK.in(Meters),
+        kicker.getPosition().in(Meters),
+        KickerConstants.TOLERANCE.in(Meters),
         "Solenoid release should snap the plunger back to 0");
-    assertFalse(shooter.isLoaded(), "Shooter should no longer be loaded after kick");
+    assertFalse(kicker.isLoaded(), "Kicker should no longer be loaded after kick");
   }
 
   @Test
@@ -78,12 +78,12 @@ public class ShootBothBallsAutoTest {
     ExtenderMechanism extender = new ExtenderMechanism();
     ClawMechanism claw = new ClawMechanism();
     DriveMechanism drive = new DriveMechanism();
-    ShooterMechanism shooter = new ShooterMechanism();
+    KickerMechanism kicker = new KickerMechanism();
 
-    SimWorld world = new SimWorld(elevator, extender, claw, drive, shooter);
+    SimWorld world = new SimWorld(elevator, extender, claw, drive, kicker);
 
     Command auto =
-        ShootBothBallsAuto.shootBothBallsRoutine(drive, elevator, extender, claw, shooter);
+        ShootBothBallsAuto.shootBothBallsRoutine(drive, elevator, extender, claw, kicker);
     Scheduler.getDefault().schedule(auto);
 
     boolean bothScored = false;
@@ -107,14 +107,14 @@ public class ShootBothBallsAutoTest {
   }
 
   @Test
-  void testShooterDoesNothingWhenBallTooCloseToRobot() {
+  void testKickerDoesNothingWhenBallTooCloseToRobot() {
     ElevatorMechanism elevator = new ElevatorMechanism();
     ExtenderMechanism extender = new ExtenderMechanism();
     ClawMechanism claw = new ClawMechanism();
     DriveMechanism drive = new DriveMechanism();
-    ShooterMechanism shooter = new ShooterMechanism();
+    KickerMechanism kicker = new KickerMechanism();
 
-    SimWorld world = new SimWorld(elevator, extender, claw, drive, shooter);
+    SimWorld world = new SimWorld(elevator, extender, claw, drive, kicker);
 
     // Grab Ball 2 at start zone, then retract extender all the way to 0.0m (too close to the robot)
     Command grabAndRetractTooClose =
@@ -126,8 +126,8 @@ public class ShootBothBallsAutoTest {
                   coroutine.awaitAll(
                       elevator.moveTo(0.60),
                       extender.moveTo(0.0),
-                      shooter.pullBack());
-                  coroutine.await(shooter.kick());
+                      kicker.pullBack());
+                  coroutine.await(kicker.kick());
                 })
             .named("Grab And Retract Too Close");
     Scheduler.getDefault().schedule(grabAndRetractTooClose);
@@ -139,7 +139,7 @@ public class ShootBothBallsAutoTest {
 
     assertEquals(0.0, extender.getPosition().in(Meters), 0.03, "Extender should be retracted to 0.0m");
     assertEquals(0.60, elevator.getPosition().in(Meters), 0.03, "Elevator should be at 0.60m");
-    assertFalse(shooter.isLoaded(), "Shooter should have released and kicked");
+    assertFalse(kicker.isLoaded(), "Kicker should have released and kicked");
     assertTrue(
         world.snapshot().ball2Held(),
         "Kicking when extender=0.0m (too close to robot) should not launch the held ball");
