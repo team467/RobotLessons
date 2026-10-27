@@ -2,6 +2,8 @@ package first.robot.sim;
 
 import static first.robot.constants.RobotConstants.WRIST_BASE_X;
 import static first.robot.constants.SimulationConstants.LOOP_PERIOD_SECONDS;
+import static org.wpilib.units.Units.Meters;
+import static org.wpilib.units.Units.Radians;
 
 import first.robot.mechanisms.claw.ClawMechanism;
 import first.robot.mechanisms.drive.DriveConstants;
@@ -112,40 +114,40 @@ public class SimWorld {
     this.shooter = shooter;
 
     double tableFieldLeft =
-        first.robot.constants.FieldConstants.ROBOT_TABLE_X
-            + first.robot.constants.FieldConstants.TABLE_LEFT_X;
+        first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters)
+            + first.robot.constants.FieldConstants.TABLE_LEFT_X.in(Meters);
     double tableFieldRight =
-        first.robot.constants.FieldConstants.ROBOT_TABLE_X
-            + first.robot.constants.FieldConstants.TABLE_RIGHT_X;
+        first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters)
+            + first.robot.constants.FieldConstants.TABLE_RIGHT_X.in(Meters);
     double targetFieldLeft =
-        first.robot.constants.FieldConstants.ROBOT_TABLE_X
-            + first.robot.constants.FieldConstants.TARGET_LEFT_X;
+        first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters)
+            + first.robot.constants.FieldConstants.TARGET_LEFT_X.in(Meters);
     double targetFieldRight =
-        first.robot.constants.FieldConstants.ROBOT_TABLE_X
-            + first.robot.constants.FieldConstants.TARGET_RIGHT_X;
+        first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters)
+            + first.robot.constants.FieldConstants.TARGET_RIGHT_X.in(Meters);
     double tableTargetFieldLeft =
-        first.robot.constants.FieldConstants.ROBOT_TABLE_X
-            + first.robot.constants.FieldConstants.TABLE_TARGET_LEFT_X;
+        first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters)
+            + first.robot.constants.FieldConstants.TABLE_TARGET_LEFT_X.in(Meters);
     double tableTargetFieldRight =
-        first.robot.constants.FieldConstants.ROBOT_TABLE_X
-            + first.robot.constants.FieldConstants.TABLE_TARGET_RIGHT_X;
+        first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters)
+            + first.robot.constants.FieldConstants.TABLE_TARGET_RIGHT_X.in(Meters);
     double basketFieldLeft =
-        first.robot.constants.FieldConstants.ROBOT_TABLE_X
-            + first.robot.constants.FieldConstants.BASKET_LEFT_X;
+        first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters)
+            + first.robot.constants.FieldConstants.BASKET_LEFT_X.in(Meters);
     double basketFieldRight =
-        first.robot.constants.FieldConstants.ROBOT_TABLE_X
-            + first.robot.constants.FieldConstants.BASKET_RIGHT_X;
-    double basketHeight = first.robot.constants.FieldConstants.BASKET_HEIGHT;
+        first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters)
+            + first.robot.constants.FieldConstants.BASKET_RIGHT_X.in(Meters);
+    double basketHeight = first.robot.constants.FieldConstants.BASKET_HEIGHT.in(Meters);
 
     this.ball1 =
         new BallSim(
-            first.robot.constants.FieldConstants.ROBOT_TABLE_X
-                + first.robot.constants.FieldConstants.BALL1_START_X,
-            first.robot.constants.FieldConstants.BALL1_START_Y,
+            first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters)
+                + first.robot.constants.FieldConstants.BALL1_START_X.in(Meters),
+            first.robot.constants.FieldConstants.BALL1_START_Y.in(Meters),
             BallSim.State.ON_TABLE,
             tableFieldLeft,
             tableFieldRight,
-            first.robot.constants.FieldConstants.TABLE_HEIGHT,
+            first.robot.constants.FieldConstants.TABLE_HEIGHT.in(Meters),
             targetFieldLeft,
             targetFieldRight,
             0.0);
@@ -154,16 +156,16 @@ public class SimWorld {
 
     this.ball2 =
         new BallSim(
-            first.robot.constants.FieldConstants.ROBOT_START_X
-                + first.robot.constants.FieldConstants.BALL2_START_X,
-            first.robot.constants.FieldConstants.BALL2_START_Y,
+            first.robot.constants.FieldConstants.ROBOT_START_X.in(Meters)
+                + first.robot.constants.FieldConstants.BALL2_START_X.in(Meters),
+            first.robot.constants.FieldConstants.BALL2_START_Y.in(Meters),
             BallSim.State.ON_FLOOR,
             tableFieldLeft,
             tableFieldRight,
-            first.robot.constants.FieldConstants.TABLE_HEIGHT,
+            first.robot.constants.FieldConstants.TABLE_HEIGHT.in(Meters),
             tableTargetFieldLeft,
             tableTargetFieldRight,
-            first.robot.constants.FieldConstants.TABLE_HEIGHT);
+            first.robot.constants.FieldConstants.TABLE_HEIGHT.in(Meters));
     this.ball2.setBasketBounds(basketFieldLeft, basketFieldRight, basketHeight);
     this.ball2.setFloorTargetBounds(targetFieldLeft, targetFieldRight);
 
@@ -337,51 +339,51 @@ public class SimWorld {
     }
 
     double robotFieldX =
-        (drive != null) ? drive.getPosition() : first.robot.constants.FieldConstants.ROBOT_TABLE_X;
-    double wristExtenderX = WRIST_BASE_X + extender.getPosition();
+        (drive != null) ? drive.getPosition().in(Meters) : first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters);
+    double wristExtenderX = WRIST_BASE_X.in(Meters) + extender.getPosition().in(Meters);
     double wristFieldX = robotFieldX + wristExtenderX;
-    double wristY = elevator.getPosition();
+    double wristY = elevator.getPosition().in(Meters);
     double clawAngle = SimMechanical.getClawMotor().getSimAngle();
     boolean ballHeld = ball1.isHeld() || ball2.isHeld();
 
     // The lowest point of the claw fingers / held ball relative to wristY
-    double clawDrop = 0.02 + first.robot.constants.RobotConstants.FINGER_LENGTH * Math.cos(clawAngle);
+    double clawDrop = 0.02 + first.robot.constants.RobotConstants.FINGER_LENGTH.in(Meters) * Math.cos(clawAngle);
     if (ballHeld) {
-      clawDrop = Math.max(clawDrop, first.robot.constants.RobotConstants.GRIP_DEPTH + first.robot.constants.FieldConstants.BALL_RADIUS);
+      clawDrop = Math.max(clawDrop, first.robot.constants.RobotConstants.GRIP_DEPTH.in(Meters) + first.robot.constants.FieldConstants.BALL_RADIUS.in(Meters));
     }
     double clawLowestY = wristY - clawDrop;
 
     // How far in front of wristSideX the fingers / held ball reach
-    double clawFrontReach = 0.03 + first.robot.constants.RobotConstants.FINGER_LENGTH * Math.sin(clawAngle);
+    double clawFrontReach = 0.03 + first.robot.constants.RobotConstants.FINGER_LENGTH.in(Meters) * Math.sin(clawAngle);
     if (ballHeld) {
-      clawFrontReach = Math.max(clawFrontReach, first.robot.constants.FieldConstants.BALL_RADIUS);
+      clawFrontReach = Math.max(clawFrontReach, first.robot.constants.FieldConstants.BALL_RADIUS.in(Meters));
     }
     double tableFieldLeft =
-        first.robot.constants.FieldConstants.ROBOT_TABLE_X
-            + first.robot.constants.FieldConstants.TABLE_LEFT_X;
+        first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters)
+            + first.robot.constants.FieldConstants.TABLE_LEFT_X.in(Meters);
     double tableFieldRight =
-        first.robot.constants.FieldConstants.ROBOT_TABLE_X
-            + first.robot.constants.FieldConstants.TABLE_RIGHT_X;
+        first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters)
+            + first.robot.constants.FieldConstants.TABLE_RIGHT_X.in(Meters);
 
     boolean tableContact = false;
 
     // Check collision with the table in field coordinates:
     // Only applies when robot arm is approaching the table from the left
     if (wristFieldX < tableFieldLeft
-        && clawLowestY < first.robot.constants.FieldConstants.TABLE_HEIGHT - 0.015) {
+        && clawLowestY < first.robot.constants.FieldConstants.TABLE_HEIGHT.in(Meters) - 0.015) {
       if (wristFieldX + clawFrontReach >= tableFieldLeft - 0.015) {
         // Claw tip reaches the table's left edge: stop extender and flag collision
         double maxAllowedWristFieldX = tableFieldLeft - clawFrontReach;
         double maxAllowedExtenderWrist = maxAllowedWristFieldX - robotFieldX;
-        double maxExt = Math.max(0.0, maxAllowedExtenderWrist - WRIST_BASE_X);
+        double maxExt = Math.max(0.0, maxAllowedExtenderWrist - WRIST_BASE_X.in(Meters));
         SimMechanical.getExtenderMotor().setMaxExtensionLimit(maxExt);
         tableContact = true;
       } else {
         SimMechanical.getExtenderMotor()
-            .setMaxExtensionLimit(first.robot.mechanisms.extender.ExtenderConstants.MAX_EXTENSION);
+            .setMaxExtensionLimit(first.robot.mechanisms.extender.ExtenderConstants.MAX_EXTENSION.in(Meters));
       }
       SimMechanical.getElevatorMotor()
-          .setMinHeightLimit(first.robot.mechanisms.elevator.ElevatorConstants.MIN_HEIGHT);
+          .setMinHeightLimit(first.robot.mechanisms.elevator.ElevatorConstants.MIN_HEIGHT.in(Meters));
     } else {
       // Claw is high enough to be over the table, or wrist has moved over the table
       boolean overTable = (wristFieldX + clawFrontReach) >= tableFieldLeft
@@ -389,23 +391,23 @@ public class SimWorld {
 
       if (overTable) {
         // Over the table top: elevator cannot penetrate down into the table surface
-        double minElevatorHeight = first.robot.constants.FieldConstants.TABLE_HEIGHT + clawDrop;
+        double minElevatorHeight = first.robot.constants.FieldConstants.TABLE_HEIGHT.in(Meters) + clawDrop;
         SimMechanical.getElevatorMotor().setMinHeightLimit(minElevatorHeight);
-        if (clawLowestY <= first.robot.constants.FieldConstants.TABLE_HEIGHT + 0.015) {
+        if (clawLowestY <= first.robot.constants.FieldConstants.TABLE_HEIGHT.in(Meters) + 0.015) {
           tableContact = true;
         }
       } else {
         SimMechanical.getElevatorMotor()
-            .setMinHeightLimit(first.robot.mechanisms.elevator.ElevatorConstants.MIN_HEIGHT);
+            .setMinHeightLimit(first.robot.mechanisms.elevator.ElevatorConstants.MIN_HEIGHT.in(Meters));
       }
       SimMechanical.getExtenderMotor()
-          .setMaxExtensionLimit(first.robot.mechanisms.extender.ExtenderConstants.MAX_EXTENSION);
+          .setMaxExtensionLimit(first.robot.mechanisms.extender.ExtenderConstants.MAX_EXTENSION.in(Meters));
     }
 
     if (shooter != null) {
       double kickStrength = SimMechanical.getShooterMotor().consumeKickStrength();
       if (kickStrength > 0.0) {
-        double ext = extender.getPosition();
+        double ext = extender.getPosition().in(Meters);
         boolean armInStrikeZone =
             ext >= SimConstants.SHOOTER_MIN_STRIKE_EXTENSION
                 && ext <= SimConstants.SHOOTER_MAX_STRIKE_EXTENSION
@@ -429,11 +431,11 @@ public class SimWorld {
     ball2.checkBumperContact(robotFieldX, robotVelX);
 
     double targetFieldLeft =
-        first.robot.constants.FieldConstants.ROBOT_TABLE_X
-            + first.robot.constants.FieldConstants.TARGET_LEFT_X;
+        first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters)
+            + first.robot.constants.FieldConstants.TARGET_LEFT_X.in(Meters);
     double targetFieldRight =
-        first.robot.constants.FieldConstants.ROBOT_TABLE_X
-            + first.robot.constants.FieldConstants.TARGET_RIGHT_X;
+        first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters)
+            + first.robot.constants.FieldConstants.TARGET_RIGHT_X.in(Meters);
     boolean ball1InFloorTarget =
         ball1.getState() == BallSim.State.ON_FLOOR
             && ball1.getX() >= targetFieldLeft
@@ -560,11 +562,11 @@ public class SimWorld {
     }
 
     double robotFieldX =
-        (drive != null) ? drive.getPosition() : first.robot.constants.FieldConstants.ROBOT_TABLE_X;
-    double robotSideX = robotFieldX - first.robot.constants.FieldConstants.ROBOT_TABLE_X;
+        (drive != null) ? drive.getPosition().in(Meters) : first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters);
+    double robotSideX = robotFieldX - first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters);
 
-    double ball1SideX = ball1.getX() - first.robot.constants.FieldConstants.ROBOT_TABLE_X;
-    double ball2SideX = ball2.getX() - first.robot.constants.FieldConstants.ROBOT_TABLE_X;
+    double ball1SideX = ball1.getX() - first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters);
+    double ball2SideX = ball2.getX() - first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters);
 
     double minElevatorLimit = SimMechanical.getElevatorMotor().getMinHeightLimit();
     double maxExtenderLimit = SimMechanical.getExtenderMotor().getMaxExtensionLimit();
@@ -579,16 +581,16 @@ public class SimWorld {
     boolean basketScored = ball1.isScoredInBasket() || ball2.isScoredInBasket();
 
     return new Snapshot(
-        elevator.getPosition(),
-        elevator.getSetpoint(),
+        elevator.getPosition().in(Meters),
+        elevator.getSetpoint().in(Meters),
         elevator.getAppliedVolts(),
         elevator.getCurrentCommandName(),
-        extender.getPosition(),
-        extender.getSetpoint(),
+        extender.getPosition().in(Meters),
+        extender.getSetpoint().in(Meters),
         extender.getAppliedVolts(),
         extender.getCurrentCommandName(),
-        claw.getAngle(),
-        claw.getSetpoint(),
+        claw.getAngle().in(Radians),
+        claw.getSetpoint().in(Radians),
         claw.getAppliedVolts(),
         claw.getCurrentCommandName(),
         ball1SideX,
@@ -599,7 +601,7 @@ public class SimWorld {
         RobotBase.isEnabled(),
         mode,
         robotFieldX,
-        drive != null ? drive.getSetpoint() : first.robot.constants.FieldConstants.ROBOT_TABLE_X,
+        drive != null ? drive.getSetpoint().in(Meters) : first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters),
         drive != null ? drive.getAppliedVolts() : 0.0,
         drive != null ? drive.getCurrentCommandName() : "(none)",
         robotSideX,
@@ -617,8 +619,8 @@ public class SimWorld {
         clawState,
         driveState,
         basketScored,
-        shooter != null ? shooter.getPosition() : 0.0,
-        shooter != null ? shooter.getSetpoint() : 0.0,
+        shooter != null ? shooter.getPosition().in(Meters) : 0.0,
+        shooter != null ? shooter.getSetpoint().in(Meters) : 0.0,
         shooter != null ? shooter.getAppliedVolts() : 0.0,
         shooter == null || shooter.isRatchetLocked(),
         shooter != null && shooter.isSolenoidReleased(),
@@ -633,12 +635,12 @@ public class SimWorld {
     }
     double vel = elevator.getVelocity();
     double volts = elevator.getAppliedVolts();
-    double pos = elevator.getPosition();
+    double pos = elevator.getPosition().in(Meters);
 
     // Stalled: voltage applied, but cannot move because at limit/stop/obstacle
     boolean atLowerLimit = pos <= (minLimit + 0.02) || tableContact;
     boolean pushingDown = (volts < first.robot.mechanisms.elevator.ElevatorConstants.KG - 0.4);
-    boolean atUpperLimit = pos >= (first.robot.mechanisms.elevator.ElevatorConstants.MAX_HEIGHT - 0.02);
+    boolean atUpperLimit = pos >= (first.robot.mechanisms.elevator.ElevatorConstants.MAX_HEIGHT.in(Meters) - 0.02);
     boolean pushingUp = (volts > first.robot.mechanisms.elevator.ElevatorConstants.KG + 0.8);
 
     if (Math.abs(vel) < 0.03 && ((atLowerLimit && pushingDown) || (atUpperLimit && pushingUp))) {
@@ -658,10 +660,10 @@ public class SimWorld {
     }
     double vel = extender.getVelocity();
     double volts = extender.getAppliedVolts();
-    double pos = extender.getPosition();
+    double pos = extender.getPosition().in(Meters);
 
     // Stalled: voltage applied, but cannot move because at retracted or extended limit
-    boolean atMinLimit = pos <= (first.robot.mechanisms.extender.ExtenderConstants.MIN_EXTENSION + 0.02);
+    boolean atMinLimit = pos <= (first.robot.mechanisms.extender.ExtenderConstants.MIN_EXTENSION.in(Meters) + 0.02);
     boolean pushingIn = (volts < -0.5);
     boolean atMaxLimit = pos >= (maxLimit - 0.02) || (tableContact && volts > 0.5);
     boolean pushingOut = (volts > 0.5);
@@ -683,12 +685,12 @@ public class SimWorld {
     }
     double vel = claw.getVelocity();
     double volts = claw.getAppliedVolts();
-    double angle = claw.getAngle();
+    double angle = claw.getAngle().in(Radians);
 
     // Stalled: squeezing a held ball, or driven into closed/open physical stops
     boolean grippingBall = ballHeld && (volts < -0.5);
-    boolean atClosedStop = angle <= (first.robot.mechanisms.claw.ClawConstants.CLOSED_ANGLE + 0.025) && (volts < -0.5);
-    boolean atOpenStop = angle >= (first.robot.mechanisms.claw.ClawConstants.OPEN_ANGLE - 0.025) && (volts > 0.5);
+    boolean atClosedStop = angle <= (first.robot.mechanisms.claw.ClawConstants.CLOSED_ANGLE.in(Radians) + 0.025) && (volts < -0.5);
+    boolean atOpenStop = angle >= (first.robot.mechanisms.claw.ClawConstants.OPEN_ANGLE.in(Radians) - 0.025) && (volts > 0.5);
 
     if (Math.abs(vel) < 0.05 && (grippingBall || atClosedStop || atOpenStop)) {
       return MotorState.STALLED;
@@ -726,9 +728,9 @@ public class SimWorld {
     }
     double vel = shooter.getVelocity();
     double volts = shooter.getAppliedVolts();
-    double pos = shooter.getPosition();
+    double pos = shooter.getPosition().in(Meters);
 
-    boolean atMaxPullback = pos >= (ShooterConstants.MAX_PULLBACK - 0.015) && (volts > 0.5);
+    boolean atMaxPullback = pos >= (ShooterConstants.MAX_PULLBACK.in(Meters) - 0.015) && (volts > 0.5);
     boolean againstRatchet = shooter.isRatchetLocked() && (volts < -0.5);
 
     if (Math.abs(vel) < 0.02 && (atMaxPullback || againstRatchet)) {

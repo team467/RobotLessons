@@ -1,6 +1,8 @@
 package first.robot.mechanisms.claw;
 
 import static first.robot.mechanisms.claw.ClawConstants.*;
+import static org.wpilib.units.Units.Degrees;
+import static org.wpilib.units.Units.Radians;
 
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
@@ -15,6 +17,7 @@ import org.wpilib.command3.Trigger;
 import org.wpilib.framework.RobotBase;
 import org.wpilib.hardware.discrete.DigitalInput;
 import org.wpilib.math.controller.PIDController;
+import org.wpilib.units.measure.Angle;
 
 /** The claw opens and closes its fingers to pick up a ball. */
 public class ClawMechanism implements Mechanism {
@@ -23,8 +26,8 @@ public class ClawMechanism implements Mechanism {
   private final DigitalInput ballSensor;
   private final PIDController pid = new PIDController(KP, 0.0, KD);
 
-  private double setpoint = STARTING_ANGLE;
-  private double targetAngle = STARTING_ANGLE;
+  private Angle setpoint = STARTING_ANGLE;
+  private Angle targetAngle = STARTING_ANGLE;
   private boolean requestOpen = false;
   private boolean requestClose = false;
   private boolean requestMove = false;
@@ -152,8 +155,8 @@ public class ClawMechanism implements Mechanism {
     driveTowardSetpoint();
   }
 
-  public void requestMove(double angle) {
-    this.targetAngle = Math.clamp(angle, CLOSED_ANGLE, OPEN_ANGLE);
+  public void requestMove(Angle angle) {
+    this.targetAngle = angle.lt(CLOSED_ANGLE) ? CLOSED_ANGLE : (angle.gt(OPEN_ANGLE) ? OPEN_ANGLE : angle);
     this.setpoint = this.targetAngle;
     this.requestMove = true;
     this.requestOpen = false;
@@ -161,15 +164,19 @@ public class ClawMechanism implements Mechanism {
     driveTowardSetpoint();
   }
 
+  public void requestMove(double angle) {
+    requestMove(Radians.of(angle));
+  }
+
   /**
    * Moves the fingers to an angle and finishes once they get there.
    *
-   * @param angleRadians 0 is closed, {@link ClawConstants#OPEN_ANGLE} is fully open
+   * @param targetAngle target angle of the fingers
    */
-  public Command moveTo(double angleRadians) {
-    double target = Math.clamp(angleRadians, CLOSED_ANGLE, OPEN_ANGLE);
-    String name = String.format("Claw To %.0f deg", Math.toDegrees(target));
-    if (Math.abs(getAngle() - target) < TOLERANCE_RADIANS) {
+  public Command moveTo(Angle targetAngle) {
+    Angle target = targetAngle.lt(CLOSED_ANGLE) ? CLOSED_ANGLE : (targetAngle.gt(OPEN_ANGLE) ? OPEN_ANGLE : targetAngle);
+    String name = String.format("Claw To %.0f deg", target.in(Degrees));
+    if (getAngle().isNear(target, TOLERANCE)) {
       setpoint = target;
       return Command.noRequirements(coroutine -> {}).named(name);
     }
@@ -181,9 +188,18 @@ public class ClawMechanism implements Mechanism {
     }).whenCanceled(() -> requestMove = false).named(name);
   }
 
+  /**
+   * Overload for moving the fingers to an angle specified in radians as a double.
+   *
+   * @param angleRadians 0 is closed, {@link ClawConstants#OPEN_ANGLE} is fully open
+   */
+  public Command moveTo(double angleRadians) {
+    return moveTo(Radians.of(angleRadians));
+  }
+
   /** Opens the claw all the way. */
   public Command open() {
-    if (Math.abs(getAngle() - OPEN_ANGLE) < TOLERANCE_RADIANS) {
+    if (getAngle().isNear(OPEN_ANGLE, TOLERANCE)) {
       setpoint = OPEN_ANGLE;
       return Command.noRequirements(coroutine -> {}).named("Claw Open");
     }
@@ -200,7 +216,7 @@ public class ClawMechanism implements Mechanism {
    * close any further when a ball is in the way!).
    */
   public Command close() {
-    if (hasBall() || Math.abs(getAngle() - CLOSED_ANGLE) < TOLERANCE_RADIANS) {
+    if (hasBall() || getAngle().isNear(CLOSED_ANGLE, TOLERANCE)) {
       setpoint = CLOSED_ANGLE;
       return Command.noRequirements(coroutine -> {}).named("Claw Close");
     }
@@ -230,24 +246,24 @@ public class ClawMechanism implements Mechanism {
       motor.setVoltage(0.0);
       return;
     }
-    double volts = pid.calculate(getAngle(), setpoint);
+    double volts = pid.calculate(getAngle().in(Radians), setpoint.in(Radians));
     motor.setVoltage(Math.clamp(volts, -MAX_VOLTS, MAX_VOLTS));
   }
 
   public boolean atSetpoint() {
-    return Math.abs(getAngle() - setpoint) < TOLERANCE_RADIANS;
+    return getAngle().isNear(setpoint, TOLERANCE);
   }
 
   public boolean hasBall() {
     return ballSensor.get();
   }
 
-  public double getAngle() {
+  public Angle getAngle() {
     Double pos = encoder.getPosition().get();
-    return pos != null ? pos : STARTING_ANGLE;
+    return pos != null ? Radians.of(pos) : STARTING_ANGLE;
   }
 
-  public double getSetpoint() {
+  public Angle getSetpoint() {
     return setpoint;
   }
 

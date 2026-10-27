@@ -1,6 +1,7 @@
 package first.robot.mechanisms.shooter;
 
 import static first.robot.mechanisms.shooter.ShooterConstants.*;
+import static org.wpilib.units.Units.Meters;
 
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
@@ -15,6 +16,7 @@ import org.wpilib.command3.Trigger;
 import org.wpilib.framework.RobotBase;
 import org.wpilib.hardware.discrete.DigitalOutput;
 import org.wpilib.math.controller.PIDController;
+import org.wpilib.units.measure.Distance;
 
 /**
  * Spring-loaded shooter subsystem mounted on the front of the robot.
@@ -29,7 +31,7 @@ public class ShooterMechanism implements Mechanism {
   private final DigitalOutput solenoid;
   private final PIDController pid = new PIDController(KP, 0.0, KD);
 
-  private double setpoint = STARTING_PULLBACK;
+  private Distance setpoint = STARTING_PULLBACK;
 
   private boolean requestPullBack = false;
   private boolean requestKick = false;
@@ -79,7 +81,7 @@ public class ShooterMechanism implements Mechanism {
     StateMachine.State pullingBack = machine.addState(
         runRepeatedly(() -> {
           solenoid.set(false);
-          double volts = Math.max(PULLBACK_VOLTS, pid.calculate(getPosition(), setpoint));
+          double volts = Math.max(PULLBACK_VOLTS, pid.calculate(getPosition().in(Meters), setpoint.in(Meters)));
           motor.setVoltage(Math.clamp(volts, 0.0, MAX_VOLTS));
         }).named("Shooter Pulling Back"));
     pullingBack.onEnter(() -> {
@@ -149,7 +151,7 @@ public class ShooterMechanism implements Mechanism {
     loaded.switchTo(pullingBack).when(() -> requestPullBack && !isLoaded());
     loaded.switchTo(manualRelease).when(() -> requestReleaseSolenoid);
 
-    releasing.switchTo(followThrough).when(() -> getPosition() <= MIN_PULLBACK + TOLERANCE_METERS);
+    releasing.switchTo(followThrough).when(() -> getPosition().lte(MIN_PULLBACK.plus(TOLERANCE)));
     followThrough.switchTo(idle).whenComplete();
 
     manualWind.switchTo(idle).when(() -> !requestWind);
@@ -252,7 +254,7 @@ public class ShooterMechanism implements Mechanism {
   // ------------------------------------------------------------------------------------------
 
   public boolean isLoaded() {
-    return getPosition() >= LOADED_PULLBACK - TOLERANCE_METERS;
+    return getPosition().gte(LOADED_PULLBACK.minus(TOLERANCE));
   }
 
   public boolean isRatchetLocked() {
@@ -264,12 +266,12 @@ public class ShooterMechanism implements Mechanism {
   }
 
   public boolean atSetpoint() {
-    return Math.abs(getPosition() - setpoint) < TOLERANCE_METERS;
+    return getPosition().isNear(setpoint, TOLERANCE);
   }
 
-  public double getPosition() {
+  public Distance getPosition() {
     Double pos = encoder.getPosition().get();
-    return pos != null ? pos : STARTING_PULLBACK;
+    return pos != null ? Meters.of(pos) : STARTING_PULLBACK;
   }
 
   public double getVelocity() {
@@ -277,7 +279,7 @@ public class ShooterMechanism implements Mechanism {
     return vel != null ? vel : 0.0;
   }
 
-  public double getSetpoint() {
+  public Distance getSetpoint() {
     return setpoint;
   }
 

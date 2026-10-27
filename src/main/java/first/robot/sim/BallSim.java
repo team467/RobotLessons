@@ -2,12 +2,12 @@ package first.robot.sim;
 
 import static first.robot.constants.FieldConstants.*;
 import static first.robot.constants.RobotConstants.*;
+import static org.wpilib.units.Units.Meters;
+import static org.wpilib.units.Units.Radians;
 
 /**
  * Simple 2D physics for the ball: it sits on the table or floor, falls under gravity, and can be
  * picked up by the claw.
- *
- * <p>This class has no WPILib dependencies so it is easy to unit test.
  */
 public class BallSim {
   public enum State {
@@ -18,6 +18,10 @@ public class BallSim {
   }
 
   private static final double GRAVITY = 9.81;
+
+  private static final double BALL_RADIUS_METERS = BALL_RADIUS.in(Meters);
+  private static final double GRIP_DEPTH_METERS = GRIP_DEPTH.in(Meters);
+  private static final double BALL_CONTACT_ANGLE_RAD = BALL_CONTACT_ANGLE.in(Radians);
 
   /** How close (horizontally) the ball must be to the claw's center to be grabbed. */
   static final double CAPTURE_X = 0.09;
@@ -40,11 +44,11 @@ public class BallSim {
   private final double targetLeftX;
   private final double targetRightX;
   private final double targetSurfaceY;
-  private double basketLeftX = BASKET_LEFT_X;
-  private double basketRightX = BASKET_RIGHT_X;
-  private double basketHeight = BASKET_HEIGHT;
-  private double floorTargetLeftX = TARGET_LEFT_X;
-  private double floorTargetRightX = TARGET_RIGHT_X;
+  private double basketLeftX = BASKET_LEFT_X.in(Meters);
+  private double basketRightX = BASKET_RIGHT_X.in(Meters);
+  private double basketHeight = BASKET_HEIGHT.in(Meters);
+  private double floorTargetLeftX = TARGET_LEFT_X.in(Meters);
+  private double floorTargetRightX = TARGET_RIGHT_X.in(Meters);
 
   private double x;
   private double y;
@@ -61,14 +65,14 @@ public class BallSim {
 
   public BallSim() {
     this(
-        BALL_START_X,
-        BALL_START_Y,
+        BALL_START_X.in(Meters),
+        BALL_START_Y.in(Meters),
         State.ON_TABLE,
-        TABLE_LEFT_X,
-        TABLE_RIGHT_X,
-        TABLE_HEIGHT,
-        TARGET_LEFT_X,
-        TARGET_RIGHT_X,
+        TABLE_LEFT_X.in(Meters),
+        TABLE_RIGHT_X.in(Meters),
+        TABLE_HEIGHT.in(Meters),
+        TARGET_LEFT_X.in(Meters),
+        TARGET_RIGHT_X.in(Meters),
         0.0);
   }
 
@@ -77,11 +81,11 @@ public class BallSim {
         startX,
         startY,
         initialState,
-        TABLE_LEFT_X,
-        TABLE_RIGHT_X,
-        TABLE_HEIGHT,
-        TARGET_LEFT_X,
-        TARGET_RIGHT_X,
+        TABLE_LEFT_X.in(Meters),
+        TABLE_RIGHT_X.in(Meters),
+        TABLE_HEIGHT.in(Meters),
+        TARGET_LEFT_X.in(Meters),
+        TARGET_RIGHT_X.in(Meters),
         0.0);
   }
 
@@ -197,7 +201,7 @@ public class BallSim {
    */
   public double update(double dt, double wristX, double wristY, double clawAngle) {
     double gripX = wristX;
-    double gripY = wristY - GRIP_DEPTH;
+    double gripY = wristY - GRIP_DEPTH_METERS;
     double lastAngle = Double.isNaN(previousClawAngle) ? clawAngle : previousClawAngle;
     previousClawAngle = clawAngle;
 
@@ -207,7 +211,7 @@ public class BallSim {
 
     if (state == State.HELD) {
       readyToGrab = false;
-      if (clawAngle > BALL_CONTACT_ANGLE + RELEASE_MARGIN) {
+      if (clawAngle > BALL_CONTACT_ANGLE_RAD + RELEASE_MARGIN) {
         // Let go! The ball keeps whatever velocity the claw gave it.
         state = State.FALLING;
       } else {
@@ -215,7 +219,7 @@ public class BallSim {
         vy = (gripY - y) / dt;
         x = gripX;
         y = gripY;
-        return BALL_CONTACT_ANGLE;
+        return BALL_CONTACT_ANGLE_RAD;
       }
     }
 
@@ -227,13 +231,13 @@ public class BallSim {
             && Math.abs(y - gripY) < CAPTURE_Y;
     if (!inCaptureZone) {
       readyToGrab = false;
-    } else if (clawAngle >= BALL_CONTACT_ANGLE + OPEN_FOR_CAPTURE_MARGIN) {
+    } else if (clawAngle >= BALL_CONTACT_ANGLE_RAD + OPEN_FOR_CAPTURE_MARGIN) {
       readyToGrab = true;
     }
 
     boolean closingOntoBall =
-        clawAngle <= BALL_CONTACT_ANGLE + 0.03
-            && (lastAngle >= BALL_CONTACT_ANGLE || clawAngle <= lastAngle + 1e-4);
+        clawAngle <= BALL_CONTACT_ANGLE_RAD + 0.03
+            && (lastAngle >= BALL_CONTACT_ANGLE_RAD || clawAngle <= lastAngle + 1e-4);
     if (inCaptureZone && readyToGrab && closingOntoBall) {
       state = State.HELD;
       readyToGrab = false;
@@ -243,7 +247,7 @@ public class BallSim {
       vy = 0;
       x = gripX;
       y = gripY;
-      return BALL_CONTACT_ANGLE;
+      return BALL_CONTACT_ANGLE_RAD;
     }
 
     if (state == State.ON_FLOOR && Math.abs(vx) > 0.01) {
@@ -261,27 +265,27 @@ public class BallSim {
     }
 
     if (state == State.FALLING) {
-      double previousBottom = y - BALL_RADIUS;
+      double previousBottom = y - BALL_RADIUS_METERS;
       vy -= GRAVITY * dt;
       x += vx * dt;
       y += vy * dt;
-      double bottom = y - BALL_RADIUS;
+      double bottom = y - BALL_RADIUS_METERS;
 
       boolean overBasket = x >= basketLeftX && x <= basketRightX;
       boolean overTable = x >= tableLeftX && x <= tableRightX;
       if (overBasket && vy <= 0.0 && bottom <= basketHeight && previousBottom >= basketHeight - 0.02) {
-        land(basketHeight + BALL_RADIUS, State.ON_TABLE);
+        land(basketHeight + BALL_RADIUS_METERS, State.ON_TABLE);
         scored = true;
         scoredInBasket = true;
       } else if (overTable && bottom <= tableHeight && previousBottom >= tableHeight - 0.03) {
         if (Math.abs(vy) > 2.4 || tableOccupied) {
-          y = tableHeight + BALL_RADIUS;
+          y = tableHeight + BALL_RADIUS_METERS;
           vy = Math.max(Math.abs(vy) * 0.55, 1.5);
           vx = (Math.abs(vx) < 0.2) ? 0.8 : vx * 0.8;
           scored = false;
           scoredInBasket = false;
         } else {
-          land(tableHeight + BALL_RADIUS, State.ON_TABLE);
+          land(tableHeight + BALL_RADIUS_METERS, State.ON_TABLE);
           if (Math.abs(targetSurfaceY - tableHeight) < 0.1) {
             scored = x >= targetLeftX && x <= targetRightX;
           }
@@ -292,7 +296,7 @@ public class BallSim {
             || (Math.abs(vx) > 0.3 && Math.abs(vy) > 0.6)
             || (overFloorTarget && (floorTargetOccupied || targetSurfaceY > 0.1))) {
           // Dropped from too high, still bouncing, or dropped onto wrong/occupied floor target: bounce away!
-          y = BALL_RADIUS;
+          y = BALL_RADIUS_METERS;
           vy = Math.max(-vy * 0.60, 1.4);
           if (Math.abs(vx) < 0.2) {
             vx = 1.6; // kick away horizontally past the target zone
@@ -302,7 +306,7 @@ public class BallSim {
           scored = false;
           scoredInBasket = false;
         } else {
-          y = BALL_RADIUS;
+          y = BALL_RADIUS_METERS;
           vy = 0;
           vx *= 0.7;
           if (Math.abs(vx) < 0.08) {
@@ -330,10 +334,10 @@ public class BallSim {
     double bumperHalfLength = 0.35;
     double bumperTopY = 0.165;
     // Only applies when the ball is low enough to be hit by the bumper
-    if (y - BALL_RADIUS > bumperTopY) {
+    if (y - BALL_RADIUS_METERS > bumperTopY) {
       return;
     }
-    double minSeparation = bumperHalfLength + BALL_RADIUS;
+    double minSeparation = bumperHalfLength + BALL_RADIUS_METERS;
     double dx = x - robotX;
     if (Math.abs(dx) < minSeparation) {
       double dir = (dx >= 0.0) ? 1.0 : -1.0;

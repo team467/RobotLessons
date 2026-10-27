@@ -3,11 +3,31 @@ package first.robot.sim;
 import static first.robot.constants.FieldConstants.*;
 import static first.robot.constants.RobotConstants.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.wpilib.units.Units.Meters;
+import static org.wpilib.units.Units.Radians;
 
+import first.robot.constants.FieldConstants;
+import first.robot.constants.RobotConstants;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class BallSimTest {
+  private static final double BALL_START_X = FieldConstants.BALL_START_X.in(Meters);
+  private static final double BALL_START_Y = FieldConstants.BALL_START_Y.in(Meters);
+  private static final double GRIP_DEPTH = RobotConstants.GRIP_DEPTH.in(Meters);
+  private static final double BALL_CONTACT_ANGLE = FieldConstants.BALL_CONTACT_ANGLE.in(Radians);
+  private static final double TARGET_CENTER_X = FieldConstants.TARGET_CENTER_X.in(Meters);
+  private static final double TARGET_RIGHT_X = FieldConstants.TARGET_RIGHT_X.in(Meters);
+  private static final double TARGET_LEFT_X = FieldConstants.TARGET_LEFT_X.in(Meters);
+  private static final double BALL_RADIUS = FieldConstants.BALL_RADIUS.in(Meters);
+  private static final double TABLE_LEFT_X = FieldConstants.TABLE_LEFT_X.in(Meters);
+  private static final double TABLE_RIGHT_X = FieldConstants.TABLE_RIGHT_X.in(Meters);
+  private static final double TABLE_HEIGHT = FieldConstants.TABLE_HEIGHT.in(Meters);
+  private static final double TABLE_TARGET_LEFT_X = FieldConstants.TABLE_TARGET_LEFT_X.in(Meters);
+  private static final double TABLE_TARGET_RIGHT_X = FieldConstants.TABLE_TARGET_RIGHT_X.in(Meters);
+  private static final double TABLE_TARGET_CENTER_X = FieldConstants.TABLE_TARGET_CENTER_X.in(Meters);
+  private static final double TARGET_BOX_WALL_HEIGHT = FieldConstants.TARGET_BOX_WALL_HEIGHT.in(Meters);
+
   private BallSim ball;
 
   @BeforeEach

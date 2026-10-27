@@ -1,8 +1,11 @@
 package first.robot;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.wpilib.units.Units.Meters;
+import static org.wpilib.units.Units.Radians;
 
 import first.robot.constants.FieldConstants;
+import org.wpilib.units.measure.Distance;
 import first.robot.mechanisms.claw.ClawMechanism;
 import first.robot.mechanisms.elevator.ElevatorConstants;
 import first.robot.mechanisms.elevator.ElevatorMechanism;
@@ -65,13 +68,13 @@ public class TeleopGrabDropTest {
     // 5. Lift ball up (Up arrow equivalent)
     Scheduler.getDefault().schedule(elevator.moveTo(ElevatorConstants.ABOVE_TABLE_HEIGHT));
     stepUntil(elevator::atSetpoint, 100, elevator, extender, claw, world);
-    assertTrue(world.snapshot().ballY() > FieldConstants.TABLE_HEIGHT + 0.10,
+    assertTrue(world.snapshot().ballY() > FieldConstants.TABLE_HEIGHT.in(Meters) + 0.10,
         "Held ball should lift up with elevator");
 
     // 6. Retract over drop target on floor (Left arrow equivalent)
     Scheduler.getDefault().schedule(extender.moveTo(ExtenderConstants.TARGET_EXTENSION));
     stepUntil(extender::atSetpoint, 100, elevator, extender, claw, world);
-    assertTrue(Math.abs(world.snapshot().ballX() - FieldConstants.TARGET_CENTER_X) < 0.05,
+    assertTrue(Math.abs(world.snapshot().ballX() - FieldConstants.TARGET_CENTER_X.in(Meters)) < 0.05,
         "Ball should be centered above the floor target");
 
     // 6b. Lower arm first (Down arrow equivalent to SCORE_HEIGHT) so it doesn't bounce away
@@ -129,7 +132,7 @@ public class TeleopGrabDropTest {
 
     assertFalse(world.snapshot().ballHeld());
     assertFalse(world.snapshot().scored(), "Ball dropped from high should bounce away and NOT score");
-    assertTrue(world.snapshot().ballX() > FieldConstants.TARGET_RIGHT_X, "Ball should bounce past target");
+    assertTrue(world.snapshot().ballX() > FieldConstants.TARGET_RIGHT_X.in(Meters), "Ball should bounce past target");
   }
 
   @Test
@@ -141,7 +144,7 @@ public class TeleopGrabDropTest {
     SimWorld world = new SimWorld(elevator, extender, claw);
 
     // Claw starts closed at 0.0 radians
-    assertEquals(first.robot.mechanisms.claw.ClawConstants.CLOSED_ANGLE, claw.getAngle(), 1e-3);
+    assertEquals(first.robot.mechanisms.claw.ClawConstants.CLOSED_ANGLE.in(Radians), claw.getAngle().in(Radians), 1e-3);
 
     // 1. Raise elevator and extend over ball WITHOUT opening claw
     Scheduler.getDefault().schedule(elevator.moveTo(ElevatorConstants.ABOVE_TABLE_HEIGHT));
@@ -164,8 +167,8 @@ public class TeleopGrabDropTest {
     assertFalse(claw.hasBall(), "Claw must not detect ball when overlapping while closed");
     assertFalse(world.snapshot().ballHeld(), "World must not record ball as held");
     assertEquals(
-        first.robot.mechanisms.claw.ClawConstants.CLOSED_ANGLE,
-        claw.getAngle(),
+        first.robot.mechanisms.claw.ClawConstants.CLOSED_ANGLE.in(Radians),
+        claw.getAngle().in(Radians),
         0.05,
         "Claw must stay closed and not pop open");
 
@@ -182,8 +185,8 @@ public class TeleopGrabDropTest {
     assertTrue(claw.hasBall(), "Closing claw onto ball after opening must grab it");
     assertTrue(world.snapshot().ballHeld(), "SimWorld must register ball is held");
     assertEquals(
-        FieldConstants.BALL_CONTACT_ANGLE,
-        claw.getAngle(),
+        FieldConstants.BALL_CONTACT_ANGLE.in(Radians),
+        claw.getAngle().in(Radians),
         0.05,
         "Claw fingers should be stopped at contact angle around ball");
   }
@@ -205,24 +208,24 @@ public class TeleopGrabDropTest {
     assertEquals("Teleop", world.snapshot().mode());
 
     // Hold Up arrow key -> elevator should move up
-    double initialHeight = robot.elevator.getPosition();
+    Distance initialHeight = robot.elevator.getPosition();
     robot.keyboard.setPressed(first.robot.constants.DriverConstants.KEY_ELEVATOR_UP, true);
     for (int i = 0; i < 30; i++) {
       robot.simulationPeriodic();
       robot.robotPeriodic();
     }
     robot.keyboard.setPressed(first.robot.constants.DriverConstants.KEY_ELEVATOR_UP, false);
-    assertTrue(robot.elevator.getPosition() > initialHeight + 0.10, "Elevator should raise while Up key is pressed");
+    assertTrue(robot.elevator.getPosition().in(Meters) > initialHeight.in(Meters) + 0.10, "Elevator should raise while Up key is pressed");
 
     // Hold Right arrow key -> extender should move out
-    double initialExt = robot.extender.getPosition();
+    Distance initialExt = robot.extender.getPosition();
     robot.keyboard.setPressed(first.robot.constants.DriverConstants.KEY_EXTENDER_OUT, true);
     for (int i = 0; i < 30; i++) {
       robot.simulationPeriodic();
       robot.robotPeriodic();
     }
     robot.keyboard.setPressed(first.robot.constants.DriverConstants.KEY_EXTENDER_OUT, false);
-    assertTrue(robot.extender.getPosition() > initialExt + 0.05, "Extender should extend while Right key is pressed");
+    assertTrue(robot.extender.getPosition().in(Meters) > initialExt.in(Meters) + 0.05, "Extender should extend while Right key is pressed");
 
     // Press Z -> claw should open
     robot.keyboard.setPressed(first.robot.constants.DriverConstants.KEY_CLAW_OPEN, true);
@@ -233,27 +236,27 @@ public class TeleopGrabDropTest {
       robot.simulationPeriodic();
       robot.robotPeriodic();
     }
-    assertTrue(robot.claw.getAngle() > first.robot.mechanisms.claw.ClawConstants.OPEN_ANGLE - 0.10, "Claw should open on Z key");
+    assertTrue(robot.claw.getAngle().in(Radians) > first.robot.mechanisms.claw.ClawConstants.OPEN_ANGLE.in(Radians) - 0.10, "Claw should open on Z key");
 
     // Hold D key -> drive should move forward
-    double initialDrive = robot.drive.getPosition();
+    Distance initialDrive = robot.drive.getPosition();
     robot.keyboard.setPressed(first.robot.constants.DriverConstants.KEY_DRIVE_FORWARD, true);
     for (int i = 0; i < 40; i++) {
       robot.simulationPeriodic();
       robot.robotPeriodic();
     }
     robot.keyboard.setPressed(first.robot.constants.DriverConstants.KEY_DRIVE_FORWARD, false);
-    assertTrue(robot.drive.getPosition() > initialDrive + 0.10, "Drive should move forward while D key is pressed");
+    assertTrue(robot.drive.getPosition().in(Meters) > initialDrive.in(Meters) + 0.10, "Drive should move forward while D key is pressed");
 
     // Hold A key -> drive should move backward
-    double driveAfterForward = robot.drive.getPosition();
+    Distance driveAfterForward = robot.drive.getPosition();
     robot.keyboard.setPressed(first.robot.constants.DriverConstants.KEY_DRIVE_BACKWARD, true);
     for (int i = 0; i < 40; i++) {
       robot.simulationPeriodic();
       robot.robotPeriodic();
     }
     robot.keyboard.setPressed(first.robot.constants.DriverConstants.KEY_DRIVE_BACKWARD, false);
-    assertTrue(robot.drive.getPosition() < driveAfterForward - 0.10, "Drive should move backward while A key is pressed");
+    assertTrue(robot.drive.getPosition().in(Meters) < driveAfterForward.in(Meters) - 0.10, "Drive should move backward while A key is pressed");
 
     // Request Disable (equivalent to clicking "Disable" button)
     world.requestDisable();

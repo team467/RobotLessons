@@ -1,6 +1,7 @@
 package first.robot.mechanisms.elevator;
 
 import static first.robot.mechanisms.elevator.ElevatorConstants.*;
+import static org.wpilib.units.Units.Meters;
 
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
@@ -14,6 +15,7 @@ import org.wpilib.command3.StateMachine;
 import org.wpilib.command3.Trigger;
 import org.wpilib.framework.RobotBase;
 import org.wpilib.math.controller.PIDController;
+import org.wpilib.units.measure.Distance;
 
 /** The elevator moves the whole arm up and down (the y-axis). */
 public class ElevatorMechanism implements Mechanism {
@@ -22,7 +24,7 @@ public class ElevatorMechanism implements Mechanism {
   private final PIDController pid = new PIDController(KP, 0.0, KD);
 
   /** The height we are currently trying to reach. */
-  private double setpoint = STARTING_HEIGHT;
+  private Distance setpoint = STARTING_HEIGHT;
 
   /** True while the elevator is within tolerance of its setpoint. */
   public final Trigger atSetpoint = new Trigger(this::atSetpoint);
@@ -46,12 +48,12 @@ public class ElevatorMechanism implements Mechanism {
   /**
    * Moves the elevator to a height and finishes once it gets there.
    *
-   * @param heightMeters the target wrist height, clamped to the elevator's travel
+   * @param height the target wrist height, clamped to the elevator's travel
    */
-  public Command moveTo(double heightMeters) {
-    double target = Math.clamp(heightMeters, MIN_HEIGHT, MAX_HEIGHT);
+  public Command moveTo(Distance height) {
+    Distance target = height.lt(MIN_HEIGHT) ? MIN_HEIGHT : (height.gt(MAX_HEIGHT) ? MAX_HEIGHT : height);
     setpoint = target;
-    String name = String.format("Elevator To %.2fm", target);
+    String name = String.format("Elevator To %.2fm", target.in(Meters));
     StateMachine sm = new StateMachine(name);
     var moving = sm.addState(runRepeatedly(this::driveTowardSetpoint).named(name));
     moving.onEnter(() -> setpoint = target);
@@ -60,12 +62,21 @@ public class ElevatorMechanism implements Mechanism {
     return run(coroutine -> coroutine.await(sm)).named(name);
   }
 
+  /**
+   * Overload for moving the elevator to a height specified in meters as a double.
+   *
+   * @param heightMeters the target wrist height in meters
+   */
+  public Command moveTo(double heightMeters) {
+    return moveTo(Meters.of(heightMeters));
+  }
+
   /** Drives up smoothly while held, stopping at MAX_HEIGHT. */
   public Command up() {
     StateMachine sm = new StateMachine("Elevator Up");
     var moving = sm.addState(
         runRepeatedly(() -> {
-          setpoint = Math.min(MAX_HEIGHT, setpoint + MANUAL_SPEED_MPS * 0.02);
+          setpoint = Meters.of(Math.min(MAX_HEIGHT.in(Meters), setpoint.in(Meters) + MANUAL_SPEED_MPS * 0.02));
           driveTowardSetpoint();
         }).named("Elevator Up"));
     sm.setInitialState(moving);
@@ -77,7 +88,7 @@ public class ElevatorMechanism implements Mechanism {
     StateMachine sm = new StateMachine("Elevator Down");
     var moving = sm.addState(
         runRepeatedly(() -> {
-          setpoint = Math.max(MIN_HEIGHT, setpoint - MANUAL_SPEED_MPS * 0.02);
+          setpoint = Meters.of(Math.max(MIN_HEIGHT.in(Meters), setpoint.in(Meters) - MANUAL_SPEED_MPS * 0.02));
           driveTowardSetpoint();
         }).named("Elevator Down"));
     sm.setInitialState(moving);
@@ -98,7 +109,7 @@ public class ElevatorMechanism implements Mechanism {
           driveTowardSetpoint();
         }).named("Elevator Hold"));
     holding.onEnter(() -> {
-      if (Math.abs(getPosition() - setpoint) > 0.08) {
+      if (!getPosition().isNear(setpoint, Meters.of(0.08))) {
         setpoint = getPosition();
       }
     });
@@ -113,20 +124,20 @@ public class ElevatorMechanism implements Mechanism {
   // ------------------------------------------------------------------------------------------
 
   private void driveTowardSetpoint() {
-    double volts = KG + pid.calculate(getPosition(), setpoint);
+    double volts = KG + pid.calculate(getPosition().in(Meters), setpoint.in(Meters));
     motor.setVoltage(Math.clamp(volts, -MAX_VOLTS, MAX_VOLTS));
   }
 
   public boolean atSetpoint() {
-    return Math.abs(getPosition() - setpoint) < TOLERANCE_METERS;
+    return getPosition().isNear(setpoint, TOLERANCE);
   }
 
-  public double getPosition() {
+  public Distance getPosition() {
     Double pos = encoder.getPosition().get();
-    return pos != null ? pos : STARTING_HEIGHT;
+    return pos != null ? Meters.of(pos) : STARTING_HEIGHT;
   }
 
-  public double getSetpoint() {
+  public Distance getSetpoint() {
     return setpoint;
   }
 

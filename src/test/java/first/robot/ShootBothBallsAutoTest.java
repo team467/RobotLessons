@@ -1,6 +1,7 @@
 package first.robot;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.wpilib.units.Units.Meters;
 
 import first.robot.auto.ShootBothBallsAuto;
 import first.robot.mechanisms.claw.ClawMechanism;
@@ -54,7 +55,7 @@ public class ShootBothBallsAutoTest {
     }
     assertEquals(0.0, shooter.getAppliedVolts(), 1e-4, "Hold command should apply 0V");
     assertTrue(
-        shooter.getPosition() >= ShooterConstants.LOADED_PULLBACK - ShooterConstants.TOLERANCE_METERS,
+        shooter.getPosition().in(Meters) >= ShooterConstants.LOADED_PULLBACK.in(Meters) - ShooterConstants.TOLERANCE.in(Meters),
         "Ratchet should hold the plunger pulled back with 0V motor output");
 
     // 3. Release solenoid to kick
@@ -64,9 +65,9 @@ public class ShootBothBallsAutoTest {
     }
 
     assertEquals(
-        ShooterConstants.MIN_PULLBACK,
-        shooter.getPosition(),
-        ShooterConstants.TOLERANCE_METERS,
+        ShooterConstants.MIN_PULLBACK.in(Meters),
+        shooter.getPosition().in(Meters),
+        ShooterConstants.TOLERANCE.in(Meters),
         "Solenoid release should snap the plunger back to 0");
     assertFalse(shooter.isLoaded(), "Shooter should no longer be loaded after kick");
   }
@@ -136,8 +137,8 @@ public class ShootBothBallsAutoTest {
       world.update();
     }
 
-    assertEquals(0.0, extender.getPosition(), 0.03, "Extender should be retracted to 0.0m");
-    assertEquals(0.60, elevator.getPosition(), 0.03, "Elevator should be at 0.60m");
+    assertEquals(0.0, extender.getPosition().in(Meters), 0.03, "Extender should be retracted to 0.0m");
+    assertEquals(0.60, elevator.getPosition().in(Meters), 0.03, "Elevator should be at 0.60m");
     assertFalse(shooter.isLoaded(), "Shooter should have released and kicked");
     assertTrue(
         world.snapshot().ball2Held(),

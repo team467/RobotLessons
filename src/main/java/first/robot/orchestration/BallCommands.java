@@ -1,5 +1,7 @@
 package first.robot.orchestration;
 
+import static org.wpilib.units.Units.Meters;
+
 import first.robot.mechanisms.claw.ClawMechanism;
 import first.robot.mechanisms.elevator.ElevatorConstants;
 import first.robot.mechanisms.elevator.ElevatorMechanism;
@@ -82,11 +84,11 @@ public final class BallCommands {
   public static Command placeBallLeftOfTarget(
       ElevatorMechanism elevator, ExtenderMechanism extender, ClawMechanism claw) {
     return Command.noRequirements(coroutine -> {
-      if (extender.getPosition() > 0.45
-          && elevator.getPosition() < ElevatorConstants.ABOVE_TABLE_HEIGHT - 0.05) {
+      if (extender.getPosition().gt(Meters.of(0.45))
+          && elevator.getPosition().lt(ElevatorConstants.ABOVE_TABLE_HEIGHT.minus(Meters.of(0.05)))) {
         coroutine.await(elevator.moveTo(ElevatorConstants.ABOVE_TABLE_HEIGHT));
       }
-      coroutine.await(extender.moveTo(0.0));
+      coroutine.await(extender.moveTo(Meters.of(0.0)));
       coroutine.await(elevator.moveTo(ElevatorConstants.SCORE_HEIGHT));
       coroutine.await(claw.open());
     }).named("Place Ball Left Of Target");
@@ -101,7 +103,7 @@ public final class BallCommands {
     return Command.noRequirements(coroutine -> {
       coroutine.awaitAll(
           claw.open(),
-          extender.moveTo(0.0),
+          extender.moveTo(Meters.of(0.0)),
           elevator.moveTo(ElevatorConstants.STOW_HEIGHT));
       coroutine.await(elevator.moveTo(ElevatorConstants.GROUND_GRAB_HEIGHT));
       coroutine.await(claw.close());
@@ -139,8 +141,8 @@ public final class BallCommands {
       ElevatorMechanism elevator, ExtenderMechanism extender) {
     return Command.noRequirements(
             coroutine -> {
-              if (extender.getPosition() > 0.45
-                  && elevator.getPosition() < ElevatorConstants.ABOVE_TABLE_HEIGHT - 0.05) {
+              if (extender.getPosition().gt(Meters.of(0.45))
+                  && elevator.getPosition().lt(ElevatorConstants.ABOVE_TABLE_HEIGHT.minus(Meters.of(0.05)))) {
                 coroutine.await(elevator.moveTo(ElevatorConstants.ABOVE_TABLE_HEIGHT));
               }
               coroutine.await(extender.moveTo(ExtenderConstants.SHOOT_EXTENSION));

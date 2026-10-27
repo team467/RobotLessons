@@ -1,5 +1,9 @@
 package first.robot.mechanisms.shooter;
 
+import static org.wpilib.units.Units.Meters;
+
+import org.wpilib.units.measure.Distance;
+
 /**
  * Constants for the spring-loaded {@link ShooterMechanism} mounted on the front of the robot.
  *
@@ -10,16 +14,17 @@ package first.robot.mechanisms.shooter;
 public final class ShooterConstants {
   private ShooterConstants() {}
 
-  // ---- Physical limits (meters of spring pullback) ----
-  public static final double MIN_PULLBACK = 0.0;
-  public static final double MAX_PULLBACK = 0.25;
-  public static final double LOADED_PULLBACK = 0.22;
-  public static final double STARTING_PULLBACK = 0.0;
+  // ---- Physical limits (spring pullback) ----
+  public static final Distance MIN_PULLBACK = Meters.of(0.0);
+  public static final Distance MAX_PULLBACK = Meters.of(0.25);
+  public static final Distance LOADED_PULLBACK = Meters.of(0.22);
+  public static final Distance STARTING_PULLBACK = Meters.of(0.0);
 
   // ---- Control ----
   public static final double KP = 45.0;
   public static final double KD = 1.0;
   public static final double MAX_VOLTS = 10.0;
   public static final double PULLBACK_VOLTS = 8.0;
-  public static final double TOLERANCE_METERS = 0.015;
+  public static final Distance TOLERANCE = Meters.of(0.015);
+  public static final Distance TOLERANCE_METERS = TOLERANCE;
 }

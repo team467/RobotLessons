@@ -1,6 +1,7 @@
 package first.robot;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.wpilib.units.Units.Meters;
 
 import first.robot.auto.TwoBallAuto;
 import first.robot.mechanisms.claw.ClawMechanism;
@@ -58,7 +59,7 @@ public class TwoBallAutoTest {
 
     assertTrue(world.snapshot().scored(), "Ball 1 should be scored in green floor target zone");
     assertTrue(world.snapshot().ball2Scored(), "Ball 2 should be scored in orange table target box");
-    assertEquals(DriveConstants.TABLE_POSITION, drive.getPosition(), 0.08);
+    assertEquals(DriveConstants.TABLE_POSITION.in(Meters), drive.getPosition().in(Meters), 0.08);
     assertTrue(world.snapshot().autoTimeSeconds() > 0.0, "Auto timer should have recorded time");
     assertTrue(world.snapshot().autoComplete(), "Auto should be marked complete when both balls scored");
     assertFalse(world.snapshot().autoRunning(), "Auto timer should stop when both balls scored");

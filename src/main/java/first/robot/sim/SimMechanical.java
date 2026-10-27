@@ -2,6 +2,8 @@ package first.robot.sim;
 
 import static first.robot.Schematic.*;
 import static first.robot.constants.SimulationConstants.LOOP_PERIOD_SECONDS;
+import static org.wpilib.units.Units.Meters;
+import static org.wpilib.units.Units.Radians;
 
 import com.revrobotics.sim.SparkMaxSim;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
@@ -44,9 +46,9 @@ public final class SimMechanical {
             SimConstants.DRIVE_ROBOT_MASS_KG,
             SimConstants.DRIVE_WHEEL_RADIUS_METERS,
             -1.0,
-            FieldConstants.FIELD_LENGTH_METERS + 1.0,
+            FieldConstants.FIELD_LENGTH_METERS.in(Meters) + 1.0,
             false,
-            DriveConstants.START_POSITION);
+            DriveConstants.START_POSITION.in(Meters));
     private SparkMax motor;
     private SparkMaxSim sparkSim;
 
@@ -117,7 +119,7 @@ public final class SimMechanical {
     }
 
     public void reset() {
-      setPosition(DriveConstants.START_POSITION);
+      setPosition(DriveConstants.START_POSITION.in(Meters));
       if (sparkSim != null) {
         sparkSim.setAppliedOutput(0.0);
       }
@@ -135,13 +137,13 @@ public final class SimMechanical {
             SimConstants.ELEVATOR_GEARING,
             SimConstants.ELEVATOR_CARRIAGE_MASS_KG,
             SimConstants.ELEVATOR_DRUM_RADIUS_METERS,
-            ElevatorConstants.MIN_HEIGHT,
-            ElevatorConstants.MAX_HEIGHT,
+            ElevatorConstants.MIN_HEIGHT.in(Meters),
+            ElevatorConstants.MAX_HEIGHT.in(Meters),
             true, // simulate gravity
-            ElevatorConstants.STARTING_HEIGHT);
+            ElevatorConstants.STARTING_HEIGHT.in(Meters));
     private SparkMax motor;
     private SparkMaxSim sparkSim;
-    private double minHeightLimit = ElevatorConstants.MIN_HEIGHT;
+    private double minHeightLimit = ElevatorConstants.MIN_HEIGHT.in(Meters);
 
     public void attachSparkMax(SparkMax sparkMax) {
       if (this.motor == sparkMax && this.sparkSim != null) {
@@ -221,8 +223,8 @@ public final class SimMechanical {
     }
 
     public void reset() {
-      minHeightLimit = ElevatorConstants.MIN_HEIGHT;
-      setPosition(ElevatorConstants.STARTING_HEIGHT);
+      minHeightLimit = ElevatorConstants.MIN_HEIGHT.in(Meters);
+      setPosition(ElevatorConstants.STARTING_HEIGHT.in(Meters));
       if (sparkSim != null) {
         sparkSim.setAppliedOutput(0.0);
       }
@@ -240,13 +242,13 @@ public final class SimMechanical {
             SimConstants.EXTENDER_GEARING,
             SimConstants.EXTENDER_SLIDE_MASS_KG,
             SimConstants.EXTENDER_PULLEY_RADIUS_METERS,
-            ExtenderConstants.MIN_EXTENSION,
-            ExtenderConstants.MAX_EXTENSION,
+            ExtenderConstants.MIN_EXTENSION.in(Meters),
+            ExtenderConstants.MAX_EXTENSION.in(Meters),
             false, // horizontal: no gravity
-            ExtenderConstants.STARTING_EXTENSION);
+            ExtenderConstants.STARTING_EXTENSION.in(Meters));
     private SparkMax motor;
     private SparkMaxSim sparkSim;
-    private double maxExtensionLimit = ExtenderConstants.MAX_EXTENSION;
+    private double maxExtensionLimit = ExtenderConstants.MAX_EXTENSION.in(Meters);
 
     public void attachSparkMax(SparkMax sparkMax) {
       if (this.motor == sparkMax && this.sparkSim != null) {
@@ -326,8 +328,8 @@ public final class SimMechanical {
     }
 
     public void reset() {
-      maxExtensionLimit = ExtenderConstants.MAX_EXTENSION;
-      setPosition(ExtenderConstants.STARTING_EXTENSION);
+      maxExtensionLimit = ExtenderConstants.MAX_EXTENSION.in(Meters);
+      setPosition(ExtenderConstants.STARTING_EXTENSION.in(Meters));
       if (sparkSim != null) {
         sparkSim.setAppliedOutput(0.0);
       }
@@ -345,10 +347,10 @@ public final class SimMechanical {
             SimConstants.CLAW_GEARING,
             SimConstants.CLAW_FINGERS_MOI_KG_M2,
             SimConstants.CLAW_FINGER_LENGTH_METERS,
-            ClawConstants.CLOSED_ANGLE,
-            ClawConstants.OPEN_ANGLE,
+            ClawConstants.CLOSED_ANGLE.in(Radians),
+            ClawConstants.OPEN_ANGLE.in(Radians),
             false, // no gravity
-            ClawConstants.STARTING_ANGLE);
+            ClawConstants.STARTING_ANGLE.in(Radians));
     private SparkMax motor;
     private SparkMaxSim sparkSim;
     private double gripStopAngle = Double.NaN;
@@ -432,7 +434,7 @@ public final class SimMechanical {
 
     public void reset() {
       gripStopAngle = Double.NaN;
-      setPosition(ClawConstants.STARTING_ANGLE);
+      setPosition(ClawConstants.STARTING_ANGLE.in(Radians));
       if (sparkSim != null) {
         sparkSim.setAppliedOutput(0.0);
       }
@@ -450,13 +452,13 @@ public final class SimMechanical {
             SimConstants.SHOOTER_GEARING,
             SimConstants.SHOOTER_PLUNGER_MASS_KG,
             SimConstants.SHOOTER_DRUM_RADIUS_METERS,
-            ShooterConstants.MIN_PULLBACK,
-            ShooterConstants.MAX_PULLBACK,
+            ShooterConstants.MIN_PULLBACK.in(Meters),
+            ShooterConstants.MAX_PULLBACK.in(Meters),
             false,
-            ShooterConstants.STARTING_PULLBACK);
+            ShooterConstants.STARTING_PULLBACK.in(Meters));
     private SparkMax motor;
     private SparkMaxSim sparkSim;
-    private double ratchetFloor = ShooterConstants.STARTING_PULLBACK;
+    private double ratchetFloor = ShooterConstants.STARTING_PULLBACK.in(Meters);
     private double pendingKickStrength = 0.0;
 
     public void attachSparkMax(SparkMax sparkMax) {
@@ -526,19 +528,19 @@ public final class SimMechanical {
 
       if (activeRelease) {
         double currentPos = sim.getPosition();
-        if (ratchetFloor >= ShooterConstants.LOADED_PULLBACK - ShooterConstants.TOLERANCE_METERS) {
+        if (ratchetFloor >= ShooterConstants.LOADED_PULLBACK.in(Meters) - ShooterConstants.TOLERANCE.in(Meters)) {
           pendingKickStrength = 1.0;
         } else if (ratchetFloor > 0.05) {
-          pendingKickStrength = Math.clamp(currentPos / ShooterConstants.LOADED_PULLBACK, 0.0, 1.0);
+          pendingKickStrength = Math.clamp(currentPos / ShooterConstants.LOADED_PULLBACK.in(Meters), 0.0, 1.0);
         }
-        ratchetFloor = ShooterConstants.MIN_PULLBACK;
+        ratchetFloor = ShooterConstants.MIN_PULLBACK.in(Meters);
 
         double nextPos =
             Math.max(
-                ShooterConstants.MIN_PULLBACK,
+                ShooterConstants.MIN_PULLBACK.in(Meters),
                 currentPos - SimConstants.SHOOTER_SPRING_RELEASE_SPEED_MPS * dtSeconds);
         double nextVel =
-            (nextPos > ShooterConstants.MIN_PULLBACK)
+            (nextPos > ShooterConstants.MIN_PULLBACK.in(Meters))
                 ? -SimConstants.SHOOTER_SPRING_RELEASE_SPEED_MPS
                 : 0.0;
         sim.setInputVoltage(0.0);
@@ -551,9 +553,9 @@ public final class SimMechanical {
           if (sim.getPosition() > ratchetFloor) {
             ratchetFloor = sim.getPosition();
           }
-          if (sim.getPosition() >= ShooterConstants.MAX_PULLBACK) {
-            ratchetFloor = ShooterConstants.MAX_PULLBACK;
-            sim.setState(ShooterConstants.MAX_PULLBACK, 0.0);
+          if (sim.getPosition() >= ShooterConstants.MAX_PULLBACK.in(Meters)) {
+            ratchetFloor = ShooterConstants.MAX_PULLBACK.in(Meters);
+            sim.setState(ShooterConstants.MAX_PULLBACK.in(Meters), 0.0);
           }
         } else {
           sim.setInputVoltage(volts);
@@ -572,11 +574,11 @@ public final class SimMechanical {
     }
 
     public void reset() {
-      sim.setState(ShooterConstants.STARTING_PULLBACK, 0.0);
-      ratchetFloor = ShooterConstants.STARTING_PULLBACK;
+      sim.setState(ShooterConstants.STARTING_PULLBACK.in(Meters), 0.0);
+      ratchetFloor = ShooterConstants.STARTING_PULLBACK.in(Meters);
       pendingKickStrength = 0.0;
       shooterSolenoidSim.setValue(false);
-      setPosition(ShooterConstants.STARTING_PULLBACK);
+      setPosition(ShooterConstants.STARTING_PULLBACK.in(Meters));
       if (sparkSim != null) {
         sparkSim.setAppliedOutput(0.0);
       }

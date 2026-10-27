@@ -1,6 +1,7 @@
 package first.robot;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.wpilib.units.Units.Meters;
 
 import first.robot.mechanisms.claw.ClawMechanism;
 import first.robot.mechanisms.elevator.ElevatorConstants;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.wpilib.command3.Scheduler;
 import org.wpilib.hardware.hal.HAL;
 import org.wpilib.simulation.DriverStationSim;
+import org.wpilib.units.measure.Distance;
 
 public class MechanismSimTest {
   @BeforeAll
@@ -32,7 +34,7 @@ public class MechanismSimTest {
   void testElevatorMoveToSetpoint() {
     ElevatorMechanism elevator = new ElevatorMechanism();
 
-    double target = ElevatorConstants.ABOVE_TABLE_HEIGHT;
+    Distance target = ElevatorConstants.ABOVE_TABLE_HEIGHT;
     var cmd = elevator.moveTo(target);
     Scheduler.getDefault().schedule(cmd);
 
@@ -45,14 +47,14 @@ public class MechanismSimTest {
     }
 
     assertTrue(elevator.atSetpoint(), "Elevator should reach setpoint");
-    assertEquals(target, elevator.getPosition(), ElevatorConstants.TOLERANCE_METERS);
+    assertEquals(target.in(Meters), elevator.getPosition().in(Meters), ElevatorConstants.TOLERANCE.in(Meters));
   }
 
   @Test
   void testExtenderMoveToSetpoint() {
     ExtenderMechanism extender = new ExtenderMechanism();
 
-    double target = ExtenderConstants.BALL_EXTENSION;
+    Distance target = ExtenderConstants.BALL_EXTENSION;
     var cmd = extender.moveTo(target);
     Scheduler.getDefault().schedule(cmd);
 
@@ -64,7 +66,7 @@ public class MechanismSimTest {
     }
 
     assertTrue(extender.atSetpoint(), "Extender should reach setpoint");
-    assertEquals(target, extender.getPosition(), ExtenderConstants.TOLERANCE_METERS);
+    assertEquals(target.in(Meters), extender.getPosition().in(Meters), ExtenderConstants.TOLERANCE.in(Meters));
   }
 
   @Test

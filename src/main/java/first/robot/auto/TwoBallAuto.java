@@ -6,6 +6,7 @@ import first.robot.mechanisms.claw.ClawMechanism;
 import first.robot.mechanisms.drive.DriveMechanism;
 import first.robot.mechanisms.elevator.ElevatorConstants;
 import first.robot.mechanisms.elevator.ElevatorMechanism;
+import first.robot.mechanisms.extender.ExtenderConstants;
 import first.robot.mechanisms.extender.ExtenderMechanism;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Scheduler;
@@ -52,7 +53,7 @@ public class TwoBallAuto implements OpMode {
 
       // Step 2: Retract horizontal arm, stow elevator, and drive to the table in parallel
       coroutine.awaitAll(
-          extender.moveTo(0.0),
+          extender.moveTo(ExtenderConstants.MIN_EXTENSION),
           elevator.moveTo(ElevatorConstants.STOW_HEIGHT),
           drive.driveToTable());
 

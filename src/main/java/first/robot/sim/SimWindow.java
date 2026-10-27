@@ -1,9 +1,10 @@
 package first.robot.sim;
 
-import static first.robot.constants.FieldConstants.*;
-import static first.robot.constants.RobotConstants.*;
+import static org.wpilib.units.Units.Meters;
 
 import first.robot.constants.DriverConstants;
+import first.robot.constants.FieldConstants;
+import first.robot.constants.RobotConstants;
 import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -46,6 +47,26 @@ import javax.swing.Timer;
  * table obstacle with collision detection, and target receptacles.
  */
 public class SimWindow extends JFrame {
+  private static final double ROBOT_START_X = FieldConstants.ROBOT_START_X.in(Meters);
+  private static final double ROBOT_TABLE_X = FieldConstants.ROBOT_TABLE_X.in(Meters);
+  private static final double TABLE_LEFT_X = FieldConstants.TABLE_LEFT_X.in(Meters);
+  private static final double TABLE_RIGHT_X = FieldConstants.TABLE_RIGHT_X.in(Meters);
+  private static final double TABLE_HEIGHT = FieldConstants.TABLE_HEIGHT.in(Meters);
+  private static final double BALL_RADIUS = FieldConstants.BALL_RADIUS.in(Meters);
+  private static final double BALL_DIAMETER = FieldConstants.BALL_DIAMETER.in(Meters);
+  private static final double TARGET_BOX_WALL_HEIGHT = FieldConstants.TARGET_BOX_WALL_HEIGHT.in(Meters);
+  private static final double TARGET_LEFT_X = FieldConstants.TARGET_LEFT_X.in(Meters);
+  private static final double TARGET_RIGHT_X = FieldConstants.TARGET_RIGHT_X.in(Meters);
+  private static final double TABLE_TARGET_LEFT_X = FieldConstants.TABLE_TARGET_LEFT_X.in(Meters);
+  private static final double TABLE_TARGET_RIGHT_X = FieldConstants.TABLE_TARGET_RIGHT_X.in(Meters);
+  private static final double BASKET_LEFT_X = FieldConstants.BASKET_LEFT_X.in(Meters);
+  private static final double BASKET_RIGHT_X = FieldConstants.BASKET_RIGHT_X.in(Meters);
+  private static final double BASKET_HEIGHT = FieldConstants.BASKET_HEIGHT.in(Meters);
+  private static final double TOWER_HEIGHT = RobotConstants.TOWER_HEIGHT.in(Meters);
+  private static final double WRIST_BASE_X = RobotConstants.WRIST_BASE_X.in(Meters);
+  private static final double FINGER_LENGTH = RobotConstants.FINGER_LENGTH.in(Meters);
+  private static final double FINGER_PIVOT_HALF_SPACING = RobotConstants.FINGER_PIVOT_HALF_SPACING.in(Meters);
+
   // Visible area of the side-view elevation world, in meters.
   // The camera tracks the robot horizontally with forward lookahead so the table and basket are visible.
   private static final double VIEW_SPAN_X = 2.80;

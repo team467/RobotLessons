@@ -78,7 +78,7 @@ public class MotorStateSimTest {
     assertEquals(SimWorld.MotorState.IDLE, world.snapshot().elevatorMotorState(), "Elevator should be IDLE when holding at setpoint");
 
     // 2. Extend arm over the table and then drive elevator down into the table (table collision stall)
-    Scheduler.getDefault().schedule(extender.moveTo(FieldConstants.BALL_START_X - RobotConstants.WRIST_BASE_X));
+    Scheduler.getDefault().schedule(extender.moveTo(FieldConstants.BALL_START_X.minus(RobotConstants.WRIST_BASE_X)));
     for (int i = 0; i < 80; i++) {
       step();
     }

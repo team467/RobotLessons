@@ -1,6 +1,7 @@
 package first.robot.mechanisms.extender;
 
 import static first.robot.mechanisms.extender.ExtenderConstants.*;
+import static org.wpilib.units.Units.Meters;
 
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
@@ -14,6 +15,7 @@ import org.wpilib.command3.StateMachine;
 import org.wpilib.command3.Trigger;
 import org.wpilib.framework.RobotBase;
 import org.wpilib.math.controller.PIDController;
+import org.wpilib.units.measure.Distance;
 
 /** The extender slides the claw in and out on a pulley (the x-axis). */
 public class ExtenderMechanism implements Mechanism {
@@ -21,7 +23,7 @@ public class ExtenderMechanism implements Mechanism {
   private final RelativeEncoder encoder;
   private final PIDController pid = new PIDController(KP, 0.0, KD);
 
-  private double setpoint = STARTING_EXTENSION;
+  private Distance setpoint = STARTING_EXTENSION;
 
   /** True while the extender is within tolerance of its setpoint. */
   public final Trigger atSetpoint = new Trigger(this::atSetpoint);
@@ -44,12 +46,12 @@ public class ExtenderMechanism implements Mechanism {
   /**
    * Moves the extender to a position and finishes once it gets there.
    *
-   * @param extensionMeters how far to extend, clamped to the slide's travel
+   * @param extension how far to extend, clamped to the slide's travel
    */
-  public Command moveTo(double extensionMeters) {
-    double target = Math.clamp(extensionMeters, MIN_EXTENSION, MAX_EXTENSION);
+  public Command moveTo(Distance extension) {
+    Distance target = extension.lt(MIN_EXTENSION) ? MIN_EXTENSION : (extension.gt(MAX_EXTENSION) ? MAX_EXTENSION : extension);
     setpoint = target;
-    String name = String.format("Extender To %.2fm", target);
+    String name = String.format("Extender To %.2fm", target.in(Meters));
     StateMachine sm = new StateMachine(name);
     var moving = sm.addState(runRepeatedly(this::driveTowardSetpoint).named(name));
     moving.onEnter(() -> setpoint = target);
@@ -58,12 +60,21 @@ public class ExtenderMechanism implements Mechanism {
     return run(coroutine -> coroutine.await(sm)).named(name);
   }
 
+  /**
+   * Overload for moving the extender to a position specified in meters as a double.
+   *
+   * @param extensionMeters how far to extend in meters
+   */
+  public Command moveTo(double extensionMeters) {
+    return moveTo(Meters.of(extensionMeters));
+  }
+
   /** Extends outward smoothly while held, stopping at MAX_EXTENSION. */
   public Command out() {
     StateMachine sm = new StateMachine("Extender Out");
     var moving = sm.addState(
         runRepeatedly(() -> {
-          setpoint = Math.min(MAX_EXTENSION, setpoint + MANUAL_SPEED_MPS * 0.02);
+          setpoint = Meters.of(Math.min(MAX_EXTENSION.in(Meters), setpoint.in(Meters) + MANUAL_SPEED_MPS * 0.02));
           driveTowardSetpoint();
         }).named("Extender Out"));
     sm.setInitialState(moving);
@@ -75,7 +86,7 @@ public class ExtenderMechanism implements Mechanism {
     StateMachine sm = new StateMachine("Extender In");
     var moving = sm.addState(
         runRepeatedly(() -> {
-          setpoint = Math.max(MIN_EXTENSION, setpoint - MANUAL_SPEED_MPS * 0.02);
+          setpoint = Meters.of(Math.max(MIN_EXTENSION.in(Meters), setpoint.in(Meters) - MANUAL_SPEED_MPS * 0.02));
           driveTowardSetpoint();
         }).named("Extender In"));
     sm.setInitialState(moving);
@@ -93,7 +104,7 @@ public class ExtenderMechanism implements Mechanism {
           driveTowardSetpoint();
         }).named("Extender Hold"));
     holding.onEnter(() -> {
-      if (Math.abs(getPosition() - setpoint) > 0.08) {
+      if (!getPosition().isNear(setpoint, Meters.of(0.08))) {
         setpoint = getPosition();
       }
     });
@@ -108,20 +119,20 @@ public class ExtenderMechanism implements Mechanism {
   // ------------------------------------------------------------------------------------------
 
   private void driveTowardSetpoint() {
-    double volts = pid.calculate(getPosition(), setpoint);
+    double volts = pid.calculate(getPosition().in(Meters), setpoint.in(Meters));
     motor.setVoltage(Math.clamp(volts, -MAX_VOLTS, MAX_VOLTS));
   }
 
   public boolean atSetpoint() {
-    return Math.abs(getPosition() - setpoint) < TOLERANCE_METERS;
+    return getPosition().isNear(setpoint, TOLERANCE);
   }
 
-  public double getPosition() {
+  public Distance getPosition() {
     Double pos = encoder.getPosition().get();
-    return pos != null ? pos : STARTING_EXTENSION;
+    return pos != null ? Meters.of(pos) : STARTING_EXTENSION;
   }
 
-  public double getSetpoint() {
+  public Distance getSetpoint() {
     return setpoint;
   }
 

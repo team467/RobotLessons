@@ -1,6 +1,7 @@
 package first.robot;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.wpilib.units.Units.Meters;
 
 import first.robot.mechanisms.drive.DriveConstants;
 import first.robot.mechanisms.drive.DriveMechanism;
@@ -44,7 +45,7 @@ public class DriveMechanismTest {
     }
 
     assertTrue(reached, "Drive should reach table position setpoint");
-    assertEquals(DriveConstants.TABLE_POSITION, drive.getPosition(), DriveConstants.TOLERANCE_METERS * 2);
+    assertEquals(DriveConstants.TABLE_POSITION.in(Meters), drive.getPosition().in(Meters), DriveConstants.TOLERANCE.in(Meters) * 2);
   }
 
   @Test
@@ -66,6 +67,6 @@ public class DriveMechanismTest {
       if (drive.atSetpoint()) break;
     }
     assertTrue(drive.atSetpoint());
-    assertEquals(DriveConstants.START_POSITION, drive.getPosition(), DriveConstants.TOLERANCE_METERS * 2);
+    assertEquals(DriveConstants.START_POSITION.in(Meters), drive.getPosition().in(Meters), DriveConstants.TOLERANCE.in(Meters) * 2);
   }
 }

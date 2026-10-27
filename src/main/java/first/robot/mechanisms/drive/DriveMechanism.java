@@ -1,6 +1,7 @@
 package first.robot.mechanisms.drive;
 
 import static first.robot.mechanisms.drive.DriveConstants.*;
+import static org.wpilib.units.Units.Meters;
 
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
@@ -15,6 +16,7 @@ import org.wpilib.command3.StateMachine;
 import org.wpilib.command3.Trigger;
 import org.wpilib.framework.RobotBase;
 import org.wpilib.math.controller.PIDController;
+import org.wpilib.units.measure.Distance;
 
 /** The drivetrain moves the robot across the field between the start location and the table. */
 public class DriveMechanism implements Mechanism {
@@ -22,7 +24,7 @@ public class DriveMechanism implements Mechanism {
   private final RelativeEncoder encoder;
   private final PIDController pid = new PIDController(KP, 0.0, KD);
 
-  private double setpoint = START_POSITION;
+  private Distance setpoint = START_POSITION;
 
   /** True while the robot is within tolerance of its target position. */
   public final Trigger atSetpoint = new Trigger(this::atSetpoint);
@@ -43,15 +45,20 @@ public class DriveMechanism implements Mechanism {
   // ------------------------------------------------------------------------------------------
 
   /** Drives the robot to a target position on the field and finishes once it arrives. */
-  public Command driveTo(double targetMeters) {
-    return driveTo(targetMeters, String.format("Drive To %.2fm", targetMeters));
+  public Command driveTo(Distance target) {
+    return driveTo(target, String.format("Drive To %.2fm", target.in(Meters)));
   }
 
-  private Command driveTo(double targetMeters, String name) {
-    setpoint = targetMeters;
+  /** Overload for driving to a target position specified in meters as a double. */
+  public Command driveTo(double targetMeters) {
+    return driveTo(Meters.of(targetMeters));
+  }
+
+  private Command driveTo(Distance target, String name) {
+    setpoint = target;
     StateMachine sm = new StateMachine(name);
     var driving = sm.addState(runRepeatedly(this::driveTowardSetpoint).named(name));
-    driving.onEnter(() -> setpoint = targetMeters);
+    driving.onEnter(() -> setpoint = target);
     driving.onExit(() -> motor.setVoltage(0.0));
     sm.setInitialState(driving);
     driving.exitStateMachine().when(() -> atSetpoint() && Math.abs(getVelocity()) <= 0.08);
@@ -73,7 +80,7 @@ public class DriveMechanism implements Mechanism {
     StateMachine sm = new StateMachine("Drive Forward");
     var moving = sm.addState(
         runRepeatedly(() -> {
-          setpoint = Math.min(TABLE_POSITION + 0.5, getPosition() + TELEOP_SPEED_MPS * 0.02);
+          setpoint = Meters.of(Math.min(TABLE_POSITION.in(Meters) + 0.5, getPosition().in(Meters) + TELEOP_SPEED_MPS * 0.02));
           driveTowardSetpoint(TELEOP_VOLTS);
         }).named("Drive Forward"));
     sm.setInitialState(moving);
@@ -85,7 +92,7 @@ public class DriveMechanism implements Mechanism {
     StateMachine sm = new StateMachine("Drive Backward");
     var moving = sm.addState(
         runRepeatedly(() -> {
-          setpoint = Math.max(START_POSITION - 0.5, getPosition() - TELEOP_SPEED_MPS * 0.02);
+          setpoint = Meters.of(Math.max(START_POSITION.in(Meters) - 0.5, getPosition().in(Meters) - TELEOP_SPEED_MPS * 0.02));
           driveTowardSetpoint(TELEOP_VOLTS);
         }).named("Drive Backward"));
     sm.setInitialState(moving);
@@ -135,18 +142,18 @@ public class DriveMechanism implements Mechanism {
   }
 
   private void driveTowardSetpoint(double maxVolts) {
-    double pos = getPosition();
-    double volts = pid.calculate(pos, setpoint);
+    double pos = getPosition().in(Meters);
+    double volts = pid.calculate(pos, setpoint.in(Meters));
     motor.setVoltage(Math.clamp(volts, -maxVolts, maxVolts));
   }
 
   public boolean atSetpoint() {
-    return Math.abs(getPosition() - setpoint) < TOLERANCE_METERS;
+    return getPosition().isNear(setpoint, TOLERANCE);
   }
 
-  public double getPosition() {
+  public Distance getPosition() {
     Double pos = encoder.getPosition().get();
-    return pos != null ? pos : START_POSITION;
+    return pos != null ? Meters.of(pos) : START_POSITION;
   }
 
   public double getVelocity() {
@@ -154,7 +161,7 @@ public class DriveMechanism implements Mechanism {
     return vel != null ? vel : 0.0;
   }
 
-  public double getSetpoint() {
+  public Distance getSetpoint() {
     return setpoint;
   }
 
@@ -167,9 +174,13 @@ public class DriveMechanism implements Mechanism {
     setpoint = getPosition();
   }
 
-  public void resetPosition(double pos) {
-    Mechanical.setEncoderPosition(motor, encoder, pos);
+  public void resetPosition(Distance pos) {
+    Mechanical.setEncoderPosition(motor, encoder, pos.in(Meters));
     setpoint = pos;
+  }
+
+  public void resetPosition(double pos) {
+    resetPosition(Meters.of(pos));
   }
 
   public String getCurrentCommandName() {

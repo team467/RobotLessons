@@ -1,6 +1,7 @@
 package first.robot;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.wpilib.units.Units.Meters;
 
 import first.robot.constants.FieldConstants;
 import first.robot.constants.RobotConstants;
@@ -43,9 +44,9 @@ public class TwoBallSimTest {
     SimWorld world = new SimWorld(elevator, extender, claw, drive);
     SimWorld.Snapshot s = world.snapshot();
 
-    assertEquals(DriveConstants.START_POSITION, s.drivePosition(), 1e-3);
-    assertEquals(FieldConstants.ROBOT_TABLE_X + FieldConstants.BALL1_START_X, s.ball1FieldX(), 1e-3);
-    assertEquals(FieldConstants.ROBOT_START_X + FieldConstants.BALL2_START_X, s.ball2FieldX(), 1e-3);
+    assertEquals(DriveConstants.START_POSITION.in(Meters), s.drivePosition(), 1e-3);
+    assertEquals(FieldConstants.ROBOT_TABLE_X.in(Meters) + FieldConstants.BALL1_START_X.in(Meters), s.ball1FieldX(), 1e-3);
+    assertEquals(FieldConstants.ROBOT_START_X.in(Meters) + FieldConstants.BALL2_START_X.in(Meters), s.ball2FieldX(), 1e-3);
     assertFalse(s.ballHeld());
     assertFalse(s.ball2Held());
     assertFalse(s.scored());
@@ -94,8 +95,8 @@ public class TwoBallSimTest {
       if (drive.atSetpoint()) break;
     }
 
-    assertEquals(1.5, drive.getPosition(), 0.05);
+    assertEquals(1.5, drive.getPosition().in(Meters), 0.05);
     assertTrue(world.snapshot().ball2Held(), "Ball 2 should remain held while driving");
-    assertEquals(1.5 + RobotConstants.WRIST_BASE_X + ExtenderConstants.BALL_EXTENSION, world.snapshot().ball2FieldX(), 0.08);
+    assertEquals(1.5 + RobotConstants.WRIST_BASE_X.in(Meters) + ExtenderConstants.BALL_EXTENSION.in(Meters), world.snapshot().ball2FieldX(), 0.08);
   }
 }
