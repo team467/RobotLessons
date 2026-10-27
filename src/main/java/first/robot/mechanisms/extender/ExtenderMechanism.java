@@ -10,6 +10,7 @@ import first.robot.mechanical.Mechanical;
 import java.util.List;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
+import org.wpilib.command3.StateMachine;
 import org.wpilib.command3.Trigger;
 import org.wpilib.framework.RobotBase;
 import org.wpilib.math.controller.PIDController;
@@ -47,54 +48,57 @@ public class ExtenderMechanism implements Mechanism {
    */
   public Command moveTo(double extensionMeters) {
     double target = Math.clamp(extensionMeters, MIN_EXTENSION, MAX_EXTENSION);
-    return run(coroutine -> {
-          setpoint = target;
-          while (!atSetpoint()) {
-            driveTowardSetpoint();
-            coroutine.yield();
-          }
-        })
-        .named(String.format("Extender To %.2fm", target));
+    setpoint = target;
+    String name = String.format("Extender To %.2fm", target);
+    StateMachine sm = new StateMachine(name);
+    var moving = sm.addState(runRepeatedly(this::driveTowardSetpoint).named(name));
+    moving.onEnter(() -> setpoint = target);
+    sm.setInitialState(moving);
+    moving.exitStateMachine().when(this::atSetpoint);
+    return run(coroutine -> coroutine.await(sm)).named(name);
   }
 
   /** Extends outward smoothly while held, stopping at MAX_EXTENSION. */
   public Command out() {
-    return run(coroutine -> {
-          while (true) {
-            setpoint = Math.min(MAX_EXTENSION, setpoint + MANUAL_SPEED_MPS * 0.02);
-            driveTowardSetpoint();
-            coroutine.yield();
-          }
-        })
-        .named("Extender Out");
+    StateMachine sm = new StateMachine("Extender Out");
+    var moving = sm.addState(
+        runRepeatedly(() -> {
+          setpoint = Math.min(MAX_EXTENSION, setpoint + MANUAL_SPEED_MPS * 0.02);
+          driveTowardSetpoint();
+        }).named("Extender Out"));
+    sm.setInitialState(moving);
+    return run(coroutine -> coroutine.await(sm)).named("Extender Out");
   }
 
   /** Retracts inward smoothly while held, stopping at MIN_EXTENSION. */
   public Command in() {
-    return run(coroutine -> {
-          while (true) {
-            setpoint = Math.max(MIN_EXTENSION, setpoint - MANUAL_SPEED_MPS * 0.02);
-            driveTowardSetpoint();
-            coroutine.yield();
-          }
-        })
-        .named("Extender In");
+    StateMachine sm = new StateMachine("Extender In");
+    var moving = sm.addState(
+        runRepeatedly(() -> {
+          setpoint = Math.max(MIN_EXTENSION, setpoint - MANUAL_SPEED_MPS * 0.02);
+          driveTowardSetpoint();
+        }).named("Extender In"));
+    sm.setInitialState(moving);
+    return run(coroutine -> coroutine.await(sm)).named("Extender In");
   }
 
   /** Holds the current position. This is the default command. */
   public Command hold() {
-    return run(coroutine -> {
-          if (Math.abs(getPosition() - setpoint) > 0.08) {
+    StateMachine sm = new StateMachine("Extender Hold [FSM]");
+    var holding = sm.addState(
+        runRepeatedly(() -> {
+          if (RobotBase.isDisabled()) {
             setpoint = getPosition();
           }
-          while (true) {
-            if (RobotBase.isDisabled()) {
-              setpoint = getPosition();
-            }
-            driveTowardSetpoint();
-            coroutine.yield();
-          }
-        })
+          driveTowardSetpoint();
+        }).named("Extender Hold"));
+    holding.onEnter(() -> {
+      if (Math.abs(getPosition() - setpoint) > 0.08) {
+        setpoint = getPosition();
+      }
+    });
+    sm.setInitialState(holding);
+    return run(coroutine -> coroutine.await(sm))
         .withPriority(Command.LOWEST_PRIORITY)
         .named("Extender Hold");
   }

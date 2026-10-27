@@ -10,6 +10,7 @@ import first.robot.mechanical.Mechanical;
 import java.util.List;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
+import org.wpilib.command3.StateMachine;
 import org.wpilib.command3.Trigger;
 import org.wpilib.framework.RobotBase;
 import org.wpilib.hardware.discrete.DigitalOutput;
@@ -59,17 +60,22 @@ public class ShooterMechanism implements Mechanism {
    * with the ratchet engaged, then stops the motor so the ratchet holds it cocked.
    */
   public Command pullBack() {
-    return run(coroutine -> {
-          setpoint = LOADED_PULLBACK;
+    setpoint = LOADED_PULLBACK;
+    StateMachine sm = new StateMachine("Shooter Pull Back");
+    var winding = sm.addState(
+        runRepeatedly(() -> {
           solenoid.set(false);
-          while (!isLoaded()) {
-            double volts = Math.max(PULLBACK_VOLTS, pid.calculate(getPosition(), setpoint));
-            motor.setVoltage(Math.clamp(volts, 0.0, MAX_VOLTS));
-            coroutine.yield();
-          }
-          motor.setVoltage(0.0);
-        })
-        .named("Shooter Pull Back");
+          double volts = Math.max(PULLBACK_VOLTS, pid.calculate(getPosition(), setpoint));
+          motor.setVoltage(Math.clamp(volts, 0.0, MAX_VOLTS));
+        }).named("Shooter Pull Back"));
+    winding.onEnter(() -> {
+      setpoint = LOADED_PULLBACK;
+      solenoid.set(false);
+    });
+    winding.onExit(() -> motor.setVoltage(0.0));
+    sm.setInitialState(winding);
+    winding.exitStateMachine().when(this::isLoaded);
+    return run(coroutine -> coroutine.await(sm)).named("Shooter Pull Back");
   }
 
   /**
@@ -77,22 +83,32 @@ public class ShooterMechanism implements Mechanism {
    * the ratchet once the spring has fully extended.
    */
   public Command kick() {
-    return run(coroutine -> {
+    setpoint = MIN_PULLBACK;
+    StateMachine sm = new StateMachine("Shooter Kick");
+    var releasing = sm.addState(
+        runRepeatedly(() -> {
+          motor.setVoltage(0.0);
+          solenoid.set(true);
+        }).named("Shooter Releasing"));
+    releasing.onEnter(() -> {
+      setpoint = MIN_PULLBACK;
+      motor.setVoltage(0.0);
+      solenoid.set(true);
+    });
+    var followThrough = sm.addState(
+        run(coroutine -> {
           setpoint = MIN_PULLBACK;
           motor.setVoltage(0.0);
           solenoid.set(true);
-          while (getPosition() > MIN_PULLBACK + TOLERANCE_METERS) {
-            motor.setVoltage(0.0);
-            solenoid.set(true);
-            coroutine.yield();
-          }
-          // Brief follow-through before re-latching the solenoid
           for (int i = 0; i < 3; i++) {
             coroutine.yield();
           }
-          solenoid.set(false);
-        })
-        .named("Shooter Kick");
+        }).named("Shooter Follow-Through"));
+    releasing.switchTo(followThrough).when(() -> getPosition() <= MIN_PULLBACK + TOLERANCE_METERS);
+    followThrough.onExit(() -> solenoid.set(false));
+    followThrough.exitStateMachine().whenComplete();
+    sm.setInitialState(releasing);
+    return run(coroutine -> coroutine.await(sm)).named("Shooter Kick");
   }
 
   /**
@@ -100,28 +116,28 @@ public class ShooterMechanism implements Mechanism {
    * ShooterConstants#MAX_PULLBACK} if held past the limit).
    */
   public Command wind() {
-    return run(coroutine -> {
+    StateMachine sm = new StateMachine("Shooter Wind");
+    var winding = sm.addState(
+        runRepeatedly(() -> {
           solenoid.set(false);
-          while (true) {
-            setpoint = MAX_PULLBACK;
-            motor.setVoltage(PULLBACK_VOLTS);
-            coroutine.yield();
-          }
-        })
-        .named("Shooter Wind");
+          setpoint = MAX_PULLBACK;
+          motor.setVoltage(PULLBACK_VOLTS);
+        }).named("Shooter Wind"));
+    sm.setInitialState(winding);
+    return run(coroutine -> coroutine.await(sm)).named("Shooter Wind");
   }
 
   /** Manual command that holds the release solenoid open while active. */
   public Command releaseSolenoid() {
-    return run(coroutine -> {
-          while (true) {
-            setpoint = MIN_PULLBACK;
-            motor.setVoltage(0.0);
-            solenoid.set(true);
-            coroutine.yield();
-          }
-        })
-        .named("Shooter Release");
+    StateMachine sm = new StateMachine("Shooter Release");
+    var releasing = sm.addState(
+        runRepeatedly(() -> {
+          setpoint = MIN_PULLBACK;
+          motor.setVoltage(0.0);
+          solenoid.set(true);
+        }).named("Shooter Release"));
+    sm.setInitialState(releasing);
+    return run(coroutine -> coroutine.await(sm)).named("Shooter Release");
   }
 
   /**
@@ -129,16 +145,17 @@ public class ShooterMechanism implements Mechanism {
    * spring tension is mechanically held in place without drawing motor current.
    */
   public Command hold() {
-    return run(coroutine -> {
-          while (true) {
-            if (RobotBase.isDisabled()) {
-              setpoint = getPosition();
-            }
-            motor.setVoltage(0.0);
-            solenoid.set(false);
-            coroutine.yield();
+    StateMachine sm = new StateMachine("Shooter Hold [FSM]");
+    var holding = sm.addState(
+        runRepeatedly(() -> {
+          if (RobotBase.isDisabled()) {
+            setpoint = getPosition();
           }
-        })
+          motor.setVoltage(0.0);
+          solenoid.set(false);
+        }).named("Shooter Hold"));
+    sm.setInitialState(holding);
+    return run(coroutine -> coroutine.await(sm))
         .withPriority(Command.LOWEST_PRIORITY)
         .named("Shooter Hold");
   }

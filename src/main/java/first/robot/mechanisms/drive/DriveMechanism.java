@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.function.DoubleSupplier;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
+import org.wpilib.command3.StateMachine;
 import org.wpilib.command3.Trigger;
 import org.wpilib.framework.RobotBase;
 import org.wpilib.math.controller.PIDController;
@@ -47,15 +48,14 @@ public class DriveMechanism implements Mechanism {
   }
 
   private Command driveTo(double targetMeters, String name) {
-    return run(coroutine -> {
-          setpoint = targetMeters;
-          while (!atSetpoint() || Math.abs(getVelocity()) > 0.08) {
-            driveTowardSetpoint();
-            coroutine.yield();
-          }
-          motor.setVoltage(0.0);
-        })
-        .named(name);
+    setpoint = targetMeters;
+    StateMachine sm = new StateMachine(name);
+    var driving = sm.addState(runRepeatedly(this::driveTowardSetpoint).named(name));
+    driving.onEnter(() -> setpoint = targetMeters);
+    driving.onExit(() -> motor.setVoltage(0.0));
+    sm.setInitialState(driving);
+    driving.exitStateMachine().when(() -> atSetpoint() && Math.abs(getVelocity()) <= 0.08);
+    return run(coroutine -> coroutine.await(sm)).named(name);
   }
 
   /** Drives to the table where Ball 1 and the target zone are located. */
@@ -70,57 +70,58 @@ public class DriveMechanism implements Mechanism {
 
   /** Drives forward towards the table while active. */
   public Command forward() {
-    return run(coroutine -> {
-          while (true) {
-            setpoint = Math.min(TABLE_POSITION + 0.5, getPosition() + TELEOP_SPEED_MPS * 0.02);
-            driveTowardSetpoint(TELEOP_VOLTS);
-            coroutine.yield();
-          }
-        })
-        .named("Drive Forward");
+    StateMachine sm = new StateMachine("Drive Forward");
+    var moving = sm.addState(
+        runRepeatedly(() -> {
+          setpoint = Math.min(TABLE_POSITION + 0.5, getPosition() + TELEOP_SPEED_MPS * 0.02);
+          driveTowardSetpoint(TELEOP_VOLTS);
+        }).named("Drive Forward"));
+    sm.setInitialState(moving);
+    return run(coroutine -> coroutine.await(sm)).named("Drive Forward");
   }
 
   /** Drives backward towards the start location while active. */
   public Command backward() {
-    return run(coroutine -> {
-          while (true) {
-            setpoint = Math.max(START_POSITION - 0.5, getPosition() - TELEOP_SPEED_MPS * 0.02);
-            driveTowardSetpoint(TELEOP_VOLTS);
-            coroutine.yield();
-          }
-        })
-        .named("Drive Backward");
+    StateMachine sm = new StateMachine("Drive Backward");
+    var moving = sm.addState(
+        runRepeatedly(() -> {
+          setpoint = Math.max(START_POSITION - 0.5, getPosition() - TELEOP_SPEED_MPS * 0.02);
+          driveTowardSetpoint(TELEOP_VOLTS);
+        }).named("Drive Backward"));
+    sm.setInitialState(moving);
+    return run(coroutine -> coroutine.await(sm)).named("Drive Backward");
   }
 
   /** Drives with a continuous speed or joystick input. */
   public Command drive(DoubleSupplier speedSupplier) {
-    return run(coroutine -> {
-          while (true) {
-            double speed = speedSupplier.getAsDouble();
-            if (Math.abs(speed) < 0.05) {
-              driveTowardSetpoint();
-            } else {
-              setpoint = getPosition();
-              motor.setVoltage(Math.clamp(speed * MAX_VOLTS, -MAX_VOLTS, MAX_VOLTS));
-            }
-            coroutine.yield();
+    StateMachine sm = new StateMachine("Drive Manual");
+    var manual = sm.addState(
+        runRepeatedly(() -> {
+          double speed = speedSupplier.getAsDouble();
+          if (Math.abs(speed) < 0.05) {
+            driveTowardSetpoint();
+          } else {
+            setpoint = getPosition();
+            motor.setVoltage(Math.clamp(speed * MAX_VOLTS, -MAX_VOLTS, MAX_VOLTS));
           }
-        })
-        .named("Drive Manual");
+        }).named("Drive Manual"));
+    sm.setInitialState(manual);
+    return run(coroutine -> coroutine.await(sm)).named("Drive Manual");
   }
 
   /** The default command: holds the robot stationary at its current position. */
   public Command hold() {
-    return run(coroutine -> {
-          setpoint = getPosition();
-          while (true) {
-            if (RobotBase.isDisabled()) {
-              setpoint = getPosition();
-            }
-            driveTowardSetpoint();
-            coroutine.yield();
+    StateMachine sm = new StateMachine("Drive Hold [FSM]");
+    var holding = sm.addState(
+        runRepeatedly(() -> {
+          if (RobotBase.isDisabled()) {
+            setpoint = getPosition();
           }
-        })
+          driveTowardSetpoint();
+        }).named("Drive Hold"));
+    holding.onEnter(() -> setpoint = getPosition());
+    sm.setInitialState(holding);
+    return run(coroutine -> coroutine.await(sm))
         .withPriority(Command.LOWEST_PRIORITY)
         .named("Drive Hold");
   }

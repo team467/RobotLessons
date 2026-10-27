@@ -10,6 +10,7 @@ import first.robot.mechanical.Mechanical;
 import java.util.List;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
+import org.wpilib.command3.StateMachine;
 import org.wpilib.command3.Trigger;
 import org.wpilib.framework.RobotBase;
 import org.wpilib.hardware.discrete.DigitalInput;
@@ -52,14 +53,14 @@ public class ClawMechanism implements Mechanism {
    */
   public Command moveTo(double angleRadians) {
     double target = Math.clamp(angleRadians, CLOSED_ANGLE, OPEN_ANGLE);
-    return run(coroutine -> {
-          setpoint = target;
-          while (!atSetpoint()) {
-            driveTowardSetpoint();
-            coroutine.yield();
-          }
-        })
-        .named(String.format("Claw To %.0f deg", Math.toDegrees(target)));
+    setpoint = target;
+    String name = String.format("Claw To %.0f deg", Math.toDegrees(target));
+    StateMachine sm = new StateMachine(name);
+    var moving = sm.addState(runRepeatedly(this::driveTowardSetpoint).named(name));
+    moving.onEnter(() -> setpoint = target);
+    sm.setInitialState(moving);
+    moving.exitStateMachine().when(this::atSetpoint);
+    return run(coroutine -> coroutine.await(sm)).named(name);
   }
 
   /** Opens the claw all the way. */
@@ -72,34 +73,34 @@ public class ClawMechanism implements Mechanism {
    * close any further when a ball is in the way!).
    */
   public Command close() {
-    return run(coroutine -> {
-          setpoint = CLOSED_ANGLE;
-          while (!atSetpoint() && !hasBall()) {
-            driveTowardSetpoint();
-            coroutine.yield();
-          }
-        })
-        .named("Claw Close");
+    setpoint = CLOSED_ANGLE;
+    StateMachine sm = new StateMachine("Claw Close");
+    var closing = sm.addState(runRepeatedly(this::driveTowardSetpoint).named("Claw Close"));
+    closing.onEnter(() -> setpoint = CLOSED_ANGLE);
+    sm.setInitialState(closing);
+    closing.exitStateMachine().when(() -> atSetpoint() || hasBall());
+    return run(coroutine -> coroutine.await(sm)).named("Claw Close");
   }
 
   /**
    * The default command. Keeps squeezing if we have a ball, otherwise holds the current angle.
    */
   public Command hold() {
-    return run(coroutine -> {
-          setpoint = getAngle();
-          while (true) {
-            if (RobotBase.isDisabled()) {
-              setpoint = getAngle();
-            }
-            if (hasBall()) {
-              motor.setVoltage(GRIP_VOLTS);
-            } else {
-              driveTowardSetpoint();
-            }
-            coroutine.yield();
+    StateMachine sm = new StateMachine("Claw Hold [FSM]");
+    var holding = sm.addState(
+        runRepeatedly(() -> {
+          if (RobotBase.isDisabled()) {
+            setpoint = getAngle();
           }
-        })
+          if (hasBall()) {
+            motor.setVoltage(GRIP_VOLTS);
+          } else {
+            driveTowardSetpoint();
+          }
+        }).named("Claw Hold"));
+    holding.onEnter(() -> setpoint = getAngle());
+    sm.setInitialState(holding);
+    return run(coroutine -> coroutine.await(sm))
         .withPriority(Command.LOWEST_PRIORITY)
         .named("Claw Hold");
   }

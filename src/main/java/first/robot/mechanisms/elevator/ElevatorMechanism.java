@@ -10,6 +10,7 @@ import first.robot.mechanical.Mechanical;
 import java.util.List;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
+import org.wpilib.command3.StateMachine;
 import org.wpilib.command3.Trigger;
 import org.wpilib.framework.RobotBase;
 import org.wpilib.math.controller.PIDController;
@@ -49,38 +50,38 @@ public class ElevatorMechanism implements Mechanism {
    */
   public Command moveTo(double heightMeters) {
     double target = Math.clamp(heightMeters, MIN_HEIGHT, MAX_HEIGHT);
-    return run(coroutine -> {
-          setpoint = target;
-          while (!atSetpoint()) {
-            driveTowardSetpoint();
-            coroutine.yield(); // wait for the next robot loop
-          }
-        })
-        .named(String.format("Elevator To %.2fm", target));
+    setpoint = target;
+    String name = String.format("Elevator To %.2fm", target);
+    StateMachine sm = new StateMachine(name);
+    var moving = sm.addState(runRepeatedly(this::driveTowardSetpoint).named(name));
+    moving.onEnter(() -> setpoint = target);
+    sm.setInitialState(moving);
+    moving.exitStateMachine().when(this::atSetpoint);
+    return run(coroutine -> coroutine.await(sm)).named(name);
   }
 
   /** Drives up smoothly while held, stopping at MAX_HEIGHT. */
   public Command up() {
-    return run(coroutine -> {
-          while (true) {
-            setpoint = Math.min(MAX_HEIGHT, setpoint + MANUAL_SPEED_MPS * 0.02);
-            driveTowardSetpoint();
-            coroutine.yield();
-          }
-        })
-        .named("Elevator Up");
+    StateMachine sm = new StateMachine("Elevator Up");
+    var moving = sm.addState(
+        runRepeatedly(() -> {
+          setpoint = Math.min(MAX_HEIGHT, setpoint + MANUAL_SPEED_MPS * 0.02);
+          driveTowardSetpoint();
+        }).named("Elevator Up"));
+    sm.setInitialState(moving);
+    return run(coroutine -> coroutine.await(sm)).named("Elevator Up");
   }
 
   /** Drives down smoothly while held, stopping at MIN_HEIGHT. */
   public Command down() {
-    return run(coroutine -> {
-          while (true) {
-            setpoint = Math.max(MIN_HEIGHT, setpoint - MANUAL_SPEED_MPS * 0.02);
-            driveTowardSetpoint();
-            coroutine.yield();
-          }
-        })
-        .named("Elevator Down");
+    StateMachine sm = new StateMachine("Elevator Down");
+    var moving = sm.addState(
+        runRepeatedly(() -> {
+          setpoint = Math.max(MIN_HEIGHT, setpoint - MANUAL_SPEED_MPS * 0.02);
+          driveTowardSetpoint();
+        }).named("Elevator Down"));
+    sm.setInitialState(moving);
+    return run(coroutine -> coroutine.await(sm)).named("Elevator Down");
   }
 
   /**
@@ -88,18 +89,21 @@ public class ElevatorMechanism implements Mechanism {
    * nothing else needs the elevator.
    */
   public Command hold() {
-    return run(coroutine -> {
-          if (Math.abs(getPosition() - setpoint) > 0.08) {
+    StateMachine sm = new StateMachine("Elevator Hold [FSM]");
+    var holding = sm.addState(
+        runRepeatedly(() -> {
+          if (RobotBase.isDisabled()) {
             setpoint = getPosition();
           }
-          while (true) {
-            if (RobotBase.isDisabled()) {
-              setpoint = getPosition();
-            }
-            driveTowardSetpoint();
-            coroutine.yield();
-          }
-        })
+          driveTowardSetpoint();
+        }).named("Elevator Hold"));
+    holding.onEnter(() -> {
+      if (Math.abs(getPosition() - setpoint) > 0.08) {
+        setpoint = getPosition();
+      }
+    });
+    sm.setInitialState(holding);
+    return run(coroutine -> coroutine.await(sm))
         .withPriority(Command.LOWEST_PRIORITY)
         .named("Elevator Hold");
   }
