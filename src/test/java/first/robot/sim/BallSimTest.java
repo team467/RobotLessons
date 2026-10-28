@@ -1,7 +1,5 @@
 package first.robot.sim;
 
-import static first.robot.constants.FieldConstants.*;
-import static first.robot.constants.RobotConstants.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.wpilib.units.Units.Meters;
 import static org.wpilib.units.Units.Radians;

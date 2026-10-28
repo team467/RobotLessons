@@ -194,76 +194,76 @@ public class TeleopGrabDropTest {
 
   @Test
   void testTeleopActivationAndKeyboardControl() {
-    Robot robot = new Robot();
-    robot.simulationInit();
-    SimWorld world = robot.getSimWorld();
-    assertNotNull(world);
+    try (Robot robot = new Robot()) {
+      robot.simulationInit();
+      SimWorld world = robot.getSimWorld();
+      assertNotNull(world);
 
-    // Request Teleop (equivalent to clicking "Teleop (T)" button or pressing T)
-    world.requestTeleop();
-    robot.simulationPeriodic();
-    robot.robotPeriodic();
+      // Request Teleop (equivalent to clicking "Teleop (T)" button or pressing T)
+      world.requestTeleop();
+      robot.simulationPeriodic();
+      robot.robotPeriodic();
 
-    assertTrue(org.wpilib.framework.RobotBase.isTeleop(), "Robot should switch to Teleop mode");
-    assertTrue(org.wpilib.framework.RobotBase.isEnabled(), "Robot should be enabled in Teleop mode");
-    assertEquals("Teleop", world.snapshot().mode());
+      assertTrue(org.wpilib.framework.RobotBase.isTeleop(), "Robot should switch to Teleop mode");
+      assertTrue(org.wpilib.framework.RobotBase.isEnabled(), "Robot should be enabled in Teleop mode");
+      assertEquals("Teleop", world.snapshot().mode());
 
-    // Hold Up arrow key -> elevator should move up
-    Distance initialHeight = robot.elevator.getPosition();
-    robot.keyboard.setPressed(first.robot.constants.DriverConstants.KEY_ELEVATOR_UP, true);
-    for (int i = 0; i < 30; i++) {
+      // Hold Up arrow key -> elevator should move up
+      Distance initialHeight = robot.elevator.getPosition();
+      robot.keyboard.setPressed(first.robot.constants.DriverConstants.KEY_ELEVATOR_UP, true);
+      for (int i = 0; i < 30; i++) {
+        robot.simulationPeriodic();
+        robot.robotPeriodic();
+      }
+      robot.keyboard.setPressed(first.robot.constants.DriverConstants.KEY_ELEVATOR_UP, false);
+      assertTrue(robot.elevator.getPosition().in(Meters) > initialHeight.in(Meters) + 0.10, "Elevator should raise while Up key is pressed");
+
+      // Hold Right arrow key -> extender should move out
+      Distance initialExt = robot.extender.getPosition();
+      robot.keyboard.setPressed(first.robot.constants.DriverConstants.KEY_EXTENDER_OUT, true);
+      for (int i = 0; i < 30; i++) {
+        robot.simulationPeriodic();
+        robot.robotPeriodic();
+      }
+      robot.keyboard.setPressed(first.robot.constants.DriverConstants.KEY_EXTENDER_OUT, false);
+      assertTrue(robot.extender.getPosition().in(Meters) > initialExt.in(Meters) + 0.05, "Extender should extend while Right key is pressed");
+
+      // Press Z -> claw should open
+      robot.keyboard.setPressed(first.robot.constants.DriverConstants.KEY_CLAW_OPEN, true);
+      robot.simulationPeriodic();
+      robot.robotPeriodic();
+      robot.keyboard.setPressed(first.robot.constants.DriverConstants.KEY_CLAW_OPEN, false);
+      for (int i = 0; i < 40; i++) {
+        robot.simulationPeriodic();
+        robot.robotPeriodic();
+      }
+      assertTrue(robot.claw.getAngle().in(Radians) > ClawConstants.OPEN_ANGLE.in(Radians) - 0.10, "Claw should open on Z key");
+
+      // Hold D key -> drive should move forward
+      Distance initialDrive = robot.drive.getPosition();
+      robot.keyboard.setPressed(first.robot.constants.DriverConstants.KEY_DRIVE_FORWARD, true);
+      for (int i = 0; i < 40; i++) {
+        robot.simulationPeriodic();
+        robot.robotPeriodic();
+      }
+      robot.keyboard.setPressed(first.robot.constants.DriverConstants.KEY_DRIVE_FORWARD, false);
+      assertTrue(robot.drive.getPosition().in(Meters) > initialDrive.in(Meters) + 0.10, "Drive should move forward while D key is pressed");
+
+      // Hold A key -> drive should move backward
+      Distance driveAfterForward = robot.drive.getPosition();
+      robot.keyboard.setPressed(first.robot.constants.DriverConstants.KEY_DRIVE_BACKWARD, true);
+      for (int i = 0; i < 40; i++) {
+        robot.simulationPeriodic();
+        robot.robotPeriodic();
+      }
+      robot.keyboard.setPressed(first.robot.constants.DriverConstants.KEY_DRIVE_BACKWARD, false);
+      assertTrue(robot.drive.getPosition().in(Meters) < driveAfterForward.in(Meters) - 0.10, "Drive should move backward while A key is pressed");
+
+      // Request Disable (equivalent to clicking "Disable" button)
+      world.requestDisable();
       robot.simulationPeriodic();
       robot.robotPeriodic();
     }
-    robot.keyboard.setPressed(first.robot.constants.DriverConstants.KEY_ELEVATOR_UP, false);
-    assertTrue(robot.elevator.getPosition().in(Meters) > initialHeight.in(Meters) + 0.10, "Elevator should raise while Up key is pressed");
-
-    // Hold Right arrow key -> extender should move out
-    Distance initialExt = robot.extender.getPosition();
-    robot.keyboard.setPressed(first.robot.constants.DriverConstants.KEY_EXTENDER_OUT, true);
-    for (int i = 0; i < 30; i++) {
-      robot.simulationPeriodic();
-      robot.robotPeriodic();
-    }
-    robot.keyboard.setPressed(first.robot.constants.DriverConstants.KEY_EXTENDER_OUT, false);
-    assertTrue(robot.extender.getPosition().in(Meters) > initialExt.in(Meters) + 0.05, "Extender should extend while Right key is pressed");
-
-    // Press Z -> claw should open
-    robot.keyboard.setPressed(first.robot.constants.DriverConstants.KEY_CLAW_OPEN, true);
-    robot.simulationPeriodic();
-    robot.robotPeriodic();
-    robot.keyboard.setPressed(first.robot.constants.DriverConstants.KEY_CLAW_OPEN, false);
-    for (int i = 0; i < 40; i++) {
-      robot.simulationPeriodic();
-      robot.robotPeriodic();
-    }
-    assertTrue(robot.claw.getAngle().in(Radians) > ClawConstants.OPEN_ANGLE.in(Radians) - 0.10, "Claw should open on Z key");
-
-    // Hold D key -> drive should move forward
-    Distance initialDrive = robot.drive.getPosition();
-    robot.keyboard.setPressed(first.robot.constants.DriverConstants.KEY_DRIVE_FORWARD, true);
-    for (int i = 0; i < 40; i++) {
-      robot.simulationPeriodic();
-      robot.robotPeriodic();
-    }
-    robot.keyboard.setPressed(first.robot.constants.DriverConstants.KEY_DRIVE_FORWARD, false);
-    assertTrue(robot.drive.getPosition().in(Meters) > initialDrive.in(Meters) + 0.10, "Drive should move forward while D key is pressed");
-
-    // Hold A key -> drive should move backward
-    Distance driveAfterForward = robot.drive.getPosition();
-    robot.keyboard.setPressed(first.robot.constants.DriverConstants.KEY_DRIVE_BACKWARD, true);
-    for (int i = 0; i < 40; i++) {
-      robot.simulationPeriodic();
-      robot.robotPeriodic();
-    }
-    robot.keyboard.setPressed(first.robot.constants.DriverConstants.KEY_DRIVE_BACKWARD, false);
-    assertTrue(robot.drive.getPosition().in(Meters) < driveAfterForward.in(Meters) - 0.10, "Drive should move backward while A key is pressed");
-
-    // Request Disable (equivalent to clicking "Disable" button)
-    world.requestDisable();
-    robot.simulationPeriodic();
-    robot.robotPeriodic();
-
     assertFalse(org.wpilib.framework.RobotBase.isEnabled(), "Robot should be disabled after disable request");
   }
 
