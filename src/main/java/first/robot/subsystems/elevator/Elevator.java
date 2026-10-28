@@ -45,6 +45,13 @@ public class Elevator implements Mechanism {
   // Commands
   // ------------------------------------------------------------------------------------------
 
+  /**
+   * Clamps a requested wrist height within the physical travel limits of the elevator
+   * ({@link ElevatorConstants#MIN_HEIGHT} to {@link ElevatorConstants#MAX_HEIGHT}).
+   *
+   * @param height the raw target distance
+   * @return the distance clamped within safe mechanical limits
+   */
   private Distance clampHeight(Distance height) {
     if (height.lt(MIN_HEIGHT)) {
       return MIN_HEIGHT;
@@ -58,7 +65,17 @@ public class Elevator implements Mechanism {
   /**
    * Moves the elevator to a height and finishes once it gets there.
    *
+   * <p>Features:
+   * <ul>
+   *   <li><b>Safety clamping</b>: Automatically limits targets between 0.25m and 1.20m.
+   *   <li><b>Gravity feedforward</b>: Automatically adds {@link ElevatorConstants#KG} (0.70V) in addition
+   *       to proportional-derivative closed-loop error correction.
+   *   <li><b>Velocity-settled exit</b>: Verifies both that height is within tolerance (&plusmn;0.02m)
+   *       AND vertical velocity has slowed to &le; 0.05 m/s before completing.
+   * </ul>
+   *
    * @param height the target wrist height, clamped to the elevator's travel
+   * @return a command that drives the elevator to the target height
    */
   public Command moveTo(Distance height) {
     Distance target = clampHeight(height);
@@ -68,9 +85,10 @@ public class Elevator implements Mechanism {
     var moving = sm.addState(runRepeatedly(this::driveTowardSetpoint).named(name));
     moving.onEnter(() -> {
       setpoint = target;
-      pid.reset();
+      pid.reset(); // Clear accumulated integral/derivative state
     });
     sm.setInitialState(moving);
+    // Complete only when at setpoint and carriage has settled to avoid inertial bounce
     moving.exitStateMachine().when(() -> atSetpoint() && Math.abs(getVelocity()) <= 0.05);
     return run(coroutine -> coroutine.await(sm)).named(name);
   }
@@ -79,21 +97,32 @@ public class Elevator implements Mechanism {
    * Overload for moving the elevator to a height specified in meters as a double.
    *
    * @param heightMeters the target wrist height in meters
+   * @return a command that drives the elevator to the target height
    */
   public Command moveTo(double heightMeters) {
     return moveTo(Meters.of(heightMeters));
   }
 
-  /** Drives up smoothly while held, stopping at MAX_HEIGHT. */
+  /**
+   * Drives up smoothly while held, stopping at {@link ElevatorConstants#MAX_HEIGHT}.
+   *
+   * <p>Increments the setpoint by {@code MANUAL_SPEED_MPS * 0.02s} each periodic cycle.
+   * When released, latches the setpoint to current actual position and resets the PID controller
+   * so the carriage stops immediately without coasting or hunting.
+   *
+   * @return upward jogging command
+   */
   public Command up() {
     StateMachine sm = new StateMachine("Elevator Up");
     var moving = sm.addState(
         runRepeatedly(() -> {
+          // Increment setpoint by 0.35 m/s * 0.02s (7mm per tick) up to MAX_HEIGHT
           setpoint = Meters.of(Math.min(MAX_HEIGHT.in(Meters), setpoint.in(Meters) + MANUAL_SPEED_MPS * 0.02));
           driveTowardSetpoint();
         }).named("Elevator Up"));
     moving.onEnter(() -> setpoint = getPosition());
     moving.onExit(() -> {
+      // Lock position where user let go of the control and clear PID history
       setpoint = getPosition();
       pid.reset();
     });
@@ -101,16 +130,26 @@ public class Elevator implements Mechanism {
     return run(coroutine -> coroutine.await(sm)).named("Elevator Up");
   }
 
-  /** Drives down smoothly while held, stopping at MIN_HEIGHT. */
+  /**
+   * Drives down smoothly while held, stopping at {@link ElevatorConstants#MIN_HEIGHT}.
+   *
+   * <p>Decrements the setpoint by {@code MANUAL_SPEED_MPS * 0.02s} each periodic cycle.
+   * When released, latches the setpoint to current actual position and resets the PID controller
+   * so the carriage stops immediately without coasting or hunting.
+   *
+   * @return downward jogging command
+   */
   public Command down() {
     StateMachine sm = new StateMachine("Elevator Down");
     var moving = sm.addState(
         runRepeatedly(() -> {
+          // Decrement setpoint by 0.35 m/s * 0.02s (7mm per tick) down to MIN_HEIGHT
           setpoint = Meters.of(Math.max(MIN_HEIGHT.in(Meters), setpoint.in(Meters) - MANUAL_SPEED_MPS * 0.02));
           driveTowardSetpoint();
         }).named("Elevator Down"));
     moving.onEnter(() -> setpoint = getPosition());
     moving.onExit(() -> {
+      // Lock position where user let go of the control and clear PID history
       setpoint = getPosition();
       pid.reset();
     });
@@ -121,6 +160,11 @@ public class Elevator implements Mechanism {
   /**
    * Holds the elevator at the current height. This is the default command, so it runs whenever
    * nothing else needs the elevator.
+   *
+   * <p>Applies gravity feedforward {@link ElevatorConstants#KG} (0.70V) plus PID feedback to counteract
+   * the carriage weight and maintain steady position.
+   *
+   * @return continuous default holding command
    */
   public Command hold() {
     StateMachine sm = new StateMachine("Elevator Hold [FSM]");
@@ -146,6 +190,10 @@ public class Elevator implements Mechanism {
   // Helpers and state
   // ------------------------------------------------------------------------------------------
 
+  /**
+   * Applies voltage calculated from gravity feedforward plus closed-loop position error:
+   * {@code volts = KG + PID(position, setpoint)}, clamped between [-MAX_VOLTS, +MAX_VOLTS].
+   */
   private void driveTowardSetpoint() {
     double volts = KG + pid.calculate(getPosition().in(Meters), setpoint.in(Meters));
     motor.setVoltage(Math.clamp(volts, -MAX_VOLTS, MAX_VOLTS));

@@ -44,48 +44,96 @@ public class Drive implements Mechanism {
   // Commands
   // ------------------------------------------------------------------------------------------
 
-  /** Drives the robot to a target position on the field and finishes once it arrives. */
+  /**
+   * Drives the robot to a target position on the field and finishes once it arrives.
+   *
+   * @param target the target field position distance
+   * @return a command that moves the drivetrain to the target
+   */
   public Command driveTo(Distance target) {
     return driveTo(target, String.format("Drive To %.2fm", target.in(Meters)));
   }
 
-  /** Overload for driving to a target position specified in meters as a double. */
+  /**
+   * Overload for driving to a target position specified in meters as a double.
+   *
+   * @param targetMeters the target position in meters
+   * @return a command that moves the drivetrain to the target
+   */
   public Command driveTo(double targetMeters) {
     return driveTo(Meters.of(targetMeters));
   }
 
+  /**
+   * Internal implementation of point-to-point driving using a single-state StateMachine.
+   *
+   * <p>Features:
+   * <ul>
+   *   <li><b>Entry latching</b>: Sets the setpoint and clears PID history via {@link PIDController#reset()}
+   *       to ensure no stale integral or derivative transients carry over.
+   *   <li><b>Velocity-settled exit</b>: Exits only when the chassis is both within {@link #TOLERANCE} (0.03m)
+   *       AND linear velocity has settled to &le; 0.05 m/s, preventing premature completion while still coasting.
+   * </ul>
+   *
+   * @param target target distance
+   * @param name command display name
+   * @return coroutine command driving to the destination
+   */
   private Command driveTo(Distance target, String name) {
     setpoint = target;
     StateMachine sm = new StateMachine(name);
     var driving = sm.addState(runRepeatedly(this::driveTowardSetpoint).named(name));
     driving.onEnter(() -> {
       setpoint = target;
-      pid.reset();
+      pid.reset(); // Clear accumulated integral and derivative error from prior moves
     });
     sm.setInitialState(driving);
+    // Ensure both position within tolerance and chassis has settled to near-zero speed
     driving.exitStateMachine().when(() -> atSetpoint() && Math.abs(getVelocity()) <= 0.05);
     return run(coroutine -> coroutine.await(sm)).named(name);
   }
 
-  /** Drives to the table where Ball 1 and the target zone are located. */
+  /**
+   * Drives to the table where Ball 1 and the target zone are located ({@link DriveConstants#TABLE_POSITION}).
+   *
+   * @return a command driving the chassis to the table
+   */
   public Command driveToTable() {
     return driveTo(TABLE_POSITION, "Drive To Table");
   }
 
-  /** Drives back to the start location where Ball 2 is located on the ground. */
+  /**
+   * Drives back to the start location where Ball 2 is located on the ground ({@link DriveConstants#START_POSITION}).
+   *
+   * @return a command driving the chassis back to the starting line
+   */
   public Command driveToStart() {
     return driveTo(START_POSITION, "Drive To Start");
   }
 
-  /** Drives forward towards the table while active. */
+  /**
+   * Drives forward towards the table while active (e.g. held by keyboard 'D' or gamepad).
+   *
+   * <p>Mechanics:
+   * <ul>
+   *   <li>Ramps the setpoint forward at {@link DriveConstants#TELEOP_SPEED_MPS} (5.5 m/s) clamped at {@link DriveConstants#TABLE_POSITION}.
+   *   <li>Applies boosted {@link DriveConstants#TELEOP_VOLTS} (11.5V) for responsive manual jogging.
+   *   <li><b>On release</b>: Latches the setpoint immediately to the current actual position, resets PID,
+   *       and zeros motor output to hold still without rubber-banding or overshoot.
+   * </ul>
+   *
+   * @return continuous forward jogging command
+   */
   public Command forward() {
     StateMachine sm = new StateMachine("Drive Forward");
     var moving = sm.addState(
         runRepeatedly(() -> {
+          // Increment setpoint by distance traveled in one 20ms tick, clamped to table boundary
           setpoint = Meters.of(Math.min(TABLE_POSITION.in(Meters), getPosition().in(Meters) + TELEOP_SPEED_MPS * 0.02));
           driveTowardSetpoint(TELEOP_VOLTS);
         }).named("Drive Forward"));
     moving.onExit(() -> {
+      // Freeze setpoint at current position on key release to lock position without rollback
       setpoint = getPosition();
       pid.reset();
       motor.setVoltage(0.0);
@@ -94,15 +142,29 @@ public class Drive implements Mechanism {
     return run(coroutine -> coroutine.await(sm)).named("Drive Forward");
   }
 
-  /** Drives backward towards the start location while active. */
+  /**
+   * Drives backward towards the start location while active (e.g. held by keyboard 'A' or gamepad).
+   *
+   * <p>Mechanics:
+   * <ul>
+   *   <li>Ramps the setpoint backward at {@link DriveConstants#TELEOP_SPEED_MPS} (5.5 m/s) clamped at {@link DriveConstants#START_POSITION}.
+   *   <li>Applies boosted {@link DriveConstants#TELEOP_VOLTS} (11.5V) for responsive manual jogging.
+   *   <li><b>On release</b>: Latches the setpoint immediately to the current actual position, resets PID,
+   *       and zeros motor output to hold still without rubber-banding or overshoot.
+   * </ul>
+   *
+   * @return continuous backward jogging command
+   */
   public Command backward() {
     StateMachine sm = new StateMachine("Drive Backward");
     var moving = sm.addState(
         runRepeatedly(() -> {
+          // Decrement setpoint by distance traveled in one 20ms tick, clamped to start boundary
           setpoint = Meters.of(Math.max(START_POSITION.in(Meters), getPosition().in(Meters) - TELEOP_SPEED_MPS * 0.02));
           driveTowardSetpoint(TELEOP_VOLTS);
         }).named("Drive Backward"));
     moving.onExit(() -> {
+      // Freeze setpoint at current position on key release to lock position without rollback
       setpoint = getPosition();
       pid.reset();
       motor.setVoltage(0.0);
@@ -111,15 +173,26 @@ public class Drive implements Mechanism {
     return run(coroutine -> coroutine.await(sm)).named("Drive Backward");
   }
 
-  /** Drives with a continuous speed or joystick input. */
+  /**
+   * Drives with a continuous speed or analog joystick input.
+   *
+   * <p>When input magnitude is within the 5% deadband (&lt; 0.05), closed-loop position holding
+   * maintains the robot's current position. When deflected beyond deadband, direct open-loop
+   * voltage drives the chassis while continuously synchronizing the setpoint to current position.
+   *
+   * @param speedSupplier normalized speed input (-1.0 to 1.0)
+   * @return analog driving command
+   */
   public Command drive(DoubleSupplier speedSupplier) {
     StateMachine sm = new StateMachine("Drive Manual");
     var manual = sm.addState(
         runRepeatedly(() -> {
           double speed = speedSupplier.getAsDouble();
+          // Deadband check: if joystick is centered, hold position
           if (Math.abs(speed) < 0.05) {
             driveTowardSetpoint();
           } else {
+            // Actively driving: track position so release stops smoothly where the robot is
             setpoint = getPosition();
             motor.setVoltage(Math.clamp(speed * MAX_VOLTS, -MAX_VOLTS, MAX_VOLTS));
           }
@@ -133,7 +206,14 @@ public class Drive implements Mechanism {
     return run(coroutine -> coroutine.await(sm)).named("Drive Manual");
   }
 
-  /** The default command: holds the robot stationary at its current position. */
+  /**
+   * The default command: holds the robot stationary at its current position using closed-loop PID.
+   *
+   * <p>Runs at {@link Command#LOWEST_PRIORITY} so that any manual driving or autonomous trajectory
+   * takes precedence when active.
+   *
+   * @return continuous default holding command
+   */
   public Command hold() {
     StateMachine sm = new StateMachine("Drive Hold [FSM]");
     var holding = sm.addState(
