@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import first.robot.constants.FieldConstants;
 import first.robot.constants.RobotConstants;
 import first.robot.subsystems.claw.Claw;
-import first.robot.subsystems.claw.ClawConstants;
 import first.robot.subsystems.drive.Drive;
 import first.robot.subsystems.elevator.Elevator;
 import first.robot.subsystems.elevator.ElevatorConstants;

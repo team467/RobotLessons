@@ -53,7 +53,6 @@ public class SimWindow extends JFrame {
   private static final double TABLE_RIGHT_X = FieldConstants.TABLE_RIGHT_X.in(Meters);
   private static final double TABLE_HEIGHT = FieldConstants.TABLE_HEIGHT.in(Meters);
   private static final double BALL_RADIUS = FieldConstants.BALL_RADIUS.in(Meters);
-  private static final double BALL_DIAMETER = FieldConstants.BALL_DIAMETER.in(Meters);
   private static final double TARGET_BOX_WALL_HEIGHT = FieldConstants.TARGET_BOX_WALL_HEIGHT.in(Meters);
   private static final double TARGET_LEFT_X = FieldConstants.TARGET_LEFT_X.in(Meters);
   private static final double TARGET_RIGHT_X = FieldConstants.TARGET_RIGHT_X.in(Meters);

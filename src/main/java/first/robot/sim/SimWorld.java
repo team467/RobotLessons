@@ -759,8 +759,4 @@ public class SimWorld {
 
     return MotorState.IDLE;
   }
-
-  private MotorState computeShooterMotorState() {
-    return computeKickerMotorState();
-  }
 }
