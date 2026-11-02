@@ -1,7 +1,8 @@
-package first.robot;
+package first.robot.opmodes;
 
 import static first.robot.constants.DriverConstants.*;
 
+import first.robot.Robot;
 import first.robot.constants.DriverConstants;
 import first.robot.orchestration.BallCommands;
 import org.wpilib.opmode.OpMode;

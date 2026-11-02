@@ -1,4 +1,4 @@
-package first.robot.mechanical;
+package first.robot.mechanisms;
 
 import static org.wpilib.units.Units.Meters;
 

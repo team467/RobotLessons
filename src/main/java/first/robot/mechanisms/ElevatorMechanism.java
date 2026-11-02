@@ -1,4 +1,4 @@
-package first.robot.mechanical;
+package first.robot.mechanisms;
 
 import static first.robot.subsystems.elevator.ElevatorConstants.KD;
 import static first.robot.subsystems.elevator.ElevatorConstants.KG;

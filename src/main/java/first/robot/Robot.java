@@ -1,6 +1,7 @@
 package first.robot;
 
 import first.robot.constants.DriverConstants;
+import first.robot.opmodes.DefaultTeleop;
 import first.robot.sim.SimKeyboard;
 import first.robot.sim.SimWindow;
 import first.robot.sim.SimWorld;
@@ -40,10 +41,10 @@ public class Robot extends OpModeRobot {
   public final Kicker shooter = kicker;
 
   /** Driver gamepad controller on USB port 1. */
-  final CommandGamepad controller = new CommandGamepad(DriverConstants.DRIVER_CONTROLLER_PORT);
+  public final CommandGamepad controller = new CommandGamepad(DriverConstants.DRIVER_CONTROLLER_PORT);
 
   /** Keyboard keys captured from the simulator window (active during simulation only). */
-  final SimKeyboard keyboard = new SimKeyboard();
+  public final SimKeyboard keyboard = new SimKeyboard();
 
   /** Physics and collision simulation world backing the graphical simulator. */
   private SimWorld simWorld;

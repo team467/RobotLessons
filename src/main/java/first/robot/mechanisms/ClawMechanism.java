@@ -1,4 +1,4 @@
-package first.robot.mechanical;
+package first.robot.mechanisms;
 
 import static first.robot.subsystems.claw.ClawConstants.CLOSED_ANGLE;
 import static first.robot.subsystems.claw.ClawConstants.KD;
