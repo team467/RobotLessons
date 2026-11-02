@@ -80,16 +80,7 @@ public class SimWorld {
       boolean kickerSolenoidReleased,
       boolean kickerLoaded,
       String kickerCommand,
-      MotorState kickerMotorState) {
-    public double shooterPullback() { return kickerPullback; }
-    public double shooterSetpoint() { return kickerSetpoint; }
-    public double shooterVolts() { return kickerVolts; }
-    public boolean shooterRatchetLocked() { return kickerRatchetLocked; }
-    public boolean shooterSolenoidReleased() { return kickerSolenoidReleased; }
-    public boolean shooterLoaded() { return kickerLoaded; }
-    public String shooterCommand() { return kickerCommand; }
-    public MotorState shooterMotorState() { return kickerMotorState; }
-  }
+      MotorState kickerMotorState) {}
 
   private final Elevator elevator;
   private final Extender extender;

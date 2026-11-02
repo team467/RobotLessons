@@ -55,5 +55,4 @@ public final class ExtenderConstants {
 
   /** Retracts arm to 0.23m so a held ball sits directly in front of the spring-loaded kicker plunger. */
   public static final Distance SHOOT_EXTENSION = Meters.of(0.23);
-  public static final Distance KICK_EXTENSION = SHOOT_EXTENSION;
 }

@@ -24,7 +24,6 @@ public final class DriverConstants {
   public static final int KEY_CLAW_CLOSE = KeyEvent.VK_X;
   /** Shortcut to reset simulation state, balls, and mechanisms (R key). */
   public static final int KEY_RESET_STATE = KeyEvent.VK_R;
-  public static final int KEY_RESET_BALL = KEY_RESET_STATE;
   /** Shortcut to activate Teleop mode (T key). */
   public static final int KEY_TELEOP = KeyEvent.VK_T;
   /** Hold to drive forward towards the table (D key). */
@@ -33,13 +32,10 @@ public final class DriverConstants {
   public static final int KEY_DRIVE_BACKWARD = KeyEvent.VK_A;
   /** Press to pull back / cock the spring-loaded kicker against its ratchet (C key). */
   public static final int KEY_KICKER_PULL = KeyEvent.VK_C;
-  public static final int KEY_SHOOTER_PULL = KEY_KICKER_PULL;
 
   /** Press to release the kicker solenoid and kick the ball toward the basket (Space key). */
   public static final int KEY_KICKER_KICK = KeyEvent.VK_SPACE;
-  public static final int KEY_SHOOTER_KICK = KEY_KICKER_KICK;
 
   /** Press to move the arm (elevator and extender) to the kicking/shooting position (V key). */
   public static final int KEY_KICK_POSITION = KeyEvent.VK_V;
-  public static final int KEY_SHOOT_POSITION = KEY_KICK_POSITION;
 }

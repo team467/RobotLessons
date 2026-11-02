@@ -722,20 +722,12 @@ public final class SimMechanical {
     return kickerEntry;
   }
 
-  public static KickerMotorEntry getShooterMotor() {
-    return getKickerMotor();
-  }
-
   public static DIOSim getClawBallSensor() {
     return clawBallSensorSim;
   }
 
   public static DIOSim getKickerSolenoid() {
     return kickerSolenoidSim;
-  }
-
-  public static DIOSim getShooterSolenoid() {
-    return getKickerSolenoid();
   }
 
   /** Clears all scheduled commands, event loops, triggers, and default command bindings. */

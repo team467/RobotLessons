@@ -231,11 +231,6 @@ public final class BallCommands {
     }).named("Score Ball On Table");
   }
 
-  /** Places a held ball gently into the table target box (alias). */
-  public static Command scoreBallOnTable(
-      Elevator elevator, Extender extender, Claw claw) {
-    return scoreTableBall(elevator, extender, claw);
-  }
 
   /**
    * Moves the arm (elevator and extender) to the shooting position ({@code elevator = 0.60m,
@@ -301,14 +296,5 @@ public final class BallCommands {
       // Step 2: Release the solenoid to disengage ratchet pawl and launch the ball toward the basket
       coroutine.await(kicker.kick());
     }).named("Kick Ball Into Basket");
-  }
-
-  /** Alias for {@link #kickBallIntoBasket}. */
-  public static Command shootBallIntoBasket(
-      Elevator elevator,
-      Extender extender,
-      Claw claw,
-      Kicker kicker) {
-    return kickBallIntoBasket(elevator, extender, claw, kicker);
   }
 }

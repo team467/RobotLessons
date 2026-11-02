@@ -61,7 +61,7 @@ public class ShootBothBallsAuto implements OpMode {
           drive.driveToTable());
 
       // Step 3: Kick Ball 2 into the basket
-      coroutine.await(BallCommands.shootBallIntoBasket(elevator, extender, claw, kicker));
+      coroutine.await(BallCommands.kickBallIntoBasket(elevator, extender, claw, kicker));
 
       // Step 4: Grab Ball 1 (Green) from the table while re-cocking the kicker in parallel
       coroutine.awaitAll(
@@ -69,7 +69,7 @@ public class ShootBothBallsAuto implements OpMode {
           kicker.pullBack());
 
       // Step 5: Bring Ball 1 close to the robot and kick it into the basket
-      coroutine.await(BallCommands.shootBallIntoBasket(elevator, extender, claw, kicker));
+      coroutine.await(BallCommands.kickBallIntoBasket(elevator, extender, claw, kicker));
     }).named("Shoot Both Balls");
   }
 

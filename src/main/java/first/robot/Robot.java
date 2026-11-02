@@ -37,8 +37,6 @@ public class Robot extends OpModeRobot {
   /** Spring-loaded kicker subsystem with pullback motor, ratchet lock, and release solenoid. */
   public final Kicker kicker = new Kicker();
 
-  /** Backward-compatible alias for kicker. */
-  public final Kicker shooter = kicker;
 
   /** Driver gamepad controller on USB port 1. */
   public final CommandGamepad controller = new CommandGamepad(DriverConstants.DRIVER_CONTROLLER_PORT);

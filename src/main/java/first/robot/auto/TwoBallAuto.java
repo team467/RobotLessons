@@ -70,7 +70,7 @@ public class TwoBallAuto implements OpMode {
       coroutine.await(BallCommands.grabBallLeftOfTarget(elevator, extender, claw));
 
       // Step 7: Score Ball 2 gently into the orange target box on top of the table
-      coroutine.await(BallCommands.scoreBallOnTable(elevator, extender, claw));
+      coroutine.await(BallCommands.scoreTableBall(elevator, extender, claw));
     }).named("Two Ball Routine");
   }
 
