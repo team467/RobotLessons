@@ -7,7 +7,7 @@ import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 import first.robot.Schematic;
-import first.robot.mechanical.LinearPositionMechanism;
+import first.robot.mechanical.ExtenderMechanism;
 import first.robot.mechanical.Mechanical;
 import java.util.List;
 import org.wpilib.command3.Command;
@@ -19,33 +19,17 @@ import org.wpilib.units.measure.Distance;
 public class Extender implements Mechanism {
   private final SparkMax motor;
   private final RelativeEncoder encoder;
-  private final LinearPositionMechanism mechanism;
+  private final ExtenderMechanism mechanism;
 
   /** True while the extender is within tolerance of its setpoint. */
   public final Trigger atSetpoint;
 
   public Extender() {
-    this(Mechanical.createSparkMax(Schematic.EXTENDER_CAN_ID, MotorType.kBrushless));
-  }
-
-  public Extender(SparkMax motor) {
-    this.motor = motor;
+    this.motor = Mechanical.createSparkMax(Schematic.EXTENDER_CAN_ID, MotorType.kBrushless);
     this.encoder = motor.getEncoder();
     Mechanical.register(motor);
 
-    this.mechanism =
-        new LinearPositionMechanism(
-            "Extender",
-            motor::setVoltage,
-            this::getPosition,
-            this::getVelocity,
-            KP,
-            KD,
-            MAX_VOLTS,
-            TOLERANCE,
-            MIN_EXTENSION,
-            MAX_EXTENSION,
-            STARTING_EXTENSION);
+    this.mechanism = new ExtenderMechanism(motor::setVoltage, this::getPosition, this::getVelocity);
 
     this.atSetpoint = mechanism.atSetpoint;
     setDefaultCommand(hold());
@@ -124,7 +108,7 @@ public class Extender implements Mechanism {
     mechanism.resetSetpoint();
   }
 
-  public LinearPositionMechanism getMechanism() {
+  public ExtenderMechanism getMechanism() {
     return mechanism;
   }
 }

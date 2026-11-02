@@ -7,6 +7,7 @@ import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 import first.robot.Schematic;
+import first.robot.mechanical.KickerMechanism;
 import first.robot.mechanical.Mechanical;
 import first.robot.mechanical.SpringKickerMechanism;
 import java.util.List;
@@ -37,7 +38,7 @@ public class Kicker implements Mechanism {
   private final SparkMax motor;
   private final RelativeEncoder encoder;
   private final DigitalOutput solenoid;
-  private final SpringKickerMechanism mechanism;
+  private final KickerMechanism mechanism;
 
   /** True when the kicker spring is pulled back and locked by the ratchet, ready to fire. */
   public final Trigger isLoaded;
@@ -46,34 +47,18 @@ public class Kicker implements Mechanism {
   public final Trigger atSetpoint;
 
   public Kicker() {
-    this(
-        Mechanical.createSparkMax(Schematic.KICKER_CAN_ID, MotorType.kBrushless),
-        Mechanical.createDigitalOutput(Schematic.KICKER_SOLENOID_CHANNEL));
-  }
-
-  public Kicker(SparkMax motor, DigitalOutput solenoid) {
-    this.motor = motor;
+    this.motor = Mechanical.createSparkMax(Schematic.KICKER_CAN_ID, MotorType.kBrushless);
     this.encoder = motor.getEncoder();
-    this.solenoid = solenoid;
+    this.solenoid = Mechanical.createDigitalOutput(Schematic.KICKER_SOLENOID_CHANNEL);
     Mechanical.register(motor);
 
     this.mechanism =
-        new SpringKickerMechanism(
-            "Kicker",
+        new KickerMechanism(
             motor::setVoltage,
             solenoid::set,
             solenoid::get,
             this::getPosition,
-            this::getVelocity,
-            KP,
-            KD,
-            MAX_VOLTS,
-            PULLBACK_VOLTS,
-            TOLERANCE,
-            MIN_PULLBACK,
-            MAX_PULLBACK,
-            LOADED_PULLBACK,
-            STARTING_PULLBACK);
+            this::getVelocity);
 
     this.isLoaded = mechanism.isLoaded;
     this.atSetpoint = mechanism.atSetpoint;
@@ -210,7 +195,7 @@ public class Kicker implements Mechanism {
     mechanism.resetSetpoint();
   }
 
-  public SpringKickerMechanism getMechanism() {
+  public KickerMechanism getMechanism() {
     return mechanism;
   }
 }

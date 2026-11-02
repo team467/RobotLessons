@@ -7,7 +7,7 @@ import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 import first.robot.Schematic;
-import first.robot.mechanical.LinearPositionMechanism;
+import first.robot.mechanical.ElevatorMechanism;
 import first.robot.mechanical.Mechanical;
 import java.util.List;
 import org.wpilib.command3.Command;
@@ -19,34 +19,17 @@ import org.wpilib.units.measure.Distance;
 public class Elevator implements Mechanism {
   private final SparkMax motor;
   private final RelativeEncoder encoder;
-  private final LinearPositionMechanism mechanism;
+  private final ElevatorMechanism mechanism;
 
   /** True while the elevator is within tolerance of its setpoint. */
   public final Trigger atSetpoint;
 
   public Elevator() {
-    this(Mechanical.createSparkMax(Schematic.ELEVATOR_CAN_ID, MotorType.kBrushless));
-  }
-
-  public Elevator(SparkMax motor) {
-    this.motor = motor;
+    this.motor = Mechanical.createSparkMax(Schematic.ELEVATOR_CAN_ID, MotorType.kBrushless);
     this.encoder = motor.getEncoder();
     Mechanical.register(motor);
 
-    this.mechanism =
-        new LinearPositionMechanism(
-            "Elevator",
-            motor::setVoltage,
-            this::getPosition,
-            this::getVelocity,
-            KP,
-            KD,
-            KG,
-            MAX_VOLTS,
-            TOLERANCE,
-            MIN_HEIGHT,
-            MAX_HEIGHT,
-            STARTING_HEIGHT);
+    this.mechanism = new ElevatorMechanism(motor::setVoltage, this::getPosition, this::getVelocity);
 
     this.atSetpoint = mechanism.atSetpoint;
     // When no other command is using the elevator, hold it where it is.
@@ -126,7 +109,7 @@ public class Elevator implements Mechanism {
     mechanism.resetSetpoint();
   }
 
-  public LinearPositionMechanism getMechanism() {
+  public ElevatorMechanism getMechanism() {
     return mechanism;
   }
 }

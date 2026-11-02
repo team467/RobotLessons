@@ -8,7 +8,7 @@ import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 import first.robot.Schematic;
-import first.robot.mechanical.AngularPositionMechanism;
+import first.robot.mechanical.ClawMechanism;
 import first.robot.mechanical.Mechanical;
 import java.util.List;
 import org.wpilib.command3.Command;
@@ -32,7 +32,7 @@ public class Claw implements Mechanism {
   private final SparkMax motor;
   private final RelativeEncoder encoder;
   private final DigitalInput ballSensor;
-  private final AngularPositionMechanism mechanism;
+  private final ClawMechanism mechanism;
 
   private Goal goal = Goal.HOLD;
 
@@ -40,30 +40,12 @@ public class Claw implements Mechanism {
   public final Trigger hasBall = new Trigger(this::hasBall);
 
   public Claw() {
-    this(
-        Mechanical.createSparkMax(Schematic.CLAW_CAN_ID, MotorType.kBrushless),
-        Mechanical.createDigitalInput(Schematic.CLAW_BALL_SENSOR_DIO));
-  }
-
-  public Claw(SparkMax motor, DigitalInput ballSensor) {
-    this.motor = motor;
+    this.motor = Mechanical.createSparkMax(Schematic.CLAW_CAN_ID, MotorType.kBrushless);
     this.encoder = motor.getEncoder();
-    this.ballSensor = ballSensor;
+    this.ballSensor = Mechanical.createDigitalInput(Schematic.CLAW_BALL_SENSOR_DIO);
     Mechanical.register(motor);
 
-    this.mechanism =
-        new AngularPositionMechanism(
-            "Claw",
-            motor::setVoltage,
-            this::getAngle,
-            this::getVelocity,
-            KP,
-            KD,
-            MAX_VOLTS,
-            TOLERANCE,
-            CLOSED_ANGLE,
-            OPEN_ANGLE,
-            STARTING_ANGLE);
+    this.mechanism = new ClawMechanism(motor::setVoltage, this::getAngle, this::getVelocity);
 
     setDefaultCommand(hold());
   }
@@ -295,7 +277,7 @@ public class Claw implements Mechanism {
     mechanism.resetSetpoint();
   }
 
-  public AngularPositionMechanism getMechanism() {
+  public ClawMechanism getMechanism() {
     return mechanism;
   }
 }

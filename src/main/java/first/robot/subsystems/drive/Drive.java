@@ -30,11 +30,7 @@ public class Drive implements Mechanism {
   public final Trigger atSetpoint = new Trigger(this::atSetpoint);
 
   public Drive() {
-    this(Mechanical.createSparkMax(Schematic.DRIVE_CAN_ID, MotorType.kBrushless));
-  }
-
-  public Drive(SparkMax motor) {
-    this.motor = motor;
+    this.motor = Mechanical.createSparkMax(Schematic.DRIVE_CAN_ID, MotorType.kBrushless);
     this.encoder = motor.getEncoder();
     Mechanical.register(motor);
     setDefaultCommand(hold());
