@@ -30,8 +30,6 @@ public class AngularPositionMechanism implements Mechanism {
   private final String name;
   private final Consumer<Double> setVoltage;
   private final Supplier<Angle> getAngle;
-  private final DoubleSupplier getVelocity;
-
   private final PIDController pid;
   private final Angle minAngle;
   private final Angle maxAngle;
@@ -59,7 +57,6 @@ public class AngularPositionMechanism implements Mechanism {
     this.name = name;
     this.setVoltage = setVoltage;
     this.getAngle = getAngle;
-    this.getVelocity = getVelocity;
     this.maxVolts = maxVolts;
     this.tolerance = tolerance;
     this.minAngle = minAngle;

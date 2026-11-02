@@ -41,8 +41,6 @@ public class SpringKickerMechanism implements Mechanism {
   private final Consumer<Boolean> setSolenoid;
   private final BooleanSupplier isSolenoidReleased;
   private final Supplier<Distance> getPosition;
-  private final DoubleSupplier getVelocity;
-
   private final PIDController pid;
   private final double maxVolts;
   private final double pullbackVolts;
@@ -82,7 +80,6 @@ public class SpringKickerMechanism implements Mechanism {
     this.setSolenoid = setSolenoid;
     this.isSolenoidReleased = isSolenoidReleased;
     this.getPosition = getPosition;
-    this.getVelocity = getVelocity;
     this.maxVolts = maxVolts;
     this.pullbackVolts = pullbackVolts;
     this.tolerance = tolerance;
