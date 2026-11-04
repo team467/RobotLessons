@@ -17,11 +17,11 @@ import org.wpilib.opmode.OpMode;
  * Two-ball autonomous opmode:
  * <ol>
  *   <li>Picks up Ball 2 (Orange) from the floor near the starting zone.</li>
- *   <li>Stows the arm and drives across the field to the table.</li>
- *   <li>Places Ball 2 on the ground to the left of the green floor target.</li>
+ *   <li>Drives across the field to the table with the arm low so it slides under the table.</li>
+ *   <li>Stashes Ball 2 on the ground under the table.</li>
  *   <li>Grabs Ball 1 (Green) off the table.</li>
  *   <li>Scores Ball 1 into the green floor target zone.</li>
- *   <li>Picks up Ball 2 (Orange) from the ground to the left of the green target.</li>
+ *   <li>Picks up Ball 2 (Orange) from under the table.</li>
  *   <li>Places Ball 2 into the orange target box on top of the table.</li>
  * </ol>
  */
@@ -51,14 +51,13 @@ public class TwoBallAuto implements OpMode {
       // Step 1: Pick up Ball 2 (Orange) resting on the ground in front of the robot
       coroutine.await(BallCommands.grabBallFromGround(elevator, extender, claw));
 
-      // Step 2: Retract horizontal arm, stow elevator, and drive to the table in parallel
+      // Step 2: Drive to the table with the arm at stow height so it goes under the table
       coroutine.awaitAll(
-          extender.moveTo(ExtenderConstants.MIN_EXTENSION),
           elevator.moveTo(ElevatorConstants.STOW_HEIGHT),
           drive.driveToTable());
 
-      // Step 3: Place Ball 2 on the ground to the left of the green target
-      coroutine.await(BallCommands.placeBallLeftOfTarget(elevator, extender, claw));
+      // Step 3: Stash Ball 2 on the ground under the table
+      coroutine.await(BallCommands.placeBallUnderTable(elevator, extender, claw));
 
       // Step 4: Grab Ball 1 (Green) from the table
       coroutine.await(BallCommands.grabBallFromTable(elevator, extender, claw));
@@ -66,8 +65,8 @@ public class TwoBallAuto implements OpMode {
       // Step 5: Place Ball 1 in green floor target zone
       coroutine.await(BallCommands.scoreBallOnGround(elevator, extender, claw));
 
-      // Step 6: Pick up Ball 2 (Orange) from the ground to the left of the green target
-      coroutine.await(BallCommands.grabBallLeftOfTarget(elevator, extender, claw));
+      // Step 6: Pick up Ball 2 (Orange) stashed under the table
+      coroutine.await(BallCommands.grabBallUnderTable(elevator, extender, claw));
 
       // Step 7: Score Ball 2 gently into the orange target box on top of the table
       coroutine.await(BallCommands.scoreTableBall(elevator, extender, claw));

@@ -360,6 +360,10 @@ public class SimWorld {
     }
     double clawLowestY = wristY - clawDrop;
 
+    // The highest point of the wrist housing / claw motor relative to wristY
+    double clawTopRise = 0.13;
+    double clawHighestY = wristY + clawTopRise;
+
     // How far in front of wristSideX the fingers / held ball reach
     double clawFrontReach = 0.03 + first.robot.constants.RobotConstants.FINGER_LENGTH.in(Meters) * Math.sin(clawAngle);
     if (ballHeld) {
@@ -371,15 +375,18 @@ public class SimWorld {
     double tableFieldRight =
         first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters)
             + first.robot.constants.FieldConstants.TABLE_RIGHT_X.in(Meters);
+    double tableTopY = first.robot.constants.FieldConstants.TABLE_HEIGHT.in(Meters);
+    double tableBottomY = tableTopY - 0.045; // tabletop slab thickness (4.5 cm), legs do not collide
 
     boolean tableContact = false;
 
-    // Check collision with the table in field coordinates:
-    // Only applies when robot arm is approaching the table from the left
-    if (wristFieldX < tableFieldLeft
-        && clawLowestY < first.robot.constants.FieldConstants.TABLE_HEIGHT.in(Meters) - 0.015) {
+    // Check collision with the tabletop slab in field coordinates (legs do not collide):
+    // 1. Approaching the tabletop slab from the left while vertically overlapping [tableBottomY, tableTopY]
+    boolean verticallyOverlapsTabletop =
+        clawLowestY < (tableTopY - 0.015) && clawHighestY > (tableBottomY + 0.015);
+    if (wristFieldX < tableFieldLeft && verticallyOverlapsTabletop) {
       if (wristFieldX + clawFrontReach >= tableFieldLeft - 0.015) {
-        // Claw tip reaches the table's left edge: stop extender and flag collision
+        // Claw reaches the tabletop's left edge: stop extender and flag collision
         double maxAllowedWristFieldX = tableFieldLeft - clawFrontReach;
         double maxAllowedExtenderWrist = maxAllowedWristFieldX - robotFieldX;
         double maxExt = Math.max(0.0, maxAllowedExtenderWrist - WRIST_BASE_X.in(Meters));
@@ -391,21 +398,38 @@ public class SimWorld {
       }
       SimMechanical.getElevatorMotor()
           .setMinHeightLimit(ElevatorConstants.MIN_HEIGHT.in(Meters));
+      SimMechanical.getElevatorMotor()
+          .setMaxHeightLimit(ElevatorConstants.MAX_HEIGHT.in(Meters));
     } else {
-      // Claw is high enough to be over the table, or wrist has moved over the table
-      boolean overTable = (wristFieldX + clawFrontReach) >= tableFieldLeft
+      // Arm is either above the tabletop, below the tabletop (under the table), or horizontally aligned with it
+      boolean horizontallyAtTable = (wristFieldX + clawFrontReach) >= tableFieldLeft
           && (wristFieldX - 0.06) <= tableFieldRight;
 
-      if (overTable) {
-        // Over the table top: elevator cannot penetrate down into the table surface
-        double minElevatorHeight = first.robot.constants.FieldConstants.TABLE_HEIGHT.in(Meters) + clawDrop;
-        SimMechanical.getElevatorMotor().setMinHeightLimit(minElevatorHeight);
-        if (clawLowestY <= first.robot.constants.FieldConstants.TABLE_HEIGHT.in(Meters) + 0.015) {
-          tableContact = true;
+      if (horizontallyAtTable) {
+        if (wristY >= tableBottomY) {
+          // Above the tabletop: elevator cannot penetrate down through the top surface
+          double minElevatorHeight = tableTopY + clawDrop;
+          SimMechanical.getElevatorMotor().setMinHeightLimit(minElevatorHeight);
+          SimMechanical.getElevatorMotor()
+              .setMaxHeightLimit(ElevatorConstants.MAX_HEIGHT.in(Meters));
+          if (clawLowestY <= tableTopY + 0.015) {
+            tableContact = true;
+          }
+        } else {
+          // Under the tabletop: elevator cannot penetrate up through the underside of the tabletop
+          double maxElevatorHeight = tableBottomY - clawTopRise;
+          SimMechanical.getElevatorMotor()
+              .setMinHeightLimit(ElevatorConstants.MIN_HEIGHT.in(Meters));
+          SimMechanical.getElevatorMotor().setMaxHeightLimit(maxElevatorHeight);
+          if (clawHighestY >= tableBottomY - 0.015) {
+            tableContact = true;
+          }
         }
       } else {
         SimMechanical.getElevatorMotor()
             .setMinHeightLimit(ElevatorConstants.MIN_HEIGHT.in(Meters));
+        SimMechanical.getElevatorMotor()
+            .setMaxHeightLimit(ElevatorConstants.MAX_HEIGHT.in(Meters));
       }
       SimMechanical.getExtenderMotor()
           .setMaxExtensionLimit(ExtenderConstants.MAX_EXTENSION.in(Meters));
@@ -576,10 +600,11 @@ public class SimWorld {
     double ball2SideX = ball2.getX() - first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters);
 
     double minElevatorLimit = SimMechanical.getElevatorMotor().getMinHeightLimit();
+    double maxElevatorLimit = SimMechanical.getElevatorMotor().getMaxHeightLimit();
     double maxExtenderLimit = SimMechanical.getExtenderMotor().getMaxExtensionLimit();
     boolean anyBallHeld = (ball1 != null && ball1.isHeld()) || (ball2 != null && ball2.isHeld()) || claw.hasBall();
 
-    MotorState elevatorState = computeElevatorMotorState(minElevatorLimit, tableContact);
+    MotorState elevatorState = computeElevatorMotorState(minElevatorLimit, maxElevatorLimit, tableContact);
     MotorState extenderState = computeExtenderMotorState(maxExtenderLimit, tableContact);
     MotorState clawState = computeClawMotorState(anyBallHeld);
     MotorState driveState = computeDriveMotorState();
@@ -636,7 +661,7 @@ public class SimWorld {
         kickerState);
   }
 
-  private MotorState computeElevatorMotorState(double minLimit, boolean tableContact) {
+  private MotorState computeElevatorMotorState(double minLimit, double maxLimit, boolean tableContact) {
     if (!RobotBase.isEnabled()) {
       return MotorState.IDLE;
     }
@@ -645,9 +670,9 @@ public class SimWorld {
     double pos = elevator.getPosition().in(Meters);
 
     // Stalled: voltage applied, but cannot move because at limit/stop/obstacle
-    boolean atLowerLimit = pos <= (minLimit + 0.02) || tableContact;
+    boolean atLowerLimit = pos <= (minLimit + 0.02) || (tableContact && volts < ElevatorConstants.KG - 0.4);
     boolean pushingDown = (volts < ElevatorConstants.KG - 0.4);
-    boolean atUpperLimit = pos >= (ElevatorConstants.MAX_HEIGHT.in(Meters) - 0.02);
+    boolean atUpperLimit = pos >= (maxLimit - 0.02) || (tableContact && volts > ElevatorConstants.KG + 0.8);
     boolean pushingUp = (volts > ElevatorConstants.KG + 0.8);
 
     if (Math.abs(vel) < 0.03 && ((atLowerLimit && pushingDown) || (atUpperLimit && pushingUp))) {

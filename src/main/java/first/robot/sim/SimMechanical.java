@@ -144,6 +144,7 @@ public final class SimMechanical {
     private SparkMax motor;
     private SparkMaxSim sparkSim;
     private double minHeightLimit = ElevatorConstants.MIN_HEIGHT.in(Meters);
+    private double maxHeightLimit = ElevatorConstants.MAX_HEIGHT.in(Meters);
 
     public void attachSparkMax(SparkMax sparkMax) {
       if (this.motor == sparkMax && this.sparkSim != null) {
@@ -173,6 +174,14 @@ public final class SimMechanical {
 
     public double getMinHeightLimit() {
       return minHeightLimit;
+    }
+
+    public void setMaxHeightLimit(double maxHeight) {
+      this.maxHeightLimit = maxHeight;
+    }
+
+    public double getMaxHeightLimit() {
+      return maxHeightLimit;
     }
 
     public double getPosition() {
@@ -222,6 +231,9 @@ public final class SimMechanical {
       if (sim.getPosition() < minHeightLimit) {
         sim.setState(minHeightLimit, Math.max(0.0, sim.getVelocity()));
       }
+      if (sim.getPosition() > maxHeightLimit) {
+        sim.setState(maxHeightLimit, Math.min(0.0, sim.getVelocity()));
+      }
       if (sparkSim != null) {
         sparkSim.setBusVoltage(12.0);
         sparkSim.setPosition(sim.getPosition());
@@ -235,6 +247,7 @@ public final class SimMechanical {
 
     public void reset() {
       minHeightLimit = ElevatorConstants.MIN_HEIGHT.in(Meters);
+      maxHeightLimit = ElevatorConstants.MAX_HEIGHT.in(Meters);
       setPosition(ElevatorConstants.STARTING_HEIGHT.in(Meters));
       if (sparkSim != null) {
         sparkSim.setAppliedOutput(0.0);

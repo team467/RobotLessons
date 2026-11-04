@@ -110,14 +110,18 @@ public class MotorStateSimTest {
       step();
     }
 
-    // Keep elevator low (MIN_HEIGHT), command extender into the side of the table
+    // Position elevator at tabletop height, command extender into the side of the tabletop
+    Scheduler.getDefault().schedule(elevator.moveTo(0.73));
+    for (int i = 0; i < 40 && !elevator.atSetpoint(); i++) {
+      step();
+    }
     Scheduler.getDefault().schedule(extender.moveTo(1.10));
     for (int i = 0; i < 80; i++) {
       step();
     }
 
-    assertTrue(world.snapshot().tableContact(), "Extender should hit side of the table");
-    assertEquals(SimWorld.MotorState.STALLED, world.snapshot().extenderMotorState(), "Extender should be STALLED when hitting table side limit");
+    assertTrue(world.snapshot().tableContact(), "Extender should hit side of the tabletop");
+    assertEquals(SimWorld.MotorState.STALLED, world.snapshot().extenderMotorState(), "Extender should be STALLED when hitting tabletop side limit");
   }
 
   @Test

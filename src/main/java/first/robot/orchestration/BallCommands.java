@@ -56,6 +56,12 @@ public final class BallCommands {
   public static Command grabBallFromTable(
       Elevator elevator, Extender extender, Claw claw) {
     return Command.noRequirements(coroutine -> {
+      // Safety check: if extended under the table, retract before raising elevator
+      if (extender.getPosition().gt(Meters.of(0.45))
+          && elevator.getPosition().lt(Meters.of(0.70))) {
+        coroutine.await(extender.moveTo(ExtenderConstants.MIN_EXTENSION));
+      }
+
       // Step 1: Concurrently raise elevator above table obstacle and open claw
       // fingers.
       // Running both motions simultaneously minimizes total cycle time.
@@ -173,76 +179,78 @@ public final class BallCommands {
   }
 
   /**
-   * Places a held ball gently on the ground to the left of the green floor target
-   * ({@code extender
-   * = 0.0m}) while the robot is parked at the table.
+   * Stashes a held ball gently on the ground under the table ({@code extender = BALL_EXTENSION})
+   * while the robot is parked at the table, then retracts the arm out from under the table.
    *
    * <p>
-   * Used in multi-ball routines to stage a ball on the floor before picking up
-   * and scoring
-   * another ball, preventing collisions and target area overcrowding.
+   * Used in multi-ball routines to stage a ball under the table before picking up
+   * and scoring another ball.
    *
    * @param elevator the vertical elevator mechanism
    * @param extender the horizontal arm extension mechanism
    * @param claw     the claw pincher mechanism
-   * @return a sequential command that safely stages the ball left of target
+   * @return a sequential command that safely stashes the ball under the table
    */
-  public static Command placeBallLeftOfTarget(
+  public static Command placeBallUnderTable(
       Elevator elevator, Extender extender, Claw claw) {
     return Command.noRequirements(coroutine -> {
-      // Safety check: if currently extended over the table and below safe table
-      // height,
-      // raise first to prevent the arm or ball from colliding with the table edge
-      // during retraction.
-      if (extender.getPosition().gt(Meters.of(0.45))
-          && elevator.getPosition().lt(ElevatorConstants.ABOVE_TABLE_HEIGHT.minus(Meters.of(0.05)))) {
-        coroutine.await(elevator.moveTo(ElevatorConstants.ABOVE_TABLE_HEIGHT));
+      // If the elevator is high (above under-table clearance), retract first and lower to stow height
+      if (elevator.getPosition().gt(ElevatorConstants.STOW_HEIGHT.plus(Meters.of(0.05)))) {
+        coroutine.await(extender.moveTo(ExtenderConstants.MIN_EXTENSION));
+        coroutine.await(elevator.moveTo(ElevatorConstants.STOW_HEIGHT));
       }
 
-      // Retract arm fully inwards (0.0m) to position over the staging area left of
-      // the target and lower down close to the floor to prevent bouncing upon release
-      coroutine.awaitAll(extender.moveTo(Meters.of(0.0)),
+      // Extend under the table and lower close to the floor to prevent bouncing upon release
+      coroutine.awaitAll(
+          extender.moveTo(ExtenderConstants.BALL_EXTENSION),
           elevator.moveTo(ElevatorConstants.SCORE_HEIGHT));
 
-      // Release ball onto the floor
+      // Release ball onto the floor under the table
       coroutine.await(claw.open());
-    }).named("Place Ball Left Of Target");
+
+      // Retract arm out from under the tabletop so the elevator can later raise freely
+      coroutine.await(extender.moveTo(ExtenderConstants.MIN_EXTENSION));
+    }).named("Place Ball Under Table");
   }
 
   /**
-   * Picks up a ball resting on the ground to the left of the green floor target
-   * ({@code extender =
-   * 0.0m}) while the robot is parked at the table.
+   * Picks up a ball stashed on the ground under the table ({@code extender = BALL_EXTENSION})
+   * while the robot is parked at the table, and retracts the arm out from under the table.
    *
    * <p>
-   * Pairs with {@link #placeBallLeftOfTarget} to retrieve the staged ball during
-   * complex
+   * Pairs with {@link #placeBallUnderTable} to retrieve the stashed ball during
    * autonomous routines.
    *
    * @param elevator the vertical elevator mechanism
    * @param extender the horizontal arm extension mechanism
    * @param claw     the claw pincher mechanism
-   * @return a command sequence retrieving the staged ball from the floor
+   * @return a command sequence retrieving the stashed ball from under the table
    */
-  public static Command grabBallLeftOfTarget(
+  public static Command grabBallUnderTable(
       Elevator elevator, Extender extender, Claw claw) {
     return Command.noRequirements(coroutine -> {
-      // Step 1: Concurrently open claw, fully retract arm (0.0m), and set elevator to
-      // stow height
+      // If the elevator is above stow height, retract and lower before extending under the table
+      if (elevator.getPosition().gt(ElevatorConstants.STOW_HEIGHT.plus(Meters.of(0.05)))) {
+        coroutine.await(extender.moveTo(ExtenderConstants.MIN_EXTENSION));
+        coroutine.await(elevator.moveTo(ElevatorConstants.STOW_HEIGHT));
+      }
+
+      // Step 1: Concurrently open claw, extend under the table, and set elevator to stow height
       coroutine.awaitAll(
           claw.open(),
-          extender.moveTo(Meters.of(0.0)),
+          extender.moveTo(ExtenderConstants.BALL_EXTENSION),
           elevator.moveTo(ElevatorConstants.STOW_HEIGHT));
 
-      // Step 2: Lower to ground level directly over the staged ball
+      // Step 2: Lower to ground level directly over the stashed ball under the table
       coroutine.await(elevator.moveTo(ElevatorConstants.GROUND_GRAB_HEIGHT));
 
-      // Step 3: Close claw fingers to grip the staged ball
+      // Step 3: Close claw fingers to grip the stashed ball
       coroutine.await(claw.close());
 
-      // Step 4: Lift back up to stow height for subsequent manipulation
+      // Step 4: Lift back up to stow height and retract out from under the table
       coroutine.await(elevator.moveTo(ElevatorConstants.STOW_HEIGHT));
-    }).named("Grab Ball Left Of Target");
+      coroutine.await(extender.moveTo(ExtenderConstants.MIN_EXTENSION));
+    }).named("Grab Ball Under Table");
   }
 
   /**
@@ -259,6 +267,12 @@ public final class BallCommands {
   public static Command scoreTableBall(
       Elevator elevator, Extender extender, Claw claw) {
     return Command.noRequirements(coroutine -> {
+      // Safety check: if extended under the table, retract before raising elevator
+      if (extender.getPosition().gt(Meters.of(0.45))
+          && elevator.getPosition().lt(Meters.of(0.70))) {
+        coroutine.await(extender.moveTo(ExtenderConstants.MIN_EXTENSION));
+      }
+
       // Step 1: Lift elevator above table height to clear the box outer perimeter
       // walls
       coroutine.await(elevator.moveTo(ElevatorConstants.ABOVE_TABLE_HEIGHT));

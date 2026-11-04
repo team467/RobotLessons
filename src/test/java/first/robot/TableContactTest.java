@@ -66,6 +66,41 @@ public class TableContactTest {
   }
 
   @Test
+  void testArmGoingUnderTableAndHittingUnderside() {
+    Elevator elevator = new Elevator();
+    Extender extender = new Extender();
+    Claw claw = new Claw();
+
+    SimWorld world = new SimWorld(elevator, extender, claw);
+
+    // Keep elevator at default stow height (0.50m, below tabletop) and extend under the table
+    Scheduler.getDefault().schedule(extender.moveTo(0.80));
+    for (int i = 0; i < 80; i++) {
+      world.update();
+      Scheduler.getDefault().run();
+    }
+
+    // Should pass freely under the table legs without collision
+    assertFalse(world.snapshot().tableContact(), "Extending under the table should not collide with legs");
+    assertEquals(0.80, extender.getPosition().in(Meters), 0.03,
+        "Arm should extend fully under the table");
+
+    // Now try to raise the elevator up through the underside of the tabletop
+    Scheduler.getDefault().schedule(elevator.moveTo(1.10));
+    for (int i = 0; i < 60; i++) {
+      world.update();
+      Scheduler.getDefault().run();
+    }
+
+    // Must detect collision with the underside of the tabletop and stop below it
+    assertTrue(world.snapshot().tableContact(), "Raising arm under table should collide with underside of tabletop");
+    double highestClawY = elevator.getPosition().in(Meters) + 0.13;
+    double tableBottomY = FieldConstants.TABLE_HEIGHT.in(Meters) - 0.045;
+    assertTrue(highestClawY <= tableBottomY + 0.02,
+        "Arm must not penetrate up through underside of tabletop (" + highestClawY + " vs " + tableBottomY + ")");
+  }
+
+  @Test
   void testArmHittingTableSideEdge() {
     Elevator elevator = new Elevator();
     Extender extender = new Extender();
@@ -73,16 +108,22 @@ public class TableContactTest {
 
     SimWorld world = new SimWorld(elevator, extender, claw);
 
-    // Keep elevator low (below table top, e.g. 0.50m)
-    // Try to extend out all the way into the side of the table
+    // Position elevator so the wrist/claw vertically overlaps the tabletop slab (0.705m..0.75m)
+    Scheduler.getDefault().schedule(elevator.moveTo(0.73));
+    for (int i = 0; i < 50; i++) {
+      world.update();
+      Scheduler.getDefault().run();
+    }
+
+    // Try to extend out all the way into the side edge of the tabletop
     Scheduler.getDefault().schedule(extender.moveTo(1.10));
     for (int i = 0; i < 80; i++) {
       world.update();
       Scheduler.getDefault().run();
     }
 
-    // Must detect collision with table side edge
-    assertTrue(world.snapshot().tableContact(), "Extending into side of table should trigger table contact");
+    // Must detect collision with tabletop side edge
+    assertTrue(world.snapshot().tableContact(), "Extending into side of tabletop should trigger table contact");
 
     // Wrist X must not penetrate through the table left edge (TABLE_LEFT_X = 0.70)
     double wristX = RobotConstants.WRIST_BASE_X.in(Meters) + extender.getPosition().in(Meters);

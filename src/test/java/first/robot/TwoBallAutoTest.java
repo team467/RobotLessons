@@ -47,16 +47,26 @@ public class TwoBallAutoTest {
 
     // Simulate routine up to 26 seconds (1300 ticks @ 20ms)
     boolean completed = false;
+    boolean ball2StashedUnderTable = false;
     for (int i = 0; i < 1300; i++) {
       world.update();
       Scheduler.getDefault().run();
 
-      if (world.snapshot().scored() && world.snapshot().ball2Scored() && drive.atSetpoint()) {
+      SimWorld.Snapshot snap = world.snapshot();
+      if (elevator.getPosition().in(Meters) < 0.70) {
+        assertFalse(snap.tableContact(), "Arm should not collide with table legs or underside while operating under the table");
+      }
+      if (!snap.ball2Held() && snap.ball2FieldX() >= 2.70 && snap.ball2FieldX() <= 3.30 && snap.ball2SideY() < 0.20) {
+        ball2StashedUnderTable = true;
+      }
+
+      if (snap.scored() && snap.ball2Scored() && drive.atSetpoint()) {
         completed = true;
         break;
       }
     }
 
+    assertTrue(ball2StashedUnderTable, "Ball 2 should be stashed on the ground under the table during the routine");
     assertTrue(world.snapshot().scored(), "Ball 1 should be scored in green floor target zone");
     assertTrue(world.snapshot().ball2Scored(), "Ball 2 should be scored in orange table target box");
     assertEquals(DriveConstants.TABLE_POSITION.in(Meters), drive.getPosition().in(Meters), 0.08);
