@@ -19,7 +19,7 @@ import org.wpilib.units.measure.Distance;
 public class Elevator implements Mechanism {
   private final SparkMax motor;
   private final RelativeEncoder encoder;
-  private final ElevatorMechanism mechanism;
+  private final ElevatorMechanism elevatorMechanism;
 
   /** True while the elevator is within tolerance of its setpoint. */
   public final Trigger atSetpoint;
@@ -29,9 +29,9 @@ public class Elevator implements Mechanism {
     this.encoder = motor.getEncoder();
     Mechanical.register(motor);
 
-    this.mechanism = new ElevatorMechanism(motor::setVoltage, this::getPosition, this::getVelocity);
+    this.elevatorMechanism = new ElevatorMechanism(motor::setVoltage, this::getPosition, this::getVelocity);
 
-    this.atSetpoint = mechanism.atSetpoint;
+    this.atSetpoint = elevatorMechanism.atSetpoint;
     // When no other command is using the elevator, hold it where it is.
     setDefaultCommand(hold());
   }
@@ -41,7 +41,7 @@ public class Elevator implements Mechanism {
   // ------------------------------------------------------------------------------------------
 
   public Command moveTo(Distance height) {
-    return mechanism.moveTo(this, height);
+    return elevatorMechanism.moveTo(this, height);
   }
 
   public Command moveTo(double heightMeters) {
@@ -49,15 +49,15 @@ public class Elevator implements Mechanism {
   }
 
   public Command up() {
-    return mechanism.jog(this, "Elevator Up", MANUAL_SPEED_MPS * 0.02);
+    return elevatorMechanism.jog(this, "Elevator Up", MANUAL_SPEED_MPS * 0.02);
   }
 
   public Command down() {
-    return mechanism.jog(this, "Elevator Down", -MANUAL_SPEED_MPS * 0.02);
+    return elevatorMechanism.jog(this, "Elevator Down", -MANUAL_SPEED_MPS * 0.02);
   }
 
   public Command hold() {
-    return mechanism.hold(this);
+    return elevatorMechanism.hold(this);
   }
 
   // ------------------------------------------------------------------------------------------
@@ -65,7 +65,7 @@ public class Elevator implements Mechanism {
   // ------------------------------------------------------------------------------------------
 
   public boolean atSetpoint() {
-    return mechanism.atSetpoint();
+    return elevatorMechanism.atSetpoint();
   }
 
   public Distance getPosition() {
@@ -77,7 +77,7 @@ public class Elevator implements Mechanism {
   }
 
   public Distance getSetpoint() {
-    return mechanism.getSetpoint();
+    return elevatorMechanism.getSetpoint();
   }
 
   public double getAppliedVolts() {
@@ -106,10 +106,10 @@ public class Elevator implements Mechanism {
   }
 
   public void resetSetpoint() {
-    mechanism.resetSetpoint();
+    elevatorMechanism.resetSetpoint();
   }
 
-  public ElevatorMechanism getMechanism() {
-    return mechanism;
+  public ElevatorMechanism getElevatorMechanism() {
+    return elevatorMechanism;
   }
 }

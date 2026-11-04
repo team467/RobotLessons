@@ -32,7 +32,7 @@ public class Claw implements Mechanism {
   private final SparkMax motor;
   private final RelativeEncoder encoder;
   private final DigitalInput ballSensor;
-  private final ClawMechanism mechanism;
+  private final ClawMechanism clawMechanism;
 
   private Goal goal = Goal.HOLD;
 
@@ -45,7 +45,7 @@ public class Claw implements Mechanism {
     this.ballSensor = Mechanical.createDigitalInput(Schematic.CLAW_BALL_SENSOR_DIO);
     Mechanical.register(motor);
 
-    this.mechanism = new ClawMechanism(motor::setVoltage, this::getAngle, this::getVelocity);
+    this.clawMechanism = new ClawMechanism(motor::setVoltage, this::getAngle, this::getVelocity);
 
     setDefaultCommand(hold());
   }
@@ -65,25 +65,25 @@ public class Claw implements Mechanism {
     StateMachine.State holding = machine.addState(
         runRepeatedly(() -> {
           if (RobotBase.isDisabled()) {
-            mechanism.setSetpoint(getAngle());
+            clawMechanism.setSetpoint(getAngle());
           }
-          mechanism.driveTowardSetpoint();
+          clawMechanism.driveTowardSetpoint();
         }).named("Claw Holding"));
     holding.onEnter(() -> {
       if (goal == Goal.HOLD) {
-        mechanism.setSetpoint(getAngle());
+        clawMechanism.setSetpoint(getAngle());
       }
     });
 
     // State 2: Opening - Drives pinchers outward to full 60-degree open position
     StateMachine.State opening = machine.addState(
-        runRepeatedly(mechanism::driveTowardSetpoint).named("Claw Opening"));
-    opening.onEnter(() -> mechanism.setSetpoint(OPEN_ANGLE));
+        runRepeatedly(clawMechanism::driveTowardSetpoint).named("Claw Opening"));
+    opening.onEnter(() -> clawMechanism.setSetpoint(OPEN_ANGLE));
 
     // State 3: Closing - Drives pinchers inward toward 0 degrees to capture a ball
     StateMachine.State closing = machine.addState(
-        runRepeatedly(mechanism::driveTowardSetpoint).named("Claw Closing"));
-    closing.onEnter(() -> mechanism.setSetpoint(CLOSED_ANGLE));
+        runRepeatedly(clawMechanism::driveTowardSetpoint).named("Claw Closing"));
+    closing.onEnter(() -> clawMechanism.setSetpoint(CLOSED_ANGLE));
 
     // State 4: Gripping - Direct voltage squeeze mode once ball is grasped
     StateMachine.State gripping = machine.addState(
@@ -97,7 +97,7 @@ public class Claw implements Mechanism {
 
     // State 5: Moving - Moves to an arbitrary user-specified intermediate angle
     StateMachine.State moving = machine.addState(
-        runRepeatedly(mechanism::driveTowardSetpoint).named("Claw Moving"));
+        runRepeatedly(clawMechanism::driveTowardSetpoint).named("Claw Moving"));
 
     // Transitions from holding
     holding.switchTo(gripping).when(this::hasBall);
@@ -143,19 +143,19 @@ public class Claw implements Mechanism {
   public void setGoal(Goal goal) {
     this.goal = goal;
     if (goal == Goal.OPEN) {
-      mechanism.setSetpoint(OPEN_ANGLE);
+      clawMechanism.setSetpoint(OPEN_ANGLE);
     } else if (goal == Goal.CLOSE) {
-      mechanism.setSetpoint(CLOSED_ANGLE);
+      clawMechanism.setSetpoint(CLOSED_ANGLE);
     } else if (goal == Goal.HOLD) {
-      mechanism.setSetpoint(getAngle());
+      clawMechanism.setSetpoint(getAngle());
     }
-    mechanism.driveTowardSetpoint();
+    clawMechanism.driveTowardSetpoint();
   }
 
   public void setGoal(Goal goal, Angle target) {
     this.goal = goal;
-    mechanism.setSetpoint(target);
-    mechanism.driveTowardSetpoint();
+    clawMechanism.setSetpoint(target);
+    clawMechanism.driveTowardSetpoint();
   }
 
   public Goal getGoal() {
@@ -179,7 +179,7 @@ public class Claw implements Mechanism {
   }
 
   public Command moveTo(Angle targetAngle) {
-    Angle target = mechanism.clampAngle(targetAngle);
+    Angle target = clawMechanism.clampAngle(targetAngle);
     String name = String.format("Claw To %.0f deg", target.in(Degrees));
     return Command.noRequirements(coroutine -> {
       setGoal(Goal.MOVE, target);
@@ -225,7 +225,7 @@ public class Claw implements Mechanism {
   // ------------------------------------------------------------------------------------------
 
   public boolean atSetpoint() {
-    return mechanism.atSetpoint();
+    return clawMechanism.atSetpoint();
   }
 
   public boolean hasBall() {
@@ -241,7 +241,7 @@ public class Claw implements Mechanism {
   }
 
   public Angle getSetpoint() {
-    return mechanism.getSetpoint();
+    return clawMechanism.getSetpoint();
   }
 
   public double getAppliedVolts() {
@@ -274,10 +274,10 @@ public class Claw implements Mechanism {
 
   public void resetSetpoint() {
     goal = Goal.HOLD;
-    mechanism.resetSetpoint();
+    clawMechanism.resetSetpoint();
   }
 
-  public ClawMechanism getMechanism() {
-    return mechanism;
+  public ClawMechanism getClawMechanism() {
+    return clawMechanism;
   }
 }

@@ -38,7 +38,7 @@ public class Kicker implements Mechanism {
   private final SparkMax motor;
   private final RelativeEncoder encoder;
   private final DigitalOutput solenoid;
-  private final KickerMechanism mechanism;
+  private final KickerMechanism kickerMechanism;
 
   /** True when the kicker spring is pulled back and locked by the ratchet, ready to fire. */
   public final Trigger isLoaded;
@@ -52,7 +52,7 @@ public class Kicker implements Mechanism {
     this.solenoid = Mechanical.createDigitalOutput(Schematic.KICKER_SOLENOID_CHANNEL);
     Mechanical.register(motor);
 
-    this.mechanism =
+    this.kickerMechanism =
         new KickerMechanism(
             motor::setVoltage,
             solenoid::set,
@@ -60,8 +60,8 @@ public class Kicker implements Mechanism {
             this::getPosition,
             this::getVelocity);
 
-    this.isLoaded = mechanism.isLoaded;
-    this.atSetpoint = mechanism.atSetpoint;
+    this.isLoaded = kickerMechanism.isLoaded;
+    this.atSetpoint = kickerMechanism.atSetpoint;
     setDefaultCommand(hold());
   }
 
@@ -70,7 +70,7 @@ public class Kicker implements Mechanism {
   // ------------------------------------------------------------------------------------------
 
   public StateMachine stateMachine() {
-    return mechanism.stateMachine();
+    return kickerMechanism.stateMachine();
   }
 
   // ------------------------------------------------------------------------------------------
@@ -78,11 +78,11 @@ public class Kicker implements Mechanism {
   // ------------------------------------------------------------------------------------------
 
   public void setGoal(Goal goal) {
-    mechanism.setGoal(SpringKickerMechanism.Goal.valueOf(goal.name()));
+    kickerMechanism.setGoal(SpringKickerMechanism.Goal.valueOf(goal.name()));
   }
 
   public Goal getGoal() {
-    return Goal.valueOf(mechanism.getGoal().name());
+    return Goal.valueOf(kickerMechanism.getGoal().name());
   }
 
   public void requestPullBack() {
@@ -110,19 +110,19 @@ public class Kicker implements Mechanism {
   }
 
   public Command pullBack() {
-    return mechanism.pullBack();
+    return kickerMechanism.pullBack();
   }
 
   public Command kick() {
-    return mechanism.kick();
+    return kickerMechanism.kick();
   }
 
   public Command wind() {
-    return mechanism.wind();
+    return kickerMechanism.wind();
   }
 
   public Command releaseSolenoid() {
-    return mechanism.releaseSolenoid();
+    return kickerMechanism.releaseSolenoid();
   }
 
   public Command hold() {
@@ -136,19 +136,19 @@ public class Kicker implements Mechanism {
   // ------------------------------------------------------------------------------------------
 
   public boolean isLoaded() {
-    return mechanism.isLoaded();
+    return kickerMechanism.isLoaded();
   }
 
   public boolean isRatchetLocked() {
-    return mechanism.isRatchetLocked();
+    return kickerMechanism.isRatchetLocked();
   }
 
   public boolean isSolenoidReleased() {
-    return mechanism.isSolenoidReleased();
+    return kickerMechanism.isSolenoidReleased();
   }
 
   public boolean atSetpoint() {
-    return mechanism.atSetpoint();
+    return kickerMechanism.atSetpoint();
   }
 
   public Distance getPosition() {
@@ -168,7 +168,7 @@ public class Kicker implements Mechanism {
   }
 
   public Distance getSetpoint() {
-    return mechanism.getSetpoint();
+    return kickerMechanism.getSetpoint();
   }
 
   public double getAppliedVolts() {
@@ -192,10 +192,10 @@ public class Kicker implements Mechanism {
   }
 
   public void resetSetpoint() {
-    mechanism.resetSetpoint();
+    kickerMechanism.resetSetpoint();
   }
 
-  public KickerMechanism getMechanism() {
-    return mechanism;
+  public KickerMechanism getKickerMechanism() {
+    return kickerMechanism;
   }
 }

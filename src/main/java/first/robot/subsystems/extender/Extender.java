@@ -19,7 +19,7 @@ import org.wpilib.units.measure.Distance;
 public class Extender implements Mechanism {
   private final SparkMax motor;
   private final RelativeEncoder encoder;
-  private final ExtenderMechanism mechanism;
+  private final ExtenderMechanism extenderMechanism;
 
   /** True while the extender is within tolerance of its setpoint. */
   public final Trigger atSetpoint;
@@ -29,9 +29,9 @@ public class Extender implements Mechanism {
     this.encoder = motor.getEncoder();
     Mechanical.register(motor);
 
-    this.mechanism = new ExtenderMechanism(motor::setVoltage, this::getPosition, this::getVelocity);
+    this.extenderMechanism = new ExtenderMechanism(motor::setVoltage, this::getPosition, this::getVelocity);
 
-    this.atSetpoint = mechanism.atSetpoint;
+    this.atSetpoint = extenderMechanism.atSetpoint;
     setDefaultCommand(hold());
   }
 
@@ -40,7 +40,7 @@ public class Extender implements Mechanism {
   // ------------------------------------------------------------------------------------------
 
   public Command moveTo(Distance extension) {
-    return mechanism.moveTo(this, extension);
+    return extenderMechanism.moveTo(this, extension);
   }
 
   public Command moveTo(double extensionMeters) {
@@ -48,15 +48,15 @@ public class Extender implements Mechanism {
   }
 
   public Command out() {
-    return mechanism.jog(this, "Extender Out", MANUAL_SPEED_MPS * 0.02);
+    return extenderMechanism.jog(this, "Extender Out", MANUAL_SPEED_MPS * 0.02);
   }
 
   public Command in() {
-    return mechanism.jog(this, "Extender In", -MANUAL_SPEED_MPS * 0.02);
+    return extenderMechanism.jog(this, "Extender In", -MANUAL_SPEED_MPS * 0.02);
   }
 
   public Command hold() {
-    return mechanism.hold(this);
+    return extenderMechanism.hold(this);
   }
 
   // ------------------------------------------------------------------------------------------
@@ -64,7 +64,7 @@ public class Extender implements Mechanism {
   // ------------------------------------------------------------------------------------------
 
   public boolean atSetpoint() {
-    return mechanism.atSetpoint();
+    return extenderMechanism.atSetpoint();
   }
 
   public Distance getPosition() {
@@ -76,7 +76,7 @@ public class Extender implements Mechanism {
   }
 
   public Distance getSetpoint() {
-    return mechanism.getSetpoint();
+    return extenderMechanism.getSetpoint();
   }
 
   public double getAppliedVolts() {
@@ -105,10 +105,10 @@ public class Extender implements Mechanism {
   }
 
   public void resetSetpoint() {
-    mechanism.resetSetpoint();
+    extenderMechanism.resetSetpoint();
   }
 
-  public ExtenderMechanism getMechanism() {
-    return mechanism;
+  public ExtenderMechanism getExtenderMechanism() {
+    return extenderMechanism;
   }
 }
