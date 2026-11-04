@@ -7,7 +7,6 @@ import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
-import org.wpilib.command3.StateMachine;
 import org.wpilib.command3.Trigger;
 import org.wpilib.framework.RobotBase;
 import org.wpilib.math.controller.PIDController;
@@ -88,7 +87,7 @@ public class AngularPositionMechanism implements Mechanism {
    * clamped between {@code [-maxVolts, +maxVolts]}.
    */
   public void driveTowardSetpoint() {
-    driveTowardSetpoint(maxVolts);
+    moveTowardSetpoint(maxVolts);
   }
 
   /**
@@ -96,7 +95,7 @@ public class AngularPositionMechanism implements Mechanism {
    *
    * @param voltageLimit maximum allowed voltage magnitude
    */
-  public void driveTowardSetpoint(double voltageLimit) {
+  public void moveTowardSetpoint(double voltageLimit) {
     if (RobotBase.isDisabled()) {
       setVoltage.accept(0.0);
       return;
@@ -121,21 +120,12 @@ public class AngularPositionMechanism implements Mechanism {
    * @return default holding command running at LOWEST_PRIORITY
    */
   public Command hold() {
-    StateMachine sm = new StateMachine(name + " Hold [FSM]");
-    var holding = sm.addState(
-        runRepeatedly(() -> {
+    return runRepeatedly(() -> {
           if (RobotBase.isDisabled()) {
             setpoint = getAngle();
           }
           driveTowardSetpoint();
-        }).named(name + " Hold"));
-    holding.onEnter(() -> {
-      if (RobotBase.isDisabled()) {
-        setpoint = getAngle();
-      }
-    });
-    sm.setInitialState(holding);
-    return run(coroutine -> coroutine.await(sm))
+        })
         .withPriority(Command.LOWEST_PRIORITY)
         .named(name + " Hold");
   }
