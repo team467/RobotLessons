@@ -7,7 +7,6 @@ import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
-import org.wpilib.command3.StateMachine;
 import org.wpilib.command3.Trigger;
 import org.wpilib.framework.RobotBase;
 import org.wpilib.math.controller.PIDController;
@@ -24,7 +23,7 @@ import org.wpilib.units.measure.Distance;
  *   <li>Physical travel boundary clamping (min / max distance).</li>
  *   <li>Safe setpoint initialization and PID controller reset.</li>
  *   <li>Settled arrival detection combining position tolerance with velocity settling.</li>
- *   <li>Point-to-point {@link #moveTo(Mechanism, Distance)} state machines and continuous default {@link #hold(Mechanism)}.</li>
+ *   <li>Point-to-point {@link #moveTo(Mechanism, Distance)} commands and continuous default {@link #hold(Mechanism)}.</li>
  * </ul>
  */
 public class LinearPositionMechanism implements Mechanism {
@@ -170,17 +169,8 @@ public class LinearPositionMechanism implements Mechanism {
    */
   public Command moveTo(Mechanism parent, Distance targetPosition) {
     Distance target = clampPosition(targetPosition);
-    setpoint = target;
     String cmdName = String.format("%s To %.2fm", name, target.in(Meters));
-    StateMachine sm = new StateMachine(cmdName);
-    var moving = sm.addState(parent.runRepeatedly(this::driveTowardSetpoint).named(cmdName));
-    moving.onEnter(() -> {
-      setpoint = target;
-      pid.reset();
-    });
-    sm.setInitialState(moving);
-    moving.exitStateMachine().when(this::isSettledAtSetpoint);
-    return parent.run(coroutine -> coroutine.await(sm)).named(cmdName);
+    return moveTo(parent, target, cmdName);
   }
 
   /**
@@ -189,15 +179,15 @@ public class LinearPositionMechanism implements Mechanism {
   public Command moveTo(Mechanism parent, Distance targetPosition, String cmdName) {
     Distance target = clampPosition(targetPosition);
     setpoint = target;
-    StateMachine sm = new StateMachine(cmdName);
-    var moving = sm.addState(parent.runRepeatedly(this::driveTowardSetpoint).named(cmdName));
-    moving.onEnter(() -> {
+    return parent.run(coroutine -> {
       setpoint = target;
       pid.reset();
-    });
-    sm.setInitialState(moving);
-    moving.exitStateMachine().when(this::isSettledAtSetpoint);
-    return parent.run(coroutine -> coroutine.await(sm)).named(cmdName);
+      while (!isSettledAtSetpoint()) {
+        driveTowardSetpoint();
+        coroutine.yield();
+      }
+      driveTowardSetpoint();
+    }).named(cmdName);
   }
 
   /**
@@ -210,20 +200,18 @@ public class LinearPositionMechanism implements Mechanism {
    * @return jogging command
    */
   public Command jog(Mechanism parent, String cmdName, double deltaMetersPerTick) {
-    StateMachine sm = new StateMachine(cmdName);
-    var moving = sm.addState(
-        parent.runRepeatedly(() -> {
-          double nextMeters = setpoint.in(Meters) + deltaMetersPerTick;
-          setpoint = clampPosition(Meters.of(nextMeters));
-          driveTowardSetpoint();
-        }).named(cmdName));
-    moving.onEnter(() -> setpoint = getPosition());
-    moving.onExit(() -> {
+    return parent.run(coroutine -> {
+      setpoint = getPosition();
+      while (true) {
+        double nextMeters = setpoint.in(Meters) + deltaMetersPerTick;
+        setpoint = clampPosition(Meters.of(nextMeters));
+        driveTowardSetpoint();
+        coroutine.yield();
+      }
+    }).whenCanceled(() -> {
       setpoint = getPosition();
       pid.reset();
-    });
-    sm.setInitialState(moving);
-    return parent.run(coroutine -> coroutine.await(sm)).named(cmdName);
+    }).named(cmdName);
   }
 
   /**
@@ -233,21 +221,12 @@ public class LinearPositionMechanism implements Mechanism {
    * @return default holding command running at LOWEST_PRIORITY
    */
   public Command hold(Mechanism parent) {
-    StateMachine sm = new StateMachine(name + " Hold [FSM]");
-    var holding = sm.addState(
-        parent.runRepeatedly(() -> {
+    return parent.runRepeatedly(() -> {
           if (RobotBase.isDisabled()) {
             setpoint = getPosition();
           }
           driveTowardSetpoint();
-        }).named(name + " Hold"));
-    holding.onEnter(() -> {
-      if (RobotBase.isDisabled()) {
-        setpoint = getPosition();
-      }
-    });
-    sm.setInitialState(holding);
-    return parent.run(coroutine -> coroutine.await(sm))
+        })
         .withPriority(Command.LOWEST_PRIORITY)
         .named(name + " Hold");
   }

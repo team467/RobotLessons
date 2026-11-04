@@ -20,7 +20,7 @@ import org.wpilib.units.measure.Distance;
  * Spring-loaded kicker mechanism tailored for the kicker subsystem, preconfigured with
  * pullback winch PID gains, travel limits, pullback voltages, and ratchet timing.
  */
-public class KickerMechanism extends SpringKickerMechanism {
+public class KickerMechanism extends LatchedSpringMechanism {
   public KickerMechanism(
       Consumer<Double> setMotorVoltage,
       Consumer<Boolean> setSolenoid,

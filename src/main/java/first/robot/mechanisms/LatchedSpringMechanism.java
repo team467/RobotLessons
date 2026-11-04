@@ -13,7 +13,7 @@ import org.wpilib.math.controller.PIDController;
 import org.wpilib.units.measure.Distance;
 
 /**
- * Reusable generic mechanism representing a spring-loaded, ratchet-latched launcher / kicker.
+ * Reusable generic mechanism representing a spring-loaded, ratchet-latched mechanism.
  *
  * <p>Encapsulates:
  * <ul>
@@ -22,7 +22,7 @@ import org.wpilib.units.measure.Distance;
  *   <li>Solenoid release status and loaded/setpoint triggers.</li>
  * </ul>
  */
-public class SpringKickerMechanism implements Mechanism {
+public class LatchedSpringMechanism implements Mechanism {
   private final String name;
   private final Consumer<Double> setMotorVoltage;
   private final Consumer<Boolean> setSolenoid;
@@ -39,13 +39,13 @@ public class SpringKickerMechanism implements Mechanism {
 
   private Distance setpoint;
 
-  /** True when the spring is pulled back and locked by the ratchet, ready to fire. */
+  /** True when the spring is pulled back and locked by the latch/ratchet, ready to fire. */
   public final Trigger isLoaded = new Trigger(this::isLoaded);
 
-  /** True when the plunger is within tolerance of its target pullback position. */
+  /** True when the mechanism is within tolerance of its target pullback position. */
   public final Trigger atSetpoint = new Trigger(this::atSetpoint);
 
-  public SpringKickerMechanism(
+  public LatchedSpringMechanism(
       String name,
       Consumer<Double> setMotorVoltage,
       Consumer<Boolean> setSolenoid,
@@ -79,7 +79,7 @@ public class SpringKickerMechanism implements Mechanism {
   }
 
   /**
-   * Drives the pullback winch motor toward the current setpoint with ratchet engaged.
+   * Drives the pullback winch motor toward the current setpoint with latch engaged.
    */
   public void driveTowardSetpoint() {
     if (RobotBase.isDisabled()) {
