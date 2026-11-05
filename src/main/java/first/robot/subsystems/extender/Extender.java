@@ -107,8 +107,4 @@ public class Extender implements Mechanism {
   public void resetSetpoint() {
     extenderMechanism.resetSetpoint();
   }
-
-  public ExtenderMechanism getExtenderMechanism() {
-    return extenderMechanism;
-  }
 }

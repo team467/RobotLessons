@@ -5,7 +5,6 @@ import static org.wpilib.units.Units.Radians;
 import java.util.function.Consumer;
 import java.util.function.DoubleSupplier;
 import java.util.function.Supplier;
-import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
 import org.wpilib.command3.Trigger;
 import org.wpilib.framework.RobotBase;
@@ -22,7 +21,6 @@ import org.wpilib.units.measure.Angle;
  *   <li>Physical angular travel boundary clamping (min / max angle).</li>
  *   <li>Safe setpoint initialization and PID controller reset.</li>
  *   <li>Arrival detection within tolerance.</li>
- *   <li>Continuous default {@link #hold()}.</li>
  * </ul>
  */
 public class AngularPositionMechanism implements Mechanism {
@@ -87,15 +85,6 @@ public class AngularPositionMechanism implements Mechanism {
    * clamped between {@code [-maxVolts, +maxVolts]}.
    */
   public void driveTowardSetpoint() {
-    moveTowardSetpoint(maxVolts);
-  }
-
-  /**
-   * Calculates closed-loop voltage with a custom maximum voltage clamp.
-   *
-   * @param voltageLimit maximum allowed voltage magnitude
-   */
-  public void moveTowardSetpoint(double voltageLimit) {
     if (RobotBase.isDisabled()) {
       setVoltage.accept(0.0);
       return;
@@ -103,7 +92,7 @@ public class AngularPositionMechanism implements Mechanism {
     double currentRad = getAngle().in(Radians);
     double targetRad = setpoint.in(Radians);
     double volts = pid.calculate(currentRad, targetRad);
-    setVoltage.accept(Math.clamp(volts, -voltageLimit, voltageLimit));
+    setVoltage.accept(Math.clamp(volts, -maxVolts, maxVolts));
   }
 
   /**
@@ -111,23 +100,6 @@ public class AngularPositionMechanism implements Mechanism {
    */
   public boolean atSetpoint() {
     return getAngle().isNear(setpoint, tolerance);
-  }
-
-  /**
-   * Continuous default holding command. Maintains the current setpoint, syncing setpoint
-   * to actual angle when disabled to prevent jump on re-enable.
-   *
-   * @return default holding command running at LOWEST_PRIORITY
-   */
-  public Command hold() {
-    return runRepeatedly(() -> {
-          if (RobotBase.isDisabled()) {
-            setpoint = getAngle();
-          }
-          driveTowardSetpoint();
-        })
-        .withPriority(Command.LOWEST_PRIORITY)
-        .named(name + " Hold");
   }
 
   public Angle getAngle() {
@@ -145,13 +117,5 @@ public class AngularPositionMechanism implements Mechanism {
   public void resetSetpoint() {
     setpoint = startingAngle;
     pid.reset();
-  }
-
-  public void resetPid() {
-    pid.reset();
-  }
-
-  public PIDController getPid() {
-    return pid;
   }
 }

@@ -9,7 +9,6 @@ import com.revrobotics.spark.SparkMax;
 import first.robot.Schematic;
 import first.robot.mechanical.Mechanical;
 import java.util.List;
-import java.util.function.DoubleSupplier;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
 import org.wpilib.command3.StateMachine;
@@ -170,39 +169,6 @@ public class Drive implements Mechanism {
   }
 
   /**
-   * Drives with a continuous speed or analog joystick input.
-   *
-   * <p>When input magnitude is within the 5% deadband (&lt; 0.05), closed-loop position holding
-   * maintains the robot's current position. When deflected beyond deadband, direct open-loop
-   * voltage drives the chassis while continuously synchronizing the setpoint to current position.
-   *
-   * @param speedSupplier normalized speed input (-1.0 to 1.0)
-   * @return analog driving command
-   */
-  public Command drive(DoubleSupplier speedSupplier) {
-    StateMachine sm = new StateMachine("Drive Manual");
-    var manual = sm.addState(
-        runRepeatedly(() -> {
-          double speed = speedSupplier.getAsDouble();
-          // Deadband check: if joystick is centered, hold position
-          if (Math.abs(speed) < 0.05) {
-            driveTowardSetpoint();
-          } else {
-            // Actively driving: track position so release stops smoothly where the robot is
-            setpoint = getPosition();
-            motor.setVoltage(Math.clamp(speed * MAX_VOLTS, -MAX_VOLTS, MAX_VOLTS));
-          }
-        }).named("Drive Manual"));
-    manual.onExit(() -> {
-      setpoint = getPosition();
-      pid.reset();
-      motor.setVoltage(0.0);
-    });
-    sm.setInitialState(manual);
-    return run(coroutine -> coroutine.await(sm)).named("Drive Manual");
-  }
-
-  /**
    * The default command: holds the robot stationary at its current position using closed-loop PID.
    *
    * <p>Runs at {@link Command#LOWEST_PRIORITY} so that any manual driving or autonomous trajectory
@@ -285,10 +251,6 @@ public class Drive implements Mechanism {
     Mechanical.setEncoderPosition(motor, encoder, pos.in(Meters));
     setpoint = pos;
     pid.reset();
-  }
-
-  public void resetPosition(double pos) {
-    resetPosition(Meters.of(pos));
   }
 
   public String getCurrentCommandName() {

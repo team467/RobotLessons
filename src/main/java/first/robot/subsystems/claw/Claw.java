@@ -1,7 +1,6 @@
 package first.robot.subsystems.claw;
 
 import static first.robot.subsystems.claw.ClawConstants.*;
-import static org.wpilib.units.Units.Degrees;
 import static org.wpilib.units.Units.Radians;
 
 import com.revrobotics.RelativeEncoder;
@@ -25,8 +24,7 @@ public class Claw implements Mechanism {
   public enum Goal {
     HOLD,
     OPEN,
-    CLOSE,
-    MOVE
+    CLOSE
   }
 
   private final SparkMax motor;
@@ -56,7 +54,7 @@ public class Claw implements Mechanism {
 
   /**
    * Constructs the full lifecycle state machine for the claw mechanism, managing transitions
-   * between holding, opening, closing, gripping, and moving.
+   * between holding, opening, closing, and gripping.
    */
   public StateMachine stateMachine() {
     StateMachine machine = new StateMachine("Claw");
@@ -95,37 +93,23 @@ public class Claw implements Mechanism {
           }
         }).named("Claw Gripping"));
 
-    // State 5: Moving - Moves to an arbitrary user-specified intermediate angle
-    StateMachine.State moving = machine.addState(
-        runRepeatedly(clawMechanism::driveTowardSetpoint).named("Claw Moving"));
-
     // Transitions from holding
     holding.switchTo(gripping).when(this::hasBall);
     holding.switchTo(opening).when(() -> goal == Goal.OPEN && !atSetpoint());
     holding.switchTo(closing).when(() -> goal == Goal.CLOSE && !atSetpoint());
-    holding.switchTo(moving).when(() -> goal == Goal.MOVE && !atSetpoint());
 
     // Transitions from opening
     opening.switchTo(holding).when(this::atSetpoint);
     opening.switchTo(closing).when(() -> goal == Goal.CLOSE);
-    opening.switchTo(moving).when(() -> goal == Goal.MOVE);
 
     // Transitions from closing
     closing.switchTo(gripping).when(this::hasBall);
     closing.switchTo(holding).when(this::atSetpoint);
     closing.switchTo(opening).when(() -> goal == Goal.OPEN);
-    closing.switchTo(moving).when(() -> goal == Goal.MOVE);
-
-    // Transitions from moving
-    moving.switchTo(gripping).when(this::hasBall);
-    moving.switchTo(holding).when(this::atSetpoint);
-    moving.switchTo(opening).when(() -> goal == Goal.OPEN);
-    moving.switchTo(closing).when(() -> goal == Goal.CLOSE);
 
     // Transitions from gripping
     gripping.switchTo(opening).when(() -> goal == Goal.OPEN);
     gripping.switchTo(closing).when(() -> !hasBall() && goal == Goal.CLOSE);
-    gripping.switchTo(moving).when(() -> goal == Goal.MOVE);
     gripping.switchTo(holding).when(() -> !hasBall() && goal != Goal.CLOSE);
 
     if (hasBall()) {
@@ -150,48 +134,6 @@ public class Claw implements Mechanism {
       clawMechanism.setSetpoint(getAngle());
     }
     clawMechanism.driveTowardSetpoint();
-  }
-
-  public void setGoal(Goal goal, Angle target) {
-    this.goal = goal;
-    clawMechanism.setSetpoint(target);
-    clawMechanism.driveTowardSetpoint();
-  }
-
-  public Goal getGoal() {
-    return goal;
-  }
-
-  public void requestOpen() {
-    setGoal(Goal.OPEN);
-  }
-
-  public void requestClose() {
-    setGoal(Goal.CLOSE);
-  }
-
-  public void requestMove(Angle angle) {
-    setGoal(Goal.MOVE, angle);
-  }
-
-  public void requestMove(double angle) {
-    requestMove(Radians.of(angle));
-  }
-
-  public Command moveTo(Angle targetAngle) {
-    Angle target = clawMechanism.clampAngle(targetAngle);
-    String name = String.format("Claw To %.0f deg", target.in(Degrees));
-    return Command.noRequirements(coroutine -> {
-      setGoal(Goal.MOVE, target);
-      if (getAngle().isNear(target, TOLERANCE)) {
-        return;
-      }
-      coroutine.waitUntil(() -> hasBall() || atSetpoint());
-    }).named(name);
-  }
-
-  public Command moveTo(double angleRadians) {
-    return moveTo(Radians.of(angleRadians));
   }
 
   public Command open() {
@@ -260,10 +202,6 @@ public class Claw implements Mechanism {
     return vel;
   }
 
-  public DigitalInput getBallSensor() {
-    return ballSensor;
-  }
-
   public String getCurrentCommandName() {
     List<Command> running = getRunningCommands();
     if (running.isEmpty()) {
@@ -275,9 +213,5 @@ public class Claw implements Mechanism {
   public void resetSetpoint() {
     goal = Goal.HOLD;
     clawMechanism.resetSetpoint();
-  }
-
-  public ClawMechanism getClawMechanism() {
-    return clawMechanism;
   }
 }

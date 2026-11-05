@@ -127,15 +127,6 @@ public class LinearPositionMechanism implements Mechanism {
    * clamped between {@code [-maxVolts, +maxVolts]}.
    */
   public void driveTowardSetpoint() {
-    driveTowardSetpoint(maxVolts);
-  }
-
-  /**
-   * Calculates closed-loop voltage with a custom maximum voltage clamp.
-   *
-   * @param voltageLimit maximum allowed voltage magnitude
-   */
-  public void driveTowardSetpoint(double voltageLimit) {
     if (RobotBase.isDisabled()) {
       setVoltage.accept(0.0);
       return;
@@ -143,7 +134,7 @@ public class LinearPositionMechanism implements Mechanism {
     double currentMeters = getPosition().in(Meters);
     double targetMeters = setpoint.in(Meters);
     double volts = kG + pid.calculate(currentMeters, targetMeters);
-    setVoltage.accept(Math.clamp(volts, -voltageLimit, voltageLimit));
+    setVoltage.accept(Math.clamp(volts, -maxVolts, maxVolts));
   }
 
   /**
@@ -239,20 +230,8 @@ public class LinearPositionMechanism implements Mechanism {
     return setpoint;
   }
 
-  public void setSetpoint(Distance setpoint) {
-    this.setpoint = clampPosition(setpoint);
-  }
-
   public void resetSetpoint() {
     setpoint = startingPosition;
     pid.reset();
-  }
-
-  public void resetPid() {
-    pid.reset();
-  }
-
-  public PIDController getPid() {
-    return pid;
   }
 }

@@ -66,26 +66,6 @@ public final class SimMechanical {
       this.sparkSim.getRelativeEncoderSim().setVelocity(sim.getVelocity());
     }
 
-    public SparkMax getSparkMax() {
-      return motor;
-    }
-
-    public SparkMaxSim getSparkMaxSim() {
-      return sparkSim;
-    }
-
-    public double getPosition() {
-      return sim.getPosition();
-    }
-
-    public double getVelocity() {
-      return sim.getVelocity();
-    }
-
-    public double getCurrentAmps() {
-      return Math.abs(sim.getCurrentDraw());
-    }
-
     public double getAppliedVolts() {
       if (!RobotBase.isEnabled()) {
         return 0.0;
@@ -160,14 +140,6 @@ public final class SimMechanical {
       this.sparkSim.getRelativeEncoderSim().setVelocity(sim.getVelocity());
     }
 
-    public SparkMax getSparkMax() {
-      return motor;
-    }
-
-    public SparkMaxSim getSparkMaxSim() {
-      return sparkSim;
-    }
-
     public void setMinHeightLimit(double minHeight) {
       this.minHeightLimit = minHeight;
     }
@@ -182,18 +154,6 @@ public final class SimMechanical {
 
     public double getMaxHeightLimit() {
       return maxHeightLimit;
-    }
-
-    public double getPosition() {
-      return sim.getPosition();
-    }
-
-    public double getVelocity() {
-      return sim.getVelocity();
-    }
-
-    public double getCurrentAmps() {
-      return Math.abs(sim.getCurrentDraw());
     }
 
     public double getAppliedVolts() {
@@ -288,32 +248,12 @@ public final class SimMechanical {
       this.sparkSim.getRelativeEncoderSim().setVelocity(sim.getVelocity());
     }
 
-    public SparkMax getSparkMax() {
-      return motor;
-    }
-
-    public SparkMaxSim getSparkMaxSim() {
-      return sparkSim;
-    }
-
     public void setMaxExtensionLimit(double maxExtension) {
       this.maxExtensionLimit = maxExtension;
     }
 
     public double getMaxExtensionLimit() {
       return maxExtensionLimit;
-    }
-
-    public double getPosition() {
-      return sim.getPosition();
-    }
-
-    public double getVelocity() {
-      return sim.getVelocity();
-    }
-
-    public double getCurrentAmps() {
-      return Math.abs(sim.getCurrentDraw());
     }
 
     public double getAppliedVolts() {
@@ -393,32 +333,12 @@ public final class SimMechanical {
       this.sparkSim.getRelativeEncoderSim().setVelocity(sim.getVelocity());
     }
 
-    public SparkMax getSparkMax() {
-      return motor;
-    }
-
-    public SparkMaxSim getSparkMaxSim() {
-      return sparkSim;
-    }
-
     public void setGripStop(double angleRadians) {
       this.gripStopAngle = angleRadians;
     }
 
     public double getSimAngle() {
       return sim.getAngle();
-    }
-
-    public double getPosition() {
-      return sim.getAngle();
-    }
-
-    public double getVelocity() {
-      return sim.getVelocity();
-    }
-
-    public double getCurrentAmps() {
-      return Math.abs(sim.getCurrentDraw());
     }
 
     public double getAppliedVolts() {
@@ -499,34 +419,10 @@ public final class SimMechanical {
       this.sparkSim.getRelativeEncoderSim().setVelocity(sim.getVelocity());
     }
 
-    public SparkMax getSparkMax() {
-      return motor;
-    }
-
-    public SparkMaxSim getSparkMaxSim() {
-      return sparkSim;
-    }
-
     public double consumeKickStrength() {
       double strength = pendingKickStrength;
       pendingKickStrength = 0.0;
       return strength;
-    }
-
-    public double getSimPullback() {
-      return sim.getPosition();
-    }
-
-    public double getPosition() {
-      return sim.getPosition();
-    }
-
-    public double getVelocity() {
-      return sim.getVelocity();
-    }
-
-    public double getCurrentAmps() {
-      return Math.abs(sim.getCurrentDraw());
     }
 
     public double getAppliedVolts() {
@@ -715,10 +611,6 @@ public final class SimMechanical {
     }
   }
 
-  public static DriveMotorEntry getDriveMotor() {
-    return driveEntry;
-  }
-
   public static ElevatorMotorEntry getElevatorMotor() {
     return elevatorEntry;
   }
@@ -737,10 +629,6 @@ public final class SimMechanical {
 
   public static DIOSim getClawBallSensor() {
     return clawBallSensorSim;
-  }
-
-  public static DIOSim getKickerSolenoid() {
-    return kickerSolenoidSim;
   }
 
   /** Clears all scheduled commands, event loops, triggers, and default command bindings. */

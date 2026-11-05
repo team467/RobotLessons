@@ -133,16 +133,4 @@ public class LatchedSpringMechanism implements Mechanism {
     setpoint = startingPullback;
     pid.reset();
   }
-
-  public void resetPid() {
-    pid.reset();
-  }
-
-  public PIDController getPid() {
-    return pid;
-  }
-
-  public String getName() {
-    return name;
-  }
 }

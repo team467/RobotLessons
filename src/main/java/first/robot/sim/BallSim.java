@@ -97,27 +97,6 @@ public class BallSim {
       double tableRightX,
       double tableHeight,
       double targetLeftX,
-      double targetRightX) {
-    this(
-        startX,
-        startY,
-        initialState,
-        tableLeftX,
-        tableRightX,
-        tableHeight,
-        targetLeftX,
-        targetRightX,
-        0.0);
-  }
-
-  public BallSim(
-      double startX,
-      double startY,
-      State initialState,
-      double tableLeftX,
-      double tableRightX,
-      double tableHeight,
-      double targetLeftX,
       double targetRightX,
       double targetSurfaceY) {
     this.startX = startX;

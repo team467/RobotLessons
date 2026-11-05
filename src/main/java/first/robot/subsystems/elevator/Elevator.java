@@ -108,8 +108,4 @@ public class Elevator implements Mechanism {
   public void resetSetpoint() {
     elevatorMechanism.resetSetpoint();
   }
-
-  public ElevatorMechanism getElevatorMechanism() {
-    return elevatorMechanism;
-  }
 }

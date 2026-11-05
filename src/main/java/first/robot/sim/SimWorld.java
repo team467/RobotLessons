@@ -91,7 +91,6 @@ public class SimWorld {
   private final BallSim ball2;
   private final AtomicBoolean resetStateRequested = new AtomicBoolean(false);
   private final AtomicBoolean teleopRequested = new AtomicBoolean(false);
-  private final AtomicBoolean autoGrabRequested = new AtomicBoolean(false);
   private final AtomicBoolean autoScoreRequested = new AtomicBoolean(false);
   private final AtomicBoolean autoTwoBallRequested = new AtomicBoolean(false);
   private final AtomicBoolean autoShootBallsRequested = new AtomicBoolean(false);
@@ -248,26 +247,6 @@ public class SimWorld {
       if (teleopActivator != null) {
         teleopActivator.run();
       }
-    }
-
-    if (autoGrabRequested.getAndSet(false)) {
-      org.wpilib.command3.Scheduler.getDefault().cancelAll();
-      long grabBallId = 0;
-      for (org.wpilib.hardware.hal.OpModeOption opt : org.wpilib.simulation.DriverStationSim.getOpModeOptions()) {
-        if ("Grab Ball".equals(opt.name)) {
-          grabBallId = opt.id;
-          break;
-        }
-      }
-      org.wpilib.simulation.DriverStationSim.setDsAttached(true);
-      org.wpilib.simulation.DriverStationSim.setRobotMode(org.wpilib.hardware.hal.RobotMode.AUTONOMOUS);
-      if (grabBallId != 0) {
-        org.wpilib.simulation.DriverStationSim.setOpMode(grabBallId);
-      }
-      org.wpilib.simulation.DriverStationSim.setEnabled(true);
-      org.wpilib.simulation.DriverStationSim.notifyNewData();
-      org.wpilib.command3.Scheduler.getDefault()
-          .schedule(first.robot.orchestration.BallCommands.grabBallFromTable(elevator, extender, claw));
     }
 
     if (autoScoreRequested.getAndSet(false)) {
@@ -540,19 +519,9 @@ public class SimWorld {
     resetStateRequested.set(true);
   }
 
-  /** Same as requestResetState. */
-  public void requestBallReset() {
-    requestResetState();
-  }
-
   /** Switches Driver Station to Teleop mode and enables the robot. */
   public void requestTeleop() {
     teleopRequested.set(true);
-  }
-
-  /** Switches Driver Station to Autonomous mode and runs the Grab Ball sequence. */
-  public void requestAutoGrab() {
-    autoGrabRequested.set(true);
   }
 
   /** Switches Driver Station to Autonomous mode and runs the Score Ball sequence. */

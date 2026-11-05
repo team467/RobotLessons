@@ -30,9 +30,7 @@ public class Kicker implements Mechanism {
   public enum Goal {
     IDLE,
     LOAD,
-    KICK,
-    WIND,
-    RELEASE
+    KICK
   }
 
   private final SparkMax motor;
@@ -73,7 +71,7 @@ public class Kicker implements Mechanism {
 
   /**
    * Constructs the full lifecycle state machine for the spring kicker, managing transitions
-   * between idle, pulling back, loaded, releasing, follow-through, and manual wind/release.
+   * between idle, pulling back, loaded, releasing, and follow-through.
    */
   public StateMachine stateMachine() {
     StateMachine machine = new StateMachine("Kicker");
@@ -133,28 +131,8 @@ public class Kicker implements Mechanism {
       }
     });
 
-    // State 6: Manual Wind - Teleop override winding
-    StateMachine.State manualWind = machine.addState(
-        runRepeatedly(() -> {
-          solenoid.set(false);
-          kickerMechanism.setSetpoint(MAX_PULLBACK);
-          motor.setVoltage(PULLBACK_VOLTS);
-        }).named("Kicker Wind"));
-    manualWind.onExit(() -> motor.setVoltage(0.0));
-
-    // State 7: Manual Release - Teleop override solenoid open
-    StateMachine.State manualRelease = machine.addState(
-        runRepeatedly(() -> {
-          kickerMechanism.setSetpoint(MIN_PULLBACK);
-          motor.setVoltage(0.0);
-          solenoid.set(true);
-        }).named("Kicker Release"));
-    manualRelease.onExit(() -> solenoid.set(false));
-
     // Transitions from idle
     idle.switchTo(pullingBack).when(() -> goal == Goal.LOAD);
-    idle.switchTo(manualWind).when(() -> goal == Goal.WIND);
-    idle.switchTo(manualRelease).when(() -> goal == Goal.RELEASE);
     idle.switchTo(releasing).when(() -> goal == Goal.KICK && isLoaded());
 
     // Transitions from pullingBack
@@ -164,7 +142,6 @@ public class Kicker implements Mechanism {
     // Transitions from loaded
     loaded.switchTo(releasing).when(() -> goal == Goal.KICK);
     loaded.switchTo(pullingBack).when(() -> goal == Goal.LOAD && !isLoaded());
-    loaded.switchTo(manualRelease).when(() -> goal == Goal.RELEASE);
     loaded.switchTo(idle).when(() -> goal == Goal.IDLE && !isLoaded());
 
     // Transitions from releasing
@@ -172,10 +149,6 @@ public class Kicker implements Mechanism {
 
     // Transitions from followThrough
     followThrough.switchTo(idle).whenComplete();
-
-    // Transitions from manual states
-    manualWind.switchTo(idle).when(() -> goal != Goal.WIND);
-    manualRelease.switchTo(idle).when(() -> goal != Goal.RELEASE);
 
     if (isLoaded()) {
       machine.setInitialState(loaded);
@@ -191,34 +164,6 @@ public class Kicker implements Mechanism {
 
   public void setGoal(Goal goal) {
     this.goal = goal;
-  }
-
-  public Goal getGoal() {
-    return goal;
-  }
-
-  public void requestPullBack() {
-    setGoal(Goal.LOAD);
-  }
-
-  public void requestKick() {
-    setGoal(Goal.KICK);
-  }
-
-  public void requestWind(boolean active) {
-    if (active) {
-      setGoal(Goal.WIND);
-    } else {
-      setGoal(Goal.IDLE);
-    }
-  }
-
-  public void requestReleaseSolenoid(boolean active) {
-    if (active) {
-      setGoal(Goal.RELEASE);
-    } else {
-      setGoal(Goal.IDLE);
-    }
   }
 
   public Command pullBack() {
@@ -248,20 +193,6 @@ public class Kicker implements Mechanism {
         setGoal(Goal.IDLE);
       }
     }).named("Kicker Kick");
-  }
-
-  public Command wind() {
-    return Command.noRequirements(coroutine -> {
-      setGoal(Goal.WIND);
-      coroutine.park();
-    }).whenCanceled(() -> setGoal(Goal.IDLE)).named("Kicker Wind");
-  }
-
-  public Command releaseSolenoid() {
-    return Command.noRequirements(coroutine -> {
-      setGoal(Goal.RELEASE);
-      coroutine.park();
-    }).whenCanceled(() -> setGoal(Goal.IDLE)).named("Kicker Release");
   }
 
   public Command hold() {
@@ -318,10 +249,6 @@ public class Kicker implements Mechanism {
     return val * 12.0;
   }
 
-  public DigitalOutput getSolenoid() {
-    return solenoid;
-  }
-
   public String getCurrentCommandName() {
     List<Command> running = getRunningCommands();
     if (running.isEmpty()) {
@@ -333,9 +260,5 @@ public class Kicker implements Mechanism {
   public void resetSetpoint() {
     goal = Goal.IDLE;
     kickerMechanism.resetSetpoint();
-  }
-
-  public KickerMechanism getKickerMechanism() {
-    return kickerMechanism;
   }
 }
