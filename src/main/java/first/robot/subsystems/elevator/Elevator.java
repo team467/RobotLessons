@@ -11,12 +11,11 @@ import first.robot.mechanical.Mechanical;
 import first.robot.mechanisms.ElevatorMechanism;
 import java.util.List;
 import org.wpilib.command3.Command;
-import org.wpilib.command3.Mechanism;
 import org.wpilib.command3.Trigger;
 import org.wpilib.units.measure.Distance;
 
 /** The elevator moves the whole arm up and down (the y-axis). */
-public class Elevator implements Mechanism {
+public class Elevator {
   private final SparkMax motor;
   private final RelativeEncoder encoder;
   private final ElevatorMechanism elevatorMechanism;
@@ -33,7 +32,7 @@ public class Elevator implements Mechanism {
 
     this.atSetpoint = elevatorMechanism.atSetpoint;
     // When no other command is using the elevator, hold it where it is.
-    setDefaultCommand(hold());
+    elevatorMechanism.setDefaultCommand(hold());
   }
 
   // ------------------------------------------------------------------------------------------
@@ -41,7 +40,7 @@ public class Elevator implements Mechanism {
   // ------------------------------------------------------------------------------------------
 
   public Command moveTo(Distance height) {
-    return elevatorMechanism.moveTo(this, height);
+    return elevatorMechanism.moveTo(height);
   }
 
   public Command moveTo(double heightMeters) {
@@ -49,15 +48,15 @@ public class Elevator implements Mechanism {
   }
 
   public Command up() {
-    return elevatorMechanism.jog(this, "Elevator Up", MANUAL_SPEED_MPS * 0.02);
+    return elevatorMechanism.jog("Elevator Up", MANUAL_SPEED_MPS * 0.02);
   }
 
   public Command down() {
-    return elevatorMechanism.jog(this, "Elevator Down", -MANUAL_SPEED_MPS * 0.02);
+    return elevatorMechanism.jog("Elevator Down", -MANUAL_SPEED_MPS * 0.02);
   }
 
   public Command hold() {
-    return elevatorMechanism.hold(this);
+    return elevatorMechanism.hold();
   }
 
   // ------------------------------------------------------------------------------------------
@@ -98,7 +97,7 @@ public class Elevator implements Mechanism {
 
   /** The name of the most specific command currently using the elevator. */
   public String getCurrentCommandName() {
-    List<Command> running = getRunningCommands();
+    List<Command> running = elevatorMechanism.getRunningCommands();
     if (running.isEmpty()) {
       return "(none)";
     }

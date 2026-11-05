@@ -11,12 +11,11 @@ import first.robot.mechanical.Mechanical;
 import first.robot.mechanisms.ExtenderMechanism;
 import java.util.List;
 import org.wpilib.command3.Command;
-import org.wpilib.command3.Mechanism;
 import org.wpilib.command3.Trigger;
 import org.wpilib.units.measure.Distance;
 
 /** The extender slides the claw in and out on a pulley (the x-axis). */
-public class Extender implements Mechanism {
+public class Extender {
   private final SparkMax motor;
   private final RelativeEncoder encoder;
   private final ExtenderMechanism extenderMechanism;
@@ -32,7 +31,7 @@ public class Extender implements Mechanism {
     this.extenderMechanism = new ExtenderMechanism(motor::setVoltage, this::getPosition, this::getVelocity);
 
     this.atSetpoint = extenderMechanism.atSetpoint;
-    setDefaultCommand(hold());
+    extenderMechanism.setDefaultCommand(hold());
   }
 
   // ------------------------------------------------------------------------------------------
@@ -40,7 +39,7 @@ public class Extender implements Mechanism {
   // ------------------------------------------------------------------------------------------
 
   public Command moveTo(Distance extension) {
-    return extenderMechanism.moveTo(this, extension);
+    return extenderMechanism.moveTo(extension);
   }
 
   public Command moveTo(double extensionMeters) {
@@ -48,15 +47,15 @@ public class Extender implements Mechanism {
   }
 
   public Command out() {
-    return extenderMechanism.jog(this, "Extender Out", MANUAL_SPEED_MPS * 0.02);
+    return extenderMechanism.jog("Extender Out", MANUAL_SPEED_MPS * 0.02);
   }
 
   public Command in() {
-    return extenderMechanism.jog(this, "Extender In", -MANUAL_SPEED_MPS * 0.02);
+    return extenderMechanism.jog("Extender In", -MANUAL_SPEED_MPS * 0.02);
   }
 
   public Command hold() {
-    return extenderMechanism.hold(this);
+    return extenderMechanism.hold();
   }
 
   // ------------------------------------------------------------------------------------------
@@ -97,7 +96,7 @@ public class Extender implements Mechanism {
 
   /** The name of the most specific command currently using the extender. */
   public String getCurrentCommandName() {
-    List<Command> running = getRunningCommands();
+    List<Command> running = extenderMechanism.getRunningCommands();
     if (running.isEmpty()) {
       return "(none)";
     }

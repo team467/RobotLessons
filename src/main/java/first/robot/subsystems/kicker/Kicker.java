@@ -11,7 +11,6 @@ import first.robot.mechanical.Mechanical;
 import first.robot.mechanisms.KickerMechanism;
 import java.util.List;
 import org.wpilib.command3.Command;
-import org.wpilib.command3.Mechanism;
 import org.wpilib.command3.StateMachine;
 import org.wpilib.command3.Trigger;
 import org.wpilib.framework.RobotBase;
@@ -25,7 +24,7 @@ import org.wpilib.units.measure.Distance;
  * it in place. Releasing the solenoid disengages the ratchet to kick a ball held close to the robot
  * in an upward arc toward the elevated basket.
  */
-public class Kicker implements Mechanism {
+public class Kicker {
   /** The target goal/intent for the kicker state machine. */
   public enum Goal {
     IDLE,
@@ -62,7 +61,7 @@ public class Kicker implements Mechanism {
 
     this.isLoaded = kickerMechanism.isLoaded;
     this.atSetpoint = kickerMechanism.atSetpoint;
-    setDefaultCommand(hold());
+    kickerMechanism.setDefaultCommand(hold());
   }
 
   // ------------------------------------------------------------------------------------------
@@ -78,7 +77,7 @@ public class Kicker implements Mechanism {
 
     // State 1: Idle - Rest position, 0V applied, solenoid off (ratchet engaged)
     StateMachine.State idle = machine.addState(
-        runRepeatedly(() -> {
+        kickerMechanism.runRepeatedly(() -> {
           if (RobotBase.isDisabled()) {
             kickerMechanism.setSetpoint(getPosition());
           }
@@ -88,7 +87,7 @@ public class Kicker implements Mechanism {
 
     // State 2: Pulling Back - Motor powers the winch to draw spring to loaded pullback
     StateMachine.State pullingBack = machine.addState(
-        runRepeatedly(kickerMechanism::driveTowardSetpoint).named("Kicker Pulling Back"));
+        kickerMechanism.runRepeatedly(kickerMechanism::driveTowardSetpoint).named("Kicker Pulling Back"));
     pullingBack.onEnter(() -> {
       kickerMechanism.setSetpoint(LOADED_PULLBACK);
       solenoid.set(false);
@@ -97,14 +96,14 @@ public class Kicker implements Mechanism {
 
     // State 3: Loaded - Cocked and locked by the ratchet, 0V drawn
     StateMachine.State loaded = machine.addState(
-        runRepeatedly(() -> {
+        kickerMechanism.runRepeatedly(() -> {
           motor.setVoltage(0.0);
           solenoid.set(false);
         }).named("Kicker Loaded"));
 
     // State 4: Releasing - Solenoid energizes to trip ratchet and unleash spring
     StateMachine.State releasing = machine.addState(
-        runRepeatedly(() -> {
+        kickerMechanism.runRepeatedly(() -> {
           motor.setVoltage(0.0);
           solenoid.set(true);
         }).named("Kicker Releasing"));
@@ -116,7 +115,7 @@ public class Kicker implements Mechanism {
 
     // State 5: Follow-Through - Dwell for 3 periodic ticks to guarantee full launch
     StateMachine.State followThrough = machine.addState(
-        run(coroutine -> {
+        kickerMechanism.run(coroutine -> {
           kickerMechanism.setSetpoint(MIN_PULLBACK);
           motor.setVoltage(0.0);
           solenoid.set(true);
@@ -196,7 +195,7 @@ public class Kicker implements Mechanism {
   }
 
   public Command hold() {
-    return run(coroutine -> coroutine.await(stateMachine()))
+    return kickerMechanism.run(coroutine -> coroutine.await(stateMachine()))
         .withPriority(Command.LOWEST_PRIORITY)
         .named("Kicker Hold");
   }
@@ -250,7 +249,7 @@ public class Kicker implements Mechanism {
   }
 
   public String getCurrentCommandName() {
-    List<Command> running = getRunningCommands();
+    List<Command> running = kickerMechanism.getRunningCommands();
     if (running.isEmpty()) {
       return "(none)";
     }

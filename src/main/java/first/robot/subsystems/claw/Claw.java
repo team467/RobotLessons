@@ -11,7 +11,6 @@ import first.robot.mechanical.Mechanical;
 import first.robot.mechanisms.ClawMechanism;
 import java.util.List;
 import org.wpilib.command3.Command;
-import org.wpilib.command3.Mechanism;
 import org.wpilib.command3.StateMachine;
 import org.wpilib.command3.Trigger;
 import org.wpilib.framework.RobotBase;
@@ -19,7 +18,7 @@ import org.wpilib.hardware.discrete.DigitalInput;
 import org.wpilib.units.measure.Angle;
 
 /** The claw opens and closes its fingers to pick up a ball. */
-public class Claw implements Mechanism {
+public class Claw {
   /** The target goal/intent for the claw state machine. */
   public enum Goal {
     HOLD,
@@ -45,7 +44,7 @@ public class Claw implements Mechanism {
 
     this.clawMechanism = new ClawMechanism(motor::setVoltage, this::getAngle, this::getVelocity);
 
-    setDefaultCommand(hold());
+    clawMechanism.setDefaultCommand(hold());
   }
 
   // ------------------------------------------------------------------------------------------
@@ -61,7 +60,7 @@ public class Claw implements Mechanism {
 
     // State 1: Holding - Closed-loop PID holding at the current setpoint angle
     StateMachine.State holding = machine.addState(
-        runRepeatedly(() -> {
+        clawMechanism.runRepeatedly(() -> {
           if (RobotBase.isDisabled()) {
             clawMechanism.setSetpoint(getAngle());
           }
@@ -75,17 +74,17 @@ public class Claw implements Mechanism {
 
     // State 2: Opening - Drives pinchers outward to full 60-degree open position
     StateMachine.State opening = machine.addState(
-        runRepeatedly(clawMechanism::driveTowardSetpoint).named("Claw Opening"));
+        clawMechanism.runRepeatedly(clawMechanism::driveTowardSetpoint).named("Claw Opening"));
     opening.onEnter(() -> clawMechanism.setSetpoint(OPEN_ANGLE));
 
     // State 3: Closing - Drives pinchers inward toward 0 degrees to capture a ball
     StateMachine.State closing = machine.addState(
-        runRepeatedly(clawMechanism::driveTowardSetpoint).named("Claw Closing"));
+        clawMechanism.runRepeatedly(clawMechanism::driveTowardSetpoint).named("Claw Closing"));
     closing.onEnter(() -> clawMechanism.setSetpoint(CLOSED_ANGLE));
 
     // State 4: Gripping - Direct voltage squeeze mode once ball is grasped
     StateMachine.State gripping = machine.addState(
-        runRepeatedly(() -> {
+        clawMechanism.runRepeatedly(() -> {
           if (RobotBase.isDisabled()) {
             motor.setVoltage(0.0);
           } else {
@@ -157,7 +156,7 @@ public class Claw implements Mechanism {
   }
 
   public Command hold() {
-    return run(coroutine -> coroutine.await(stateMachine()))
+    return clawMechanism.run(coroutine -> coroutine.await(stateMachine()))
         .withPriority(Command.LOWEST_PRIORITY)
         .named("Claw Hold");
   }
@@ -203,7 +202,7 @@ public class Claw implements Mechanism {
   }
 
   public String getCurrentCommandName() {
-    List<Command> running = getRunningCommands();
+    List<Command> running = clawMechanism.getRunningCommands();
     if (running.isEmpty()) {
       return "(none)";
     }

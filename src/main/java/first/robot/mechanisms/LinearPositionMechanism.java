@@ -154,23 +154,22 @@ public class LinearPositionMechanism implements Mechanism {
   /**
    * Moves the mechanism to a target position and completes once arrived and settled.
    *
-   * @param parent the subsystem requiring this command
    * @param targetPosition raw target distance (will be clamped)
    * @return command driving to the target
    */
-  public Command moveTo(Mechanism parent, Distance targetPosition) {
+  public Command moveTo(Distance targetPosition) {
     Distance target = clampPosition(targetPosition);
     String cmdName = String.format("%s To %.2fm", name, target.in(Meters));
-    return moveTo(parent, target, cmdName);
+    return moveTo(target, cmdName);
   }
 
   /**
    * Moves the mechanism to a target position with a custom command display name.
    */
-  public Command moveTo(Mechanism parent, Distance targetPosition, String cmdName) {
+  public Command moveTo(Distance targetPosition, String cmdName) {
     Distance target = clampPosition(targetPosition);
     setpoint = target;
-    return parent.run(coroutine -> {
+    return run(coroutine -> {
       setpoint = target;
       pid.reset();
       while (!isSettledAtSetpoint()) {
@@ -185,13 +184,12 @@ public class LinearPositionMechanism implements Mechanism {
    * Incremental jogging command that steps setpoint by {@code deltaMetersPerTick} each 20ms cycle.
    * On exit, latches setpoint to current actual position and resets the PID controller.
    *
-   * @param parent the subsystem requiring this command
    * @param cmdName command name
    * @param deltaMetersPerTick change in setpoint per 20ms tick
    * @return jogging command
    */
-  public Command jog(Mechanism parent, String cmdName, double deltaMetersPerTick) {
-    return parent.run(coroutine -> {
+  public Command jog(String cmdName, double deltaMetersPerTick) {
+    return run(coroutine -> {
       setpoint = getPosition();
       while (true) {
         double nextMeters = setpoint.in(Meters) + deltaMetersPerTick;
@@ -206,13 +204,12 @@ public class LinearPositionMechanism implements Mechanism {
   }
 
   /**
-   * Continuous default holding command requiring the parent mechanism.
+   * Continuous default holding command.
    *
-   * @param parent the subsystem requiring this command
    * @return default holding command running at LOWEST_PRIORITY
    */
-  public Command hold(Mechanism parent) {
-    return parent.runRepeatedly(() -> {
+  public Command hold() {
+    return runRepeatedly(() -> {
           if (RobotBase.isDisabled()) {
             setpoint = getPosition();
           }
