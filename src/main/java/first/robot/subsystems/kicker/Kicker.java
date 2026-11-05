@@ -9,9 +9,9 @@ import com.revrobotics.spark.SparkMax;
 import first.robot.Schematic;
 import first.robot.mechanical.Mechanical;
 import first.robot.mechanisms.KickerMechanism;
+import first.robot.mechanisms.TrackedStateMachine;
 import java.util.List;
 import org.wpilib.command3.Command;
-import org.wpilib.command3.StateMachine;
 import org.wpilib.command3.Trigger;
 import org.wpilib.framework.RobotBase;
 import org.wpilib.hardware.discrete.DigitalOutput;
@@ -25,10 +25,11 @@ import org.wpilib.units.measure.Distance;
  * in an upward arc toward the elevated basket.
  */
 public class Kicker {
-  /** The target goal/intent for the kicker state machine. */
-  public enum Goal {
+  /** The states of the kicker state machine, which are also the goals commands can request. */
+  private enum Mode {
     IDLE,
     LOAD,
+    LOADED,
     KICK
   }
 
@@ -36,8 +37,7 @@ public class Kicker {
   private final RelativeEncoder encoder;
   private final DigitalOutput solenoid;
   private final KickerMechanism kickerMechanism;
-
-  private Goal goal = Goal.IDLE;
+  private final TrackedStateMachine<Mode> stateMachine = new TrackedStateMachine<>("Kicker");
 
   /** True when the kicker spring is pulled back and locked by the ratchet, ready to fire. */
   public final Trigger isLoaded;
@@ -61,7 +61,9 @@ public class Kicker {
 
     this.isLoaded = kickerMechanism.isLoaded;
     this.atSetpoint = kickerMechanism.atSetpoint;
-    kickerMechanism.setDefaultCommand(hold());
+
+    buildStateMachine();
+    kickerMechanism.setDefaultCommand(stateMachine.runOn(kickerMechanism));
   }
 
   // ------------------------------------------------------------------------------------------
@@ -69,14 +71,12 @@ public class Kicker {
   // ------------------------------------------------------------------------------------------
 
   /**
-   * Constructs the full lifecycle state machine for the spring kicker, managing transitions
-   * between idle, pulling back, loaded, releasing, and follow-through.
+   * Declares the kicker's states and transitions between idle, pulling back, loaded, and kicking.
    */
-  public StateMachine stateMachine() {
-    StateMachine machine = new StateMachine("Kicker");
-
-    // State 1: Idle - Rest position, 0V applied, solenoid off (ratchet engaged)
-    StateMachine.State idle = machine.addState(
+  private void buildStateMachine() {
+    // Rest position, 0V applied, solenoid off (ratchet engaged)
+    stateMachine.addState(
+        Mode.IDLE,
         kickerMechanism.runRepeatedly(() -> {
           if (RobotBase.isDisabled()) {
             kickerMechanism.setSetpoint(getPosition());
@@ -85,119 +85,79 @@ public class Kicker {
           solenoid.set(false);
         }).named("Kicker Idle"));
 
-    // State 2: Pulling Back - Motor powers the winch to draw spring to loaded pullback
-    StateMachine.State pullingBack = machine.addState(
-        kickerMechanism.runRepeatedly(kickerMechanism::driveTowardSetpoint).named("Kicker Pulling Back"));
-    pullingBack.onEnter(() -> {
-      kickerMechanism.setSetpoint(LOADED_PULLBACK);
-      solenoid.set(false);
-    });
-    pullingBack.onExit(() -> motor.setVoltage(0.0));
+    // Motor powers the winch to draw spring to loaded pullback
+    stateMachine
+        .addState(
+            Mode.LOAD,
+            kickerMechanism
+                .runRepeatedly(kickerMechanism::driveTowardSetpoint)
+                .named("Kicker Pulling Back"),
+            () -> {
+              kickerMechanism.setSetpoint(LOADED_PULLBACK);
+              solenoid.set(false);
+            })
+        .onExit(() -> motor.setVoltage(0.0));
 
-    // State 3: Loaded - Cocked and locked by the ratchet, 0V drawn
-    StateMachine.State loaded = machine.addState(
+    // Cocked and locked by the ratchet, 0V drawn
+    stateMachine.addState(
+        Mode.LOADED,
         kickerMechanism.runRepeatedly(() -> {
           motor.setVoltage(0.0);
           solenoid.set(false);
         }).named("Kicker Loaded"));
 
-    // State 4: Releasing - Solenoid energizes to trip ratchet and unleash spring
-    StateMachine.State releasing = machine.addState(
-        kickerMechanism.runRepeatedly(() -> {
-          motor.setVoltage(0.0);
-          solenoid.set(true);
-        }).named("Kicker Releasing"));
-    releasing.onEnter(() -> {
-      kickerMechanism.setSetpoint(MIN_PULLBACK);
-      motor.setVoltage(0.0);
-      solenoid.set(true);
-    });
+    // Solenoid energizes to trip ratchet and unleash spring, followed by 3 ticks of follow-through
+    stateMachine
+        .addState(
+            Mode.KICK,
+            kickerMechanism.run(coroutine -> {
+              while (!getPosition().lte(MIN_PULLBACK.plus(TOLERANCE))) {
+                motor.setVoltage(0.0);
+                solenoid.set(true);
+                coroutine.yield();
+              }
+              for (int i = 0; i < 3; i++) {
+                motor.setVoltage(0.0);
+                solenoid.set(true);
+                coroutine.yield();
+              }
+            }).named("Kicker Releasing"),
+            () -> {
+              kickerMechanism.setSetpoint(MIN_PULLBACK);
+              motor.setVoltage(0.0);
+              solenoid.set(true);
+            })
+        .onExit(() -> solenoid.set(false));
 
-    // State 5: Follow-Through - Dwell for 3 periodic ticks to guarantee full launch
-    StateMachine.State followThrough = machine.addState(
-        kickerMechanism.run(coroutine -> {
-          kickerMechanism.setSetpoint(MIN_PULLBACK);
-          motor.setVoltage(0.0);
-          solenoid.set(true);
-          for (int i = 0; i < 3; i++) {
-            coroutine.yield();
-          }
-        }).named("Kicker Follow-Through"));
-    followThrough.onExit(() -> {
-      solenoid.set(false);
-      if (goal == Goal.KICK) {
-        goal = Goal.IDLE;
-      }
-    });
+    stateMachine.transition(Mode.IDLE, Mode.LOADED, this::isLoaded);
+    stateMachine.transition(Mode.IDLE, Mode.LOAD, stateMachine.isRequested(Mode.LOAD));
+    stateMachine.transition(
+        Mode.IDLE,
+        Mode.KICK,
+        () -> stateMachine.isRequested(Mode.KICK).getAsBoolean() && isLoaded());
 
-    // Transitions from idle
-    idle.switchTo(pullingBack).when(() -> goal == Goal.LOAD);
-    idle.switchTo(releasing).when(() -> goal == Goal.KICK && isLoaded());
+    stateMachine.transition(Mode.LOAD, Mode.LOADED, this::isLoaded);
+    stateMachine.transition(Mode.LOAD, Mode.IDLE, stateMachine.isRequested(Mode.IDLE));
 
-    // Transitions from pullingBack
-    pullingBack.switchTo(loaded).when(this::isLoaded);
-    pullingBack.switchTo(idle).when(() -> goal != Goal.LOAD);
+    stateMachine.transition(Mode.LOADED, Mode.KICK, stateMachine.isRequested(Mode.KICK));
+    stateMachine.transition(Mode.LOADED, Mode.LOAD, stateMachine.isRequested(Mode.LOAD));
+    stateMachine.transition(Mode.LOADED, Mode.IDLE, () -> !isLoaded());
 
-    // Transitions from loaded
-    loaded.switchTo(releasing).when(() -> goal == Goal.KICK);
-    loaded.switchTo(pullingBack).when(() -> goal == Goal.LOAD && !isLoaded());
-    loaded.switchTo(idle).when(() -> goal == Goal.IDLE && !isLoaded());
+    stateMachine.state(Mode.KICK).switchTo(stateMachine.state(Mode.IDLE)).whenComplete();
 
-    // Transitions from releasing
-    releasing.switchTo(followThrough).when(() -> getPosition().lte(MIN_PULLBACK.plus(TOLERANCE)));
-
-    // Transitions from followThrough
-    followThrough.switchTo(idle).whenComplete();
-
-    if (isLoaded()) {
-      machine.setInitialState(loaded);
-    } else {
-      machine.setInitialState(idle);
-    }
-    return machine;
+    stateMachine.setInitialState(Mode.IDLE);
   }
 
   // ------------------------------------------------------------------------------------------
-  // Goals and Commands
+  // Commands
   // ------------------------------------------------------------------------------------------
-
-  public void setGoal(Goal goal) {
-    this.goal = goal;
-  }
 
   public Command pullBack() {
-    return Command.noRequirements(coroutine -> {
-      setGoal(Goal.LOAD);
-      if (isLoaded()) {
-        return;
-      }
-      coroutine.waitUntil(this::isLoaded);
-    }).whenCanceled(() -> {
-      if (goal == Goal.LOAD && !isLoaded()) {
-        setGoal(Goal.IDLE);
-      }
-    }).named("Kicker Pull Back");
+    return stateMachine.setGoal(Mode.LOAD);
   }
 
   public Command kick() {
-    return Command.noRequirements(coroutine -> {
-      if (!isLoaded()) {
-        return;
-      }
-      setGoal(Goal.KICK);
-      coroutine.waitUntil(() -> !isLoaded() || isSolenoidReleased());
-      coroutine.waitUntil(() -> !isSolenoidReleased() && goal != Goal.KICK);
-    }).whenCanceled(() -> {
-      if (goal == Goal.KICK) {
-        setGoal(Goal.IDLE);
-      }
-    }).named("Kicker Kick");
-  }
-
-  public Command hold() {
-    return kickerMechanism.run(coroutine -> coroutine.await(stateMachine()))
-        .withPriority(Command.LOWEST_PRIORITY)
-        .named("Kicker Hold");
+    return stateMachine.setGoal(Mode.KICK);
   }
 
   // ------------------------------------------------------------------------------------------
@@ -257,7 +217,6 @@ public class Kicker {
   }
 
   public void resetSetpoint() {
-    goal = Goal.IDLE;
     kickerMechanism.resetSetpoint();
   }
 }

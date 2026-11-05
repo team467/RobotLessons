@@ -130,8 +130,9 @@ public class MotorStateSimTest {
 
     // 1. Open claw - should be RUNNING
     Scheduler.getDefault().schedule(claw.open());
-    step();
-    step();
+    for (int i = 0; i < 10 && world.snapshot().clawMotorState() != SimWorld.MotorState.RUNNING; i++) {
+      step();
+    }
     assertEquals(SimWorld.MotorState.RUNNING, world.snapshot().clawMotorState(), "Claw should be RUNNING while opening");
 
     for (int i = 0; i < 60 && (Math.abs(claw.getVelocity()) > 0.02 || !claw.atSetpoint()); i++) {

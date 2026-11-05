@@ -9,9 +9,9 @@ import com.revrobotics.spark.SparkMax;
 import first.robot.Schematic;
 import first.robot.mechanical.Mechanical;
 import first.robot.mechanisms.ClawMechanism;
+import first.robot.mechanisms.TrackedStateMachine;
 import java.util.List;
 import org.wpilib.command3.Command;
-import org.wpilib.command3.StateMachine;
 import org.wpilib.command3.Trigger;
 import org.wpilib.framework.RobotBase;
 import org.wpilib.hardware.discrete.DigitalInput;
@@ -19,19 +19,19 @@ import org.wpilib.units.measure.Angle;
 
 /** The claw opens and closes its fingers to pick up a ball. */
 public class Claw {
-  /** The target goal/intent for the claw state machine. */
-  public enum Goal {
+  /** The states of the claw state machine, which are also the goals commands can request. */
+  private enum Mode {
     HOLD,
     OPEN,
-    CLOSE
+    CLOSE,
+    GRIP
   }
 
   private final SparkMax motor;
   private final RelativeEncoder encoder;
   private final DigitalInput ballSensor;
   private final ClawMechanism clawMechanism;
-
-  private Goal goal = Goal.HOLD;
+  private final TrackedStateMachine<Mode> stateMachine = new TrackedStateMachine<>("Claw");
 
   /** True while the claw is holding a ball. */
   public final Trigger hasBall = new Trigger(this::hasBall);
@@ -44,46 +44,42 @@ public class Claw {
 
     this.clawMechanism = new ClawMechanism(motor::setVoltage, this::getAngle, this::getVelocity);
 
-    clawMechanism.setDefaultCommand(hold());
+    buildStateMachine();
+    clawMechanism.setDefaultCommand(stateMachine.runOn(clawMechanism));
   }
 
   // ------------------------------------------------------------------------------------------
   // State Machine
   // ------------------------------------------------------------------------------------------
 
-  /**
-   * Constructs the full lifecycle state machine for the claw mechanism, managing transitions
-   * between holding, opening, closing, and gripping.
-   */
-  public StateMachine stateMachine() {
-    StateMachine machine = new StateMachine("Claw");
-
-    // State 1: Holding - Closed-loop PID holding at the current setpoint angle
-    StateMachine.State holding = machine.addState(
+  /** Declares the claw's states and transitions between holding, opening, closing and gripping. */
+  private void buildStateMachine() {
+    // Closed-loop PID holding at the angle the claw was in when it entered this state
+    stateMachine.addState(
+        Mode.HOLD,
         clawMechanism.runRepeatedly(() -> {
           if (RobotBase.isDisabled()) {
             clawMechanism.setSetpoint(getAngle());
           }
           clawMechanism.driveTowardSetpoint();
-        }).named("Claw Holding"));
-    holding.onEnter(() -> {
-      if (goal == Goal.HOLD) {
-        clawMechanism.setSetpoint(getAngle());
-      }
-    });
+        }).named("Claw Holding"),
+        () -> clawMechanism.setSetpoint(getAngle()));
 
-    // State 2: Opening - Drives pinchers outward to full 60-degree open position
-    StateMachine.State opening = machine.addState(
-        clawMechanism.runRepeatedly(clawMechanism::driveTowardSetpoint).named("Claw Opening"));
-    opening.onEnter(() -> clawMechanism.setSetpoint(OPEN_ANGLE));
+    // Drives pinchers outward to the open position
+    stateMachine.addState(
+        Mode.OPEN,
+        clawMechanism.runRepeatedly(clawMechanism::driveTowardSetpoint).named("Claw Opening"),
+        () -> clawMechanism.setSetpoint(OPEN_ANGLE));
 
-    // State 3: Closing - Drives pinchers inward toward 0 degrees to capture a ball
-    StateMachine.State closing = machine.addState(
-        clawMechanism.runRepeatedly(clawMechanism::driveTowardSetpoint).named("Claw Closing"));
-    closing.onEnter(() -> clawMechanism.setSetpoint(CLOSED_ANGLE));
+    // Drives pinchers inward to capture a ball
+    stateMachine.addState(
+        Mode.CLOSE,
+        clawMechanism.runRepeatedly(clawMechanism::driveTowardSetpoint).named("Claw Closing"),
+        () -> clawMechanism.setSetpoint(CLOSED_ANGLE));
 
-    // State 4: Gripping - Direct voltage squeeze mode once ball is grasped
-    StateMachine.State gripping = machine.addState(
+    // Direct voltage squeeze once a ball is grasped
+    stateMachine.addState(
+        Mode.GRIP,
         clawMechanism.runRepeatedly(() -> {
           if (RobotBase.isDisabled()) {
             motor.setVoltage(0.0);
@@ -92,73 +88,34 @@ public class Claw {
           }
         }).named("Claw Gripping"));
 
-    // Transitions from holding
-    holding.switchTo(gripping).when(this::hasBall);
-    holding.switchTo(opening).when(() -> goal == Goal.OPEN && !atSetpoint());
-    holding.switchTo(closing).when(() -> goal == Goal.CLOSE && !atSetpoint());
+    stateMachine.transition(Mode.HOLD, Mode.GRIP, this::hasBall);
+    stateMachine.transition(Mode.HOLD, Mode.OPEN, stateMachine.isRequested(Mode.OPEN));
+    stateMachine.transition(Mode.HOLD, Mode.CLOSE, stateMachine.isRequested(Mode.CLOSE));
 
-    // Transitions from opening
-    opening.switchTo(holding).when(this::atSetpoint);
-    opening.switchTo(closing).when(() -> goal == Goal.CLOSE);
+    stateMachine.transition(Mode.OPEN, Mode.HOLD, this::atSetpoint);
+    stateMachine.transition(Mode.OPEN, Mode.CLOSE, stateMachine.isRequested(Mode.CLOSE));
 
-    // Transitions from closing
-    closing.switchTo(gripping).when(this::hasBall);
-    closing.switchTo(holding).when(this::atSetpoint);
-    closing.switchTo(opening).when(() -> goal == Goal.OPEN);
+    stateMachine.transition(Mode.CLOSE, Mode.GRIP, this::hasBall);
+    stateMachine.transition(Mode.CLOSE, Mode.HOLD, this::atSetpoint);
+    stateMachine.transition(Mode.CLOSE, Mode.OPEN, stateMachine.isRequested(Mode.OPEN));
 
-    // Transitions from gripping
-    gripping.switchTo(opening).when(() -> goal == Goal.OPEN);
-    gripping.switchTo(closing).when(() -> !hasBall() && goal == Goal.CLOSE);
-    gripping.switchTo(holding).when(() -> !hasBall() && goal != Goal.CLOSE);
+    stateMachine.transition(Mode.GRIP, Mode.OPEN, stateMachine.isRequested(Mode.OPEN));
+    stateMachine.transition(Mode.GRIP, Mode.CLOSE, stateMachine.isRequested(Mode.CLOSE));
+    stateMachine.transition(Mode.GRIP, Mode.HOLD, () -> !hasBall());
 
-    if (hasBall()) {
-      machine.setInitialState(gripping);
-    } else {
-      machine.setInitialState(holding);
-    }
-    return machine;
+    stateMachine.setInitialState(Mode.HOLD);
   }
 
   // ------------------------------------------------------------------------------------------
-  // Goals and Commands
+  // Commands
   // ------------------------------------------------------------------------------------------
-
-  public void setGoal(Goal goal) {
-    this.goal = goal;
-    if (goal == Goal.OPEN) {
-      clawMechanism.setSetpoint(OPEN_ANGLE);
-    } else if (goal == Goal.CLOSE) {
-      clawMechanism.setSetpoint(CLOSED_ANGLE);
-    } else if (goal == Goal.HOLD) {
-      clawMechanism.setSetpoint(getAngle());
-    }
-    clawMechanism.driveTowardSetpoint();
-  }
 
   public Command open() {
-    return Command.noRequirements(coroutine -> {
-      setGoal(Goal.OPEN);
-      if (getAngle().isNear(OPEN_ANGLE, TOLERANCE)) {
-        return;
-      }
-      coroutine.waitUntil(this::atSetpoint);
-    }).named("Claw Open");
+    return stateMachine.setGoal(Mode.OPEN);
   }
 
   public Command close() {
-    return Command.noRequirements(coroutine -> {
-      setGoal(Goal.CLOSE);
-      if (hasBall() || getAngle().isNear(CLOSED_ANGLE, TOLERANCE)) {
-        return;
-      }
-      coroutine.waitUntil(() -> hasBall() || atSetpoint());
-    }).named("Claw Close");
-  }
-
-  public Command hold() {
-    return clawMechanism.run(coroutine -> coroutine.await(stateMachine()))
-        .withPriority(Command.LOWEST_PRIORITY)
-        .named("Claw Hold");
+    return stateMachine.setGoal(Mode.CLOSE);
   }
 
   // ------------------------------------------------------------------------------------------
@@ -210,7 +167,6 @@ public class Claw {
   }
 
   public void resetSetpoint() {
-    goal = Goal.HOLD;
     clawMechanism.resetSetpoint();
   }
 }
