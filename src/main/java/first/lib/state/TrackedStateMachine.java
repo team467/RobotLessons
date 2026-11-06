@@ -1,4 +1,4 @@
-package first.robot.mechanisms;
+package first.lib.state;
 
 import java.util.HashMap;
 import java.util.Map;
