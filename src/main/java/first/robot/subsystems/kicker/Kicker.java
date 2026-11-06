@@ -77,33 +77,40 @@ public class Kicker {
     // Rest position, 0V applied, solenoid off (ratchet engaged)
     stateMachine.addState(
         Mode.IDLE,
-        kickerMechanism.runRepeatedly(() -> {
-          if (RobotBase.isDisabled()) {
-            kickerMechanism.setSetpoint(getPosition());
+        kickerMechanism.run(coroutine -> {
+          while (true) {
+            if (RobotBase.isDisabled()) {
+              kickerMechanism.setSetpoint(getPosition());
+            }
+            motor.setVoltage(0.0);
+            solenoid.set(false);
+            coroutine.yield();
           }
-          motor.setVoltage(0.0);
-          solenoid.set(false);
         }).named("Kicker Idle"));
 
     // Motor powers the winch to draw spring to loaded pullback
     stateMachine
         .addState(
             Mode.LOAD,
-            kickerMechanism
-                .runRepeatedly(kickerMechanism::driveTowardSetpoint)
-                .named("Kicker Pulling Back"),
-            () -> {
+            kickerMechanism.run(coroutine -> {
               kickerMechanism.setSetpoint(LOADED_PULLBACK);
               solenoid.set(false);
-            })
+              while (!isLoaded()) {
+                kickerMechanism.driveTowardSetpoint();
+                coroutine.yield();
+              }
+            }).named("Kicker Pulling Back"))
         .onExit(() -> motor.setVoltage(0.0));
 
     // Cocked and locked by the ratchet, 0V drawn
     stateMachine.addState(
         Mode.LOADED,
-        kickerMechanism.runRepeatedly(() -> {
-          motor.setVoltage(0.0);
-          solenoid.set(false);
+        kickerMechanism.run(coroutine -> {
+          while (true) {
+            motor.setVoltage(0.0);
+            solenoid.set(false);
+            coroutine.yield();
+          }
         }).named("Kicker Loaded"));
 
     // Solenoid energizes to trip ratchet and unleash spring, followed by 3 ticks of follow-through
@@ -111,6 +118,9 @@ public class Kicker {
         .addState(
             Mode.KICK,
             kickerMechanism.run(coroutine -> {
+              kickerMechanism.setSetpoint(MIN_PULLBACK);
+              motor.setVoltage(0.0);
+              solenoid.set(true);
               while (!getPosition().lte(MIN_PULLBACK.plus(TOLERANCE))) {
                 motor.setVoltage(0.0);
                 solenoid.set(true);
@@ -121,12 +131,7 @@ public class Kicker {
                 solenoid.set(true);
                 coroutine.yield();
               }
-            }).named("Kicker Releasing"),
-            () -> {
-              kickerMechanism.setSetpoint(MIN_PULLBACK);
-              motor.setVoltage(0.0);
-              solenoid.set(true);
-            })
+            }).named("Kicker Releasing"))
         .onExit(() -> solenoid.set(false));
 
     stateMachine.transition(Mode.IDLE, Mode.LOADED, this::isLoaded);
@@ -136,14 +141,14 @@ public class Kicker {
         Mode.KICK,
         () -> stateMachine.isRequested(Mode.KICK).getAsBoolean() && isLoaded());
 
-    stateMachine.transition(Mode.LOAD, Mode.LOADED, this::isLoaded);
+    stateMachine.transitionWhenComplete(Mode.LOAD, Mode.LOADED);
     stateMachine.transition(Mode.LOAD, Mode.IDLE, stateMachine.isRequested(Mode.IDLE));
 
     stateMachine.transition(Mode.LOADED, Mode.KICK, stateMachine.isRequested(Mode.KICK));
     stateMachine.transition(Mode.LOADED, Mode.LOAD, stateMachine.isRequested(Mode.LOAD));
     stateMachine.transition(Mode.LOADED, Mode.IDLE, () -> !isLoaded());
 
-    stateMachine.state(Mode.KICK).switchTo(stateMachine.state(Mode.IDLE)).whenComplete();
+    stateMachine.transitionWhenComplete(Mode.KICK, Mode.IDLE);
 
     stateMachine.setInitialState(Mode.IDLE);
   }

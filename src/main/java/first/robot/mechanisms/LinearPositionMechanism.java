@@ -23,7 +23,7 @@ import org.wpilib.units.measure.Distance;
  *   <li>Physical travel boundary clamping (min / max distance).</li>
  *   <li>Safe setpoint initialization and PID controller reset.</li>
  *   <li>Settled arrival detection combining position tolerance with velocity settling.</li>
- *   <li>Point-to-point {@link #moveTo(Mechanism, Distance)} commands and continuous default {@link #hold(Mechanism)}.</li>
+ *   <li>Point-to-point {@link #moveTo(Distance)} commands and continuous default {@link #hold()}.</li>
  * </ul>
  */
 public class LinearPositionMechanism implements Mechanism {
@@ -209,11 +209,14 @@ public class LinearPositionMechanism implements Mechanism {
    * @return default holding command running at LOWEST_PRIORITY
    */
   public Command hold() {
-    return runRepeatedly(() -> {
-          if (RobotBase.isDisabled()) {
-            setpoint = getPosition();
+    return run(coroutine -> {
+          while (true) {
+            if (RobotBase.isDisabled()) {
+              setpoint = getPosition();
+            }
+            driveTowardSetpoint();
+            coroutine.yield();
           }
-          driveTowardSetpoint();
         })
         .withPriority(Command.LOWEST_PRIORITY)
         .named(name + " Hold");

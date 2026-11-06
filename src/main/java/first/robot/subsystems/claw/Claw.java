@@ -57,34 +57,50 @@ public class Claw {
     // Closed-loop PID holding at the angle the claw was in when it entered this state
     stateMachine.addState(
         Mode.HOLD,
-        clawMechanism.runRepeatedly(() -> {
-          if (RobotBase.isDisabled()) {
-            clawMechanism.setSetpoint(getAngle());
+        clawMechanism.run(coroutine -> {
+          clawMechanism.setSetpoint(getAngle());
+          while (true) {
+            if (RobotBase.isDisabled()) {
+              clawMechanism.setSetpoint(getAngle());
+            }
+            clawMechanism.driveTowardSetpoint();
+            coroutine.yield();
           }
-          clawMechanism.driveTowardSetpoint();
-        }).named("Claw Holding"),
-        () -> clawMechanism.setSetpoint(getAngle()));
+        }).named("Claw Holding"));
 
     // Drives pinchers outward to the open position
     stateMachine.addState(
         Mode.OPEN,
-        clawMechanism.runRepeatedly(clawMechanism::driveTowardSetpoint).named("Claw Opening"),
-        () -> clawMechanism.setSetpoint(OPEN_ANGLE));
+        clawMechanism.run(coroutine -> {
+          clawMechanism.setSetpoint(OPEN_ANGLE);
+          while (!atSetpoint()) {
+            clawMechanism.driveTowardSetpoint();
+            coroutine.yield();
+          }
+        }).named("Claw Opening"));
 
     // Drives pinchers inward to capture a ball
     stateMachine.addState(
         Mode.CLOSE,
-        clawMechanism.runRepeatedly(clawMechanism::driveTowardSetpoint).named("Claw Closing"),
-        () -> clawMechanism.setSetpoint(CLOSED_ANGLE));
+        clawMechanism.run(coroutine -> {
+          clawMechanism.setSetpoint(CLOSED_ANGLE);
+          while (!atSetpoint()) {
+            clawMechanism.driveTowardSetpoint();
+            coroutine.yield();
+          }
+        }).named("Claw Closing"));
 
     // Direct voltage squeeze once a ball is grasped
     stateMachine.addState(
         Mode.GRIP,
-        clawMechanism.runRepeatedly(() -> {
-          if (RobotBase.isDisabled()) {
-            motor.setVoltage(0.0);
-          } else {
-            motor.setVoltage(GRIP_VOLTS);
+        clawMechanism.run(coroutine -> {
+          while (true) {
+            if (RobotBase.isDisabled()) {
+              motor.setVoltage(0.0);
+            } else {
+              motor.setVoltage(GRIP_VOLTS);
+            }
+            coroutine.yield();
           }
         }).named("Claw Gripping"));
 
@@ -92,11 +108,11 @@ public class Claw {
     stateMachine.transition(Mode.HOLD, Mode.OPEN, stateMachine.isRequested(Mode.OPEN));
     stateMachine.transition(Mode.HOLD, Mode.CLOSE, stateMachine.isRequested(Mode.CLOSE));
 
-    stateMachine.transition(Mode.OPEN, Mode.HOLD, this::atSetpoint);
+    stateMachine.transitionWhenComplete(Mode.OPEN, Mode.HOLD);
     stateMachine.transition(Mode.OPEN, Mode.CLOSE, stateMachine.isRequested(Mode.CLOSE));
 
     stateMachine.transition(Mode.CLOSE, Mode.GRIP, this::hasBall);
-    stateMachine.transition(Mode.CLOSE, Mode.HOLD, this::atSetpoint);
+    stateMachine.transitionWhenComplete(Mode.CLOSE, Mode.HOLD);
     stateMachine.transition(Mode.CLOSE, Mode.OPEN, stateMachine.isRequested(Mode.OPEN));
 
     stateMachine.transition(Mode.GRIP, Mode.OPEN, stateMachine.isRequested(Mode.OPEN));

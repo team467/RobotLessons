@@ -29,29 +29,17 @@ public class TrackedStateMachine<G> {
   }
 
   /**
-   * Adds a state to the machine with no custom {@code onEnter} action.
+   * Adds a state to the machine.
    *
    * @param key identifies the state in {@link #state}, {@link #isRequested} and {@link #setGoal}
    * @param command the command to run while the state is active
    */
   public StateMachine.State addState(G key, Command command) {
-    return addState(key, command, () -> {});
-  }
-
-  /**
-   * Adds a state to the machine.
-   *
-   * @param key identifies the state in {@link #state}, {@link #isRequested} and {@link #setGoal}
-   * @param command the command to run while the state is active
-   * @param onEnter runs each time the state is entered
-   */
-  public StateMachine.State addState(G key, Command command, Runnable onEnter) {
     StateMachine.State state = machine.addState(command);
     state.onEnter(() -> {
       active = key;
       entries++;
       requested = null;
-      onEnter.run();
     });
     states.put(key, state);
     return state;
@@ -76,6 +64,13 @@ public class TrackedStateMachine<G> {
               }
               return condition.getAsBoolean();
             });
+  }
+
+  /**
+   * Adds a transition from {@code from} to {@code to} when {@code from}'s command completes.
+   */
+  public void transitionWhenComplete(G from, G to) {
+    state(from).switchTo(state(to)).whenComplete();
   }
 
   /** Returns the state added with the given key, for declaring transitions. */
