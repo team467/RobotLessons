@@ -40,7 +40,6 @@ public class Claw {
     this.motor = Mechanical.createSparkMax(Schematic.CLAW_CAN_ID, MotorType.kBrushless);
     this.encoder = motor.getEncoder();
     this.ballSensor = Mechanical.createDigitalInput(Schematic.CLAW_BALL_SENSOR_DIO);
-    Mechanical.register(motor);
 
     this.clawMechanism = new ClawMechanism(motor::setVoltage, this::getAngle, this::getVelocity);
 

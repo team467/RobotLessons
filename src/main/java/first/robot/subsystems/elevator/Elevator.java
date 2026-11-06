@@ -26,7 +26,6 @@ public class Elevator {
   public Elevator() {
     this.motor = Mechanical.createSparkMax(Schematic.ELEVATOR_CAN_ID, MotorType.kBrushless);
     this.encoder = motor.getEncoder();
-    Mechanical.register(motor);
 
     this.elevatorMechanism = new ElevatorMechanism(motor::setVoltage, this::getPosition, this::getVelocity);
 

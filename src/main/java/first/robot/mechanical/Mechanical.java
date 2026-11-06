@@ -47,14 +47,6 @@ public final class Mechanical {
     return new DigitalOutput(channel);
   }
 
-  /**
-   * Registers a motor controller with the simulation system if running in simulation.
-   */
-  public static void register(SparkMax motor) {
-    if (RobotBase.isSimulation()) {
-      SimMechanical.register(motor);
-    }
-  }
 
   /**
    * Sets the position of the encoder, transparently syncing either simulated physics or real

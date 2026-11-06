@@ -26,7 +26,6 @@ public class Extender {
   public Extender() {
     this.motor = Mechanical.createSparkMax(Schematic.EXTENDER_CAN_ID, MotorType.kBrushless);
     this.encoder = motor.getEncoder();
-    Mechanical.register(motor);
 
     this.extenderMechanism = new ExtenderMechanism(motor::setVoltage, this::getPosition, this::getVelocity);
 

@@ -49,7 +49,6 @@ public class Kicker {
     this.motor = Mechanical.createSparkMax(Schematic.KICKER_CAN_ID, MotorType.kBrushless);
     this.encoder = motor.getEncoder();
     this.solenoid = Mechanical.createDigitalOutput(Schematic.KICKER_SOLENOID_CHANNEL);
-    Mechanical.register(motor);
 
     this.kickerMechanism =
         new KickerMechanism(

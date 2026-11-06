@@ -31,7 +31,6 @@ public class Drive implements Mechanism {
   public Drive() {
     this.motor = Mechanical.createSparkMax(Schematic.DRIVE_CAN_ID, MotorType.kBrushless);
     this.encoder = motor.getEncoder();
-    Mechanical.register(motor);
     setDefaultCommand(hold());
   }
 
