@@ -103,17 +103,21 @@ public class Claw {
           }
         }).named("Claw Gripping"));
 
+    // Transitions from HOLD
     stateMachine.transition(Mode.HOLD, Mode.GRIP, this::hasBall);
     stateMachine.transition(Mode.HOLD, Mode.OPEN, stateMachine.isRequested(Mode.OPEN));
     stateMachine.transition(Mode.HOLD, Mode.CLOSE, stateMachine.isRequested(Mode.CLOSE));
 
+    // Transitions from OPEN
     stateMachine.transitionWhenComplete(Mode.OPEN, Mode.HOLD);
     stateMachine.transition(Mode.OPEN, Mode.CLOSE, stateMachine.isRequested(Mode.CLOSE));
 
+    // Transitions from CLOSE
     stateMachine.transition(Mode.CLOSE, Mode.GRIP, this::hasBall);
     stateMachine.transitionWhenComplete(Mode.CLOSE, Mode.HOLD);
     stateMachine.transition(Mode.CLOSE, Mode.OPEN, stateMachine.isRequested(Mode.OPEN));
 
+    // Transitions from GRIP
     stateMachine.transition(Mode.GRIP, Mode.OPEN, stateMachine.isRequested(Mode.OPEN));
     stateMachine.transition(Mode.GRIP, Mode.CLOSE, stateMachine.isRequested(Mode.CLOSE));
     stateMachine.transition(Mode.GRIP, Mode.HOLD, () -> !hasBall());

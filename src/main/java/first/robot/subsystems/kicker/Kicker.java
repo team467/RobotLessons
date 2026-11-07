@@ -133,6 +133,7 @@ public class Kicker {
             }).named("Kicker Releasing"))
         .onExit(() -> solenoid.set(false));
 
+    // Transitions from IDLE
     stateMachine.transition(Mode.IDLE, Mode.LOADED, this::isLoaded);
     stateMachine.transition(Mode.IDLE, Mode.LOAD, stateMachine.isRequested(Mode.LOAD));
     stateMachine.transition(
@@ -140,16 +141,19 @@ public class Kicker {
         Mode.KICK,
         () -> stateMachine.isRequested(Mode.KICK).getAsBoolean() && isLoaded());
 
+    // Transitions from LOAD
     stateMachine.transitionWhenComplete(Mode.LOAD, Mode.LOADED);
     stateMachine.transition(Mode.LOAD, Mode.IDLE, stateMachine.isRequested(Mode.IDLE));
 
+    // Transitions from LOADED
     stateMachine.transition(Mode.LOADED, Mode.KICK, stateMachine.isRequested(Mode.KICK));
     stateMachine.transition(Mode.LOADED, Mode.LOAD, stateMachine.isRequested(Mode.LOAD));
     stateMachine.transition(Mode.LOADED, Mode.IDLE, () -> !isLoaded());
 
-    stateMachine.transitionWhenComplete(Mode.KICK, Mode.IDLE);
+    // Transitions from KICK
+    stateMachine.transitionWhenComplete(Mode.KICK, Mode.LOAD);
 
-    stateMachine.setInitialState(Mode.IDLE);
+    stateMachine.setInitialState(Mode.LOAD);
   }
 
   // ------------------------------------------------------------------------------------------
