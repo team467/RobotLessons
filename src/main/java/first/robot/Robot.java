@@ -12,6 +12,8 @@ import first.robot.subsystems.extender.Extender;
 import first.robot.subsystems.kicker.Kicker;
 import org.wpilib.command3.Scheduler;
 import org.wpilib.command3.button.CommandGamepad;
+import org.wpilib.epilogue.Epilogue;
+import org.wpilib.epilogue.Logged;
 import org.wpilib.framework.OpModeRobot;
 
 /**
@@ -21,6 +23,7 @@ import org.wpilib.framework.OpModeRobot;
  * <p>Extends {@link OpModeRobot}, which automatically manages opmode lifecycle and discovers
  * registered {@code @Teleop} and {@code @Autonomous} classes.
  */
+@Logged
 public class Robot extends OpModeRobot {
   /** Drivetrain subsystem for field translation between start and table. */
   public final Drive drive = new Drive();
@@ -36,7 +39,6 @@ public class Robot extends OpModeRobot {
 
   /** Spring-loaded kicker subsystem with pullback motor, ratchet lock, and release solenoid. */
   public final Kicker kicker = new Kicker();
-
 
   /** Driver gamepad controller on USB port 1. */
   public final CommandGamepad controller = new CommandGamepad(DriverConstants.DRIVER_CONTROLLER_PORT);
@@ -64,15 +66,17 @@ public class Robot extends OpModeRobot {
     // Step the Command3 scheduler (runs registered mechanism periodic callbacks, polls triggers,
     // and executes running commands).
     Scheduler.getDefault().run();
+    Epilogue.update(this);
   }
 
   @Override
   public void simulationInit() {
     // Initialize teleop button and keyboard bindings
     activateTeleop();
+    Epilogue.update(this);
 
-    // Create the simulation physics world with all mechanisms
-    simWorld = new SimWorld(elevator, extender, claw, drive, kicker);
+    // Create the simulation physics world
+    simWorld = new SimWorld();
     simWorld.setTeleopActivator(this::activateTeleop);
 
     // Launch the Swing graphical user interface

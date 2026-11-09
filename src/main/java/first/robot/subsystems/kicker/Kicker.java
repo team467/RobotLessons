@@ -13,6 +13,8 @@ import first.robot.mechanisms.KickerMechanism;
 import java.util.List;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Trigger;
+import org.wpilib.epilogue.Logged;
+import org.wpilib.epilogue.NotLogged;
 import org.wpilib.framework.RobotBase;
 import org.wpilib.hardware.discrete.DigitalOutput;
 import org.wpilib.units.measure.Distance;
@@ -24,6 +26,7 @@ import org.wpilib.units.measure.Distance;
  * it in place. Releasing the solenoid disengages the ratchet to kick a ball held close to the robot
  * in an upward arc toward the elevated basket.
  */
+@Logged
 public class Kicker {
   /** The states of the kicker state machine, which are also the goals commands can request. */
   private enum Mode {
@@ -40,10 +43,10 @@ public class Kicker {
   private final TrackedStateMachine<Mode> stateMachine = new TrackedStateMachine<>("Kicker");
 
   /** True when the kicker spring is pulled back and locked by the ratchet, ready to fire. */
-  public final Trigger isLoaded;
+  @NotLogged public final Trigger isLoaded;
 
   /** True when the plunger is within tolerance of its target pullback position. */
-  public final Trigger atSetpoint;
+  @NotLogged public final Trigger atSetpoint;
 
   public Kicker() {
     this.motor = Mechanical.createSparkMax(Schematic.KICKER_CAN_ID, MotorType.kBrushless);

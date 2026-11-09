@@ -13,20 +13,23 @@ import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
 import org.wpilib.command3.StateMachine;
 import org.wpilib.command3.Trigger;
+import org.wpilib.epilogue.Logged;
+import org.wpilib.epilogue.NotLogged;
 import org.wpilib.framework.RobotBase;
 import org.wpilib.math.controller.PIDController;
 import org.wpilib.units.measure.Distance;
 
 /** The drivetrain moves the robot across the field between the start location and the table. */
+@Logged
 public class Drive implements Mechanism {
   private final SparkMax motor;
   private final RelativeEncoder encoder;
   private final PIDController pid = new PIDController(KP, 0.0, KD);
 
-  private Distance setpoint = START_POSITION;
+  @NotLogged private Distance setpoint = START_POSITION;
 
   /** True while the robot is within tolerance of its target position. */
-  public final Trigger atSetpoint = new Trigger(this::atSetpoint);
+  @NotLogged public final Trigger atSetpoint = new Trigger(this::atSetpoint);
 
   public Drive() {
     this.motor = Mechanical.createSparkMax(Schematic.DRIVE_CAN_ID, MotorType.kBrushless);
@@ -185,8 +188,10 @@ public class Drive implements Mechanism {
           driveTowardSetpoint();
         }).named("Drive Hold"));
     holding.onEnter(() -> {
-      if (RobotBase.isDisabled()) {
-        setpoint = getPosition();
+      if (RobotBase.isDisabled() || !atSetpoint()) {
+        Distance pos = getPosition();
+        setpoint = pos.isNear(START_POSITION, TOLERANCE) ? START_POSITION : pos;
+        pid.reset();
       }
     });
     sm.setInitialState(holding);

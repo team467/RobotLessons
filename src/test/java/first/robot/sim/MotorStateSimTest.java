@@ -40,7 +40,7 @@ public class MotorStateSimTest {
     claw = new Claw();
     drive = new Drive();
 
-    world = new SimWorld(elevator, extender, claw, drive);
+    world = new SimWorld();
   }
 
   private void step() {

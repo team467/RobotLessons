@@ -1,21 +1,17 @@
 package first.robot.sim;
 
-import static first.robot.Schematic.*;
 import static first.robot.constants.SimulationConstants.LOOP_PERIOD_SECONDS;
+import static first.robot.sim.SimWorld.*;
 import static org.wpilib.units.Units.Meters;
-import static org.wpilib.units.Units.Radians;
 
 import com.revrobotics.sim.SparkMaxSim;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 import first.robot.constants.FieldConstants;
-import first.robot.subsystems.claw.ClawConstants;
-import first.robot.subsystems.drive.DriveConstants;
-import first.robot.subsystems.elevator.ElevatorConstants;
-import first.robot.subsystems.extender.ExtenderConstants;
-import first.robot.subsystems.kicker.KickerConstants;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import org.wpilib.command3.Scheduler;
 import org.wpilib.framework.RobotBase;
 import org.wpilib.hardware.bus.CANPort;
@@ -48,7 +44,7 @@ public final class SimMechanical {
             -1.0,
             FieldConstants.FIELD_LENGTH_METERS.in(Meters) + 1.0,
             false,
-            DriveConstants.START_POSITION.in(Meters));
+            DRIVE_START_POSITION_METERS);
     private SparkMax motor;
     private SparkMaxSim sparkSim;
 
@@ -99,7 +95,7 @@ public final class SimMechanical {
     }
 
     public void reset() {
-      setPosition(DriveConstants.START_POSITION.in(Meters));
+      setPosition(DRIVE_START_POSITION_METERS);
       if (sparkSim != null) {
         sparkSim.setAppliedOutput(0.0);
       }
@@ -117,14 +113,14 @@ public final class SimMechanical {
             SimConstants.ELEVATOR_GEARING,
             SimConstants.ELEVATOR_CARRIAGE_MASS_KG,
             SimConstants.ELEVATOR_DRUM_RADIUS_METERS,
-            ElevatorConstants.MIN_HEIGHT.in(Meters),
-            ElevatorConstants.MAX_HEIGHT.in(Meters),
+            ELEVATOR_MIN_HEIGHT_METERS,
+            ELEVATOR_MAX_HEIGHT_METERS,
             true, // simulate gravity
-            ElevatorConstants.STARTING_HEIGHT.in(Meters));
+            ELEVATOR_STARTING_HEIGHT_METERS);
     private SparkMax motor;
     private SparkMaxSim sparkSim;
-    private double minHeightLimit = ElevatorConstants.MIN_HEIGHT.in(Meters);
-    private double maxHeightLimit = ElevatorConstants.MAX_HEIGHT.in(Meters);
+    private double minHeightLimit = ELEVATOR_MIN_HEIGHT_METERS;
+    private double maxHeightLimit = ELEVATOR_MAX_HEIGHT_METERS;
 
     public void attachSparkMax(SparkMax sparkMax) {
       if (this.motor == sparkMax && this.sparkSim != null) {
@@ -206,9 +202,9 @@ public final class SimMechanical {
     }
 
     public void reset() {
-      minHeightLimit = ElevatorConstants.MIN_HEIGHT.in(Meters);
-      maxHeightLimit = ElevatorConstants.MAX_HEIGHT.in(Meters);
-      setPosition(ElevatorConstants.STARTING_HEIGHT.in(Meters));
+      minHeightLimit = ELEVATOR_MIN_HEIGHT_METERS;
+      maxHeightLimit = ELEVATOR_MAX_HEIGHT_METERS;
+      setPosition(ELEVATOR_STARTING_HEIGHT_METERS);
       if (sparkSim != null) {
         sparkSim.setAppliedOutput(0.0);
       }
@@ -226,13 +222,13 @@ public final class SimMechanical {
             SimConstants.EXTENDER_GEARING,
             SimConstants.EXTENDER_SLIDE_MASS_KG,
             SimConstants.EXTENDER_PULLEY_RADIUS_METERS,
-            ExtenderConstants.MIN_EXTENSION.in(Meters),
-            ExtenderConstants.MAX_EXTENSION.in(Meters),
+            EXTENDER_MIN_EXTENSION_METERS,
+            EXTENDER_MAX_EXTENSION_METERS,
             false, // horizontal: no gravity
-            ExtenderConstants.STARTING_EXTENSION.in(Meters));
+            EXTENDER_STARTING_EXTENSION_METERS);
     private SparkMax motor;
     private SparkMaxSim sparkSim;
-    private double maxExtensionLimit = ExtenderConstants.MAX_EXTENSION.in(Meters);
+    private double maxExtensionLimit = EXTENDER_MAX_EXTENSION_METERS;
 
     public void attachSparkMax(SparkMax sparkMax) {
       if (this.motor == sparkMax && this.sparkSim != null) {
@@ -292,8 +288,8 @@ public final class SimMechanical {
     }
 
     public void reset() {
-      maxExtensionLimit = ExtenderConstants.MAX_EXTENSION.in(Meters);
-      setPosition(ExtenderConstants.STARTING_EXTENSION.in(Meters));
+      maxExtensionLimit = EXTENDER_MAX_EXTENSION_METERS;
+      setPosition(EXTENDER_STARTING_EXTENSION_METERS);
       if (sparkSim != null) {
         sparkSim.setAppliedOutput(0.0);
       }
@@ -311,10 +307,10 @@ public final class SimMechanical {
             SimConstants.CLAW_GEARING,
             SimConstants.CLAW_FINGERS_MOI_KG_M2,
             SimConstants.CLAW_FINGER_LENGTH_METERS,
-            ClawConstants.CLOSED_ANGLE.in(Radians),
-            ClawConstants.OPEN_ANGLE.in(Radians),
+            CLAW_CLOSED_ANGLE_RAD,
+            CLAW_OPEN_ANGLE_RAD,
             false, // no gravity
-            ClawConstants.STARTING_ANGLE.in(Radians));
+            CLAW_STARTING_ANGLE_RAD);
     private SparkMax motor;
     private SparkMaxSim sparkSim;
     private double gripStopAngle = Double.NaN;
@@ -378,7 +374,7 @@ public final class SimMechanical {
 
     public void reset() {
       gripStopAngle = Double.NaN;
-      setPosition(ClawConstants.STARTING_ANGLE.in(Radians));
+      setPosition(CLAW_STARTING_ANGLE_RAD);
       if (sparkSim != null) {
         sparkSim.setAppliedOutput(0.0);
       }
@@ -396,13 +392,13 @@ public final class SimMechanical {
             SimConstants.KICKER_GEARING,
             SimConstants.KICKER_PLUNGER_MASS_KG,
             SimConstants.KICKER_DRUM_RADIUS_METERS,
-            KickerConstants.MIN_PULLBACK.in(Meters),
-            KickerConstants.MAX_PULLBACK.in(Meters),
+            KICKER_MIN_PULLBACK_METERS,
+            KICKER_MAX_PULLBACK_METERS,
             false,
-            KickerConstants.STARTING_PULLBACK.in(Meters));
+            KICKER_STARTING_PULLBACK_METERS);
     private SparkMax motor;
     private SparkMaxSim sparkSim;
-    private double ratchetFloor = KickerConstants.STARTING_PULLBACK.in(Meters);
+    private double ratchetFloor = KICKER_STARTING_PULLBACK_METERS;
     private double pendingKickStrength = 0.0;
 
     public void attachSparkMax(SparkMax sparkMax) {
@@ -448,19 +444,19 @@ public final class SimMechanical {
 
       if (activeRelease) {
         double currentPos = sim.getPosition();
-        if (ratchetFloor >= KickerConstants.LOADED_PULLBACK.in(Meters) - KickerConstants.TOLERANCE.in(Meters)) {
+        if (ratchetFloor >= KICKER_LOADED_PULLBACK_METERS - KICKER_TOLERANCE_METERS) {
           pendingKickStrength = 1.0;
         } else if (ratchetFloor > 0.05) {
-          pendingKickStrength = Math.clamp(currentPos / KickerConstants.LOADED_PULLBACK.in(Meters), 0.0, 1.0);
+          pendingKickStrength = Math.clamp(currentPos / KICKER_LOADED_PULLBACK_METERS, 0.0, 1.0);
         }
-        ratchetFloor = KickerConstants.MIN_PULLBACK.in(Meters);
+        ratchetFloor = KICKER_MIN_PULLBACK_METERS;
 
         double nextPos =
             Math.max(
-                KickerConstants.MIN_PULLBACK.in(Meters),
+                KICKER_MIN_PULLBACK_METERS,
                 currentPos - SimConstants.KICKER_SPRING_RELEASE_SPEED_MPS * dtSeconds);
         double nextVel =
-            (nextPos > KickerConstants.MIN_PULLBACK.in(Meters))
+            (nextPos > KICKER_MIN_PULLBACK_METERS)
                 ? -SimConstants.KICKER_SPRING_RELEASE_SPEED_MPS
                 : 0.0;
         sim.setInputVoltage(0.0);
@@ -473,9 +469,9 @@ public final class SimMechanical {
           if (sim.getPosition() > ratchetFloor) {
             ratchetFloor = sim.getPosition();
           }
-          if (sim.getPosition() >= KickerConstants.MAX_PULLBACK.in(Meters)) {
-            ratchetFloor = KickerConstants.MAX_PULLBACK.in(Meters);
-            sim.setState(KickerConstants.MAX_PULLBACK.in(Meters), 0.0);
+          if (sim.getPosition() >= KICKER_MAX_PULLBACK_METERS) {
+            ratchetFloor = KICKER_MAX_PULLBACK_METERS;
+            sim.setState(KICKER_MAX_PULLBACK_METERS, 0.0);
           }
         } else {
           sim.setInputVoltage(volts);
@@ -494,11 +490,11 @@ public final class SimMechanical {
     }
 
     public void reset() {
-      sim.setState(KickerConstants.STARTING_PULLBACK.in(Meters), 0.0);
-      ratchetFloor = KickerConstants.STARTING_PULLBACK.in(Meters);
+      sim.setState(KICKER_STARTING_PULLBACK_METERS, 0.0);
+      ratchetFloor = KICKER_STARTING_PULLBACK_METERS;
       pendingKickStrength = 0.0;
       kickerSolenoidSim.setValue(false);
-      setPosition(KickerConstants.STARTING_PULLBACK.in(Meters));
+      setPosition(KICKER_STARTING_PULLBACK_METERS);
       if (sparkSim != null) {
         sparkSim.setAppliedOutput(0.0);
       }
@@ -518,6 +514,7 @@ public final class SimMechanical {
   private static final DIOSim kickerSolenoidSim = new DIOSim(KICKER_SOLENOID_CHANNEL);
 
   private static final Map<Integer, SparkMax> activeMotors = new HashMap<>();
+  private static final Set<Integer> initializedMotors = new HashSet<>();
   private static final Map<Integer, DigitalInput> activeDigitalInputs = new HashMap<>();
   private static final Map<Integer, DigitalOutput> activeDigitalOutputs = new HashMap<>();
 
@@ -537,10 +534,19 @@ public final class SimMechanical {
   private SimMechanical() {}
 
   /**
-   * Creates a {@link SparkMax} for simulation, safely closing any previous instance on the same
+   * Returns true if {@link #createSparkMax(int, MotorType)} has been called for {@code canId} since
+   * the last {@link #resetAll()}.
+   */
+  public static boolean isMotorInitialized(int canId) {
+    return initializedMotors.contains(canId);
+  }
+
+  /**
+   * Creates a {@link SparkMax} for simulation, reusing any previous instance on the same
    * CAN ID so that tests can re-instantiate mechanisms without native CAN conflicts.
    */
   public static SparkMax createSparkMax(int canId, MotorType type) {
+    initializedMotors.add(canId);
     SparkMax existing = activeMotors.get(canId);
     if (existing != null) {
       return existing;
@@ -674,6 +680,7 @@ public final class SimMechanical {
 
   /** Resets both scheduler bindings and simulated motor hardware (intended for unit tests). */
   public static void resetAll() {
+    initializedMotors.clear();
     resetScheduler();
     resetHardware();
   }

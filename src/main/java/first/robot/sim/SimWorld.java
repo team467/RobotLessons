@@ -3,20 +3,25 @@ package first.robot.sim;
 import static first.robot.constants.RobotConstants.WRIST_BASE_X;
 import static first.robot.constants.SimulationConstants.LOOP_PERIOD_SECONDS;
 import static org.wpilib.units.Units.Meters;
-import static org.wpilib.units.Units.Radians;
 
-import first.robot.subsystems.claw.Claw;
-import first.robot.subsystems.claw.ClawConstants;
-import first.robot.subsystems.drive.Drive;
-import first.robot.subsystems.drive.DriveConstants;
-import first.robot.subsystems.elevator.Elevator;
-import first.robot.subsystems.elevator.ElevatorConstants;
-import first.robot.subsystems.extender.Extender;
-import first.robot.subsystems.extender.ExtenderConstants;
-import first.robot.subsystems.kicker.Kicker;
-import first.robot.subsystems.kicker.KickerConstants;
+import com.revrobotics.RelativeEncoder;
+import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.revrobotics.spark.SparkMax;
+import first.robot.constants.FieldConstants;
+import first.robot.constants.RobotConstants;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.wpilib.command3.Scheduler;
 import org.wpilib.framework.RobotBase;
+import org.wpilib.hardware.discrete.DigitalInput;
+import org.wpilib.hardware.discrete.DigitalOutput;
+import org.wpilib.hardware.hal.OpModeOption;
+import org.wpilib.hardware.hal.RobotMode;
+import org.wpilib.networktables.BooleanSubscriber;
+import org.wpilib.networktables.DoubleSubscriber;
+import org.wpilib.networktables.NetworkTable;
+import org.wpilib.networktables.NetworkTableInstance;
+import org.wpilib.networktables.StringSubscriber;
+import org.wpilib.simulation.DriverStationSim;
 
 /**
  * Glues the simulated mechanisms to the ball physics, and publishes a snapshot of everything for
@@ -26,6 +31,33 @@ import org.wpilib.framework.RobotBase;
  * Swing thread. Snapshots are immutable, so this is thread-safe.
  */
 public class SimWorld {
+  // ---- Local Hardware Port Constants (kept local so sim classes do not reference Schematic) ----
+  static final int DRIVE_CAN_ID = 1;
+  static final int ELEVATOR_CAN_ID = 2;
+  static final int EXTENDER_CAN_ID = 3;
+  static final int CLAW_CAN_ID = 4;
+  static final int KICKER_CAN_ID = 5;
+  static final int CLAW_BALL_SENSOR_DIO = 0;
+  static final int KICKER_SOLENOID_CHANNEL = 1;
+
+  // ---- Local Mechanism Constants (kept local so learners can create subsystem constants) ----
+  static final double DRIVE_START_POSITION_METERS = FieldConstants.ROBOT_START_X.in(Meters);
+  static final double ELEVATOR_MIN_HEIGHT_METERS = 0.25;
+  static final double ELEVATOR_MAX_HEIGHT_METERS = 1.20;
+  static final double ELEVATOR_STARTING_HEIGHT_METERS = 0.50;
+  static final double ELEVATOR_KG = 0.70;
+  static final double EXTENDER_MIN_EXTENSION_METERS = 0.0;
+  static final double EXTENDER_MAX_EXTENSION_METERS = 1.10;
+  static final double EXTENDER_STARTING_EXTENSION_METERS = 0.33;
+  static final double CLAW_CLOSED_ANGLE_RAD = 0.0;
+  static final double CLAW_OPEN_ANGLE_RAD = Math.toRadians(60.0);
+  static final double CLAW_STARTING_ANGLE_RAD = 0.0;
+  static final double KICKER_MIN_PULLBACK_METERS = 0.0;
+  static final double KICKER_MAX_PULLBACK_METERS = 0.25;
+  static final double KICKER_LOADED_PULLBACK_METERS = 0.22;
+  static final double KICKER_STARTING_PULLBACK_METERS = 0.0;
+  static final double KICKER_TOLERANCE_METERS = 0.015;
+
   /** Operating state of a mechanism's motor for visual feedback in the simulator. */
   public enum MotorState {
     IDLE,
@@ -82,11 +114,34 @@ public class SimWorld {
       String kickerCommand,
       MotorState kickerMotorState) {}
 
-  private final Elevator elevator;
-  private final Extender extender;
-  private final Claw claw;
-  private final Drive drive;
-  private final Kicker kicker;
+  private final boolean driveInitialized;
+  private final SparkMax driveMotor;
+  private final RelativeEncoder driveEncoder;
+  private final SparkMax elevatorMotor;
+  private final RelativeEncoder elevatorEncoder;
+  private final SparkMax extenderMotor;
+  private final RelativeEncoder extenderEncoder;
+  private final SparkMax clawMotor;
+  private final RelativeEncoder clawEncoder;
+  private final DigitalInput clawBallSensor;
+  private final SparkMax kickerMotor;
+  private final RelativeEncoder kickerEncoder;
+  private final DigitalOutput kickerSolenoid;
+
+  // Epilogue telemetry subscribers (populated via @Logged on Robot and subsystems)
+  private final DoubleSubscriber elevatorSetpointSub;
+  private final StringSubscriber elevatorCommandSub;
+  private final DoubleSubscriber extenderSetpointSub;
+  private final StringSubscriber extenderCommandSub;
+  private final DoubleSubscriber clawSetpointSub;
+  private final StringSubscriber clawCommandSub;
+  private final DoubleSubscriber driveSetpointSub;
+  private final StringSubscriber driveCommandSub;
+  private final DoubleSubscriber kickerSetpointSub;
+  private final StringSubscriber kickerCommandSub;
+  private final BooleanSubscriber kickerRatchetLockedSub;
+  private final BooleanSubscriber kickerLoadedSub;
+
   private final BallSim ball1;
   private final BallSim ball2;
   private final AtomicBoolean resetStateRequested = new AtomicBoolean(false);
@@ -103,53 +158,117 @@ public class SimWorld {
 
   private volatile Snapshot snapshot;
 
-  public SimWorld(
-      Elevator elevator,
-      Extender extender,
-      Claw claw,
-      Drive drive,
-      Kicker kicker) {
-    this.elevator = elevator;
-    this.extender = extender;
-    this.claw = claw;
-    this.drive = drive;
-    this.kicker = kicker;
+  public SimWorld() {
+    this.driveInitialized = SimMechanical.isMotorInitialized(DRIVE_CAN_ID);
+    this.driveMotor = SimMechanical.createSparkMax(DRIVE_CAN_ID, MotorType.kBrushless);
+    this.driveEncoder = driveMotor.getEncoder();
+    if (!driveInitialized) {
+      SimMechanical.setPosition(DRIVE_CAN_ID, FieldConstants.ROBOT_TABLE_X.in(Meters));
+    }
+
+    this.elevatorMotor = SimMechanical.createSparkMax(ELEVATOR_CAN_ID, MotorType.kBrushless);
+    this.elevatorEncoder = elevatorMotor.getEncoder();
+
+    this.extenderMotor = SimMechanical.createSparkMax(EXTENDER_CAN_ID, MotorType.kBrushless);
+    this.extenderEncoder = extenderMotor.getEncoder();
+
+    this.clawMotor = SimMechanical.createSparkMax(CLAW_CAN_ID, MotorType.kBrushless);
+    this.clawEncoder = clawMotor.getEncoder();
+    this.clawBallSensor = SimMechanical.createDigitalInput(CLAW_BALL_SENSOR_DIO);
+
+    this.kickerMotor = SimMechanical.createSparkMax(KICKER_CAN_ID, MotorType.kBrushless);
+    this.kickerEncoder = kickerMotor.getEncoder();
+    this.kickerSolenoid = SimMechanical.createDigitalOutput(KICKER_SOLENOID_CHANNEL);
+
+    NetworkTable robotTelemetry =
+        NetworkTableInstance.getDefault().getTable("Telemetry").getSubTable("Robot");
+    this.elevatorSetpointSub =
+        robotTelemetry
+            .getSubTable("elevator")
+            .getDoubleTopic("getSetpoint")
+            .subscribe(ELEVATOR_STARTING_HEIGHT_METERS);
+    this.elevatorCommandSub =
+        robotTelemetry
+            .getSubTable("elevator")
+            .getStringTopic("getCurrentCommandName")
+            .subscribe("(none)");
+    this.extenderSetpointSub =
+        robotTelemetry
+            .getSubTable("extender")
+            .getDoubleTopic("getSetpoint")
+            .subscribe(EXTENDER_STARTING_EXTENSION_METERS);
+    this.extenderCommandSub =
+        robotTelemetry
+            .getSubTable("extender")
+            .getStringTopic("getCurrentCommandName")
+            .subscribe("(none)");
+    this.clawSetpointSub =
+        robotTelemetry
+            .getSubTable("claw")
+            .getDoubleTopic("getSetpoint")
+            .subscribe(CLAW_STARTING_ANGLE_RAD);
+    this.clawCommandSub =
+        robotTelemetry
+            .getSubTable("claw")
+            .getStringTopic("getCurrentCommandName")
+            .subscribe("(none)");
+    this.driveSetpointSub =
+        robotTelemetry
+            .getSubTable("drive")
+            .getDoubleTopic("getSetpoint")
+            .subscribe(DRIVE_START_POSITION_METERS);
+    this.driveCommandSub =
+        robotTelemetry
+            .getSubTable("drive")
+            .getStringTopic("getCurrentCommandName")
+            .subscribe("(none)");
+    this.kickerSetpointSub =
+        robotTelemetry
+            .getSubTable("kicker")
+            .getDoubleTopic("getSetpoint")
+            .subscribe(KICKER_STARTING_PULLBACK_METERS);
+    this.kickerCommandSub =
+        robotTelemetry
+            .getSubTable("kicker")
+            .getStringTopic("getCurrentCommandName")
+            .subscribe("(none)");
+    this.kickerRatchetLockedSub =
+        robotTelemetry
+            .getSubTable("kicker")
+            .getBooleanTopic("isRatchetLocked")
+            .subscribe(true);
+    this.kickerLoadedSub =
+        robotTelemetry
+            .getSubTable("kicker")
+            .getBooleanTopic("isLoaded")
+            .subscribe(false);
 
     double tableFieldLeft =
-        first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters)
-            + first.robot.constants.FieldConstants.TABLE_LEFT_X.in(Meters);
+        FieldConstants.ROBOT_TABLE_X.in(Meters) + FieldConstants.TABLE_LEFT_X.in(Meters);
     double tableFieldRight =
-        first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters)
-            + first.robot.constants.FieldConstants.TABLE_RIGHT_X.in(Meters);
+        FieldConstants.ROBOT_TABLE_X.in(Meters) + FieldConstants.TABLE_RIGHT_X.in(Meters);
     double targetFieldLeft =
-        first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters)
-            + first.robot.constants.FieldConstants.TARGET_LEFT_X.in(Meters);
+        FieldConstants.ROBOT_TABLE_X.in(Meters) + FieldConstants.TARGET_LEFT_X.in(Meters);
     double targetFieldRight =
-        first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters)
-            + first.robot.constants.FieldConstants.TARGET_RIGHT_X.in(Meters);
+        FieldConstants.ROBOT_TABLE_X.in(Meters) + FieldConstants.TARGET_RIGHT_X.in(Meters);
     double tableTargetFieldLeft =
-        first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters)
-            + first.robot.constants.FieldConstants.TABLE_TARGET_LEFT_X.in(Meters);
+        FieldConstants.ROBOT_TABLE_X.in(Meters) + FieldConstants.TABLE_TARGET_LEFT_X.in(Meters);
     double tableTargetFieldRight =
-        first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters)
-            + first.robot.constants.FieldConstants.TABLE_TARGET_RIGHT_X.in(Meters);
+        FieldConstants.ROBOT_TABLE_X.in(Meters) + FieldConstants.TABLE_TARGET_RIGHT_X.in(Meters);
     double basketFieldLeft =
-        first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters)
-            + first.robot.constants.FieldConstants.BASKET_LEFT_X.in(Meters);
+        FieldConstants.ROBOT_TABLE_X.in(Meters) + FieldConstants.BASKET_LEFT_X.in(Meters);
     double basketFieldRight =
-        first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters)
-            + first.robot.constants.FieldConstants.BASKET_RIGHT_X.in(Meters);
-    double basketHeight = first.robot.constants.FieldConstants.BASKET_HEIGHT.in(Meters);
+        FieldConstants.ROBOT_TABLE_X.in(Meters) + FieldConstants.BASKET_RIGHT_X.in(Meters);
+    double basketHeight = FieldConstants.BASKET_HEIGHT.in(Meters);
 
     this.ball1 =
         new BallSim(
-            first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters)
-                + first.robot.constants.FieldConstants.BALL1_START_X.in(Meters),
-            first.robot.constants.FieldConstants.BALL1_START_Y.in(Meters),
+            FieldConstants.ROBOT_TABLE_X.in(Meters) + FieldConstants.BALL1_START_X.in(Meters),
+            FieldConstants.BALL1_START_Y.in(Meters),
             BallSim.State.ON_TABLE,
             tableFieldLeft,
             tableFieldRight,
-            first.robot.constants.FieldConstants.TABLE_HEIGHT.in(Meters),
+            FieldConstants.TABLE_HEIGHT.in(Meters),
             targetFieldLeft,
             targetFieldRight,
             0.0);
@@ -158,35 +277,19 @@ public class SimWorld {
 
     this.ball2 =
         new BallSim(
-            first.robot.constants.FieldConstants.ROBOT_START_X.in(Meters)
-                + first.robot.constants.FieldConstants.BALL2_START_X.in(Meters),
-            first.robot.constants.FieldConstants.BALL2_START_Y.in(Meters),
+            FieldConstants.ROBOT_START_X.in(Meters) + FieldConstants.BALL2_START_X.in(Meters),
+            FieldConstants.BALL2_START_Y.in(Meters),
             BallSim.State.ON_FLOOR,
             tableFieldLeft,
             tableFieldRight,
-            first.robot.constants.FieldConstants.TABLE_HEIGHT.in(Meters),
+            FieldConstants.TABLE_HEIGHT.in(Meters),
             tableTargetFieldLeft,
             tableTargetFieldRight,
-            first.robot.constants.FieldConstants.TABLE_HEIGHT.in(Meters));
+            FieldConstants.TABLE_HEIGHT.in(Meters));
     this.ball2.setBasketBounds(basketFieldLeft, basketFieldRight, basketHeight);
     this.ball2.setFloorTargetBounds(targetFieldLeft, targetFieldRight);
 
     snapshot = buildSnapshot(false);
-  }
-
-  public SimWorld(
-      Elevator elevator,
-      Extender extender,
-      Claw claw,
-      Drive drive) {
-    this(elevator, extender, claw, drive, null);
-  }
-
-  public SimWorld(
-      Elevator elevator,
-      Extender extender,
-      Claw claw) {
-    this(elevator, extender, claw, null, null);
   }
 
   public void setTeleopActivator(Runnable teleopActivator) {
@@ -201,20 +304,13 @@ public class SimWorld {
       autoTimerSeconds = 0.0;
       autoRunning = false;
       autoComplete = false;
-      org.wpilib.command3.Scheduler.getDefault().cancelAll();
+      Scheduler.getDefault().cancelAll();
       SimMechanical.resetHardware();
-      if (drive != null) {
-        drive.resetPosition(DriveConstants.START_POSITION);
-        drive.resetSetpoint();
+      if (!driveInitialized) {
+        SimMechanical.setPosition(DRIVE_CAN_ID, FieldConstants.ROBOT_TABLE_X.in(Meters));
       }
-      if (kicker != null) {
-        kicker.resetSetpoint();
-      }
-      elevator.resetSetpoint();
-      extender.resetSetpoint();
-      claw.resetSetpoint();
       if (RobotBase.isAutonomous()) {
-        org.wpilib.simulation.DriverStationSim.setRobotMode(org.wpilib.hardware.hal.RobotMode.TELEOPERATED);
+        DriverStationSim.setRobotMode(RobotMode.TELEOPERATED);
       }
       if (teleopActivator != null) {
         teleopActivator.run();
@@ -223,119 +319,101 @@ public class SimWorld {
 
     if (disableRequested.getAndSet(false)) {
       autoRunning = false;
-      org.wpilib.command3.Scheduler.getDefault().cancelAll();
-      org.wpilib.simulation.DriverStationSim.setEnabled(false);
-      org.wpilib.simulation.DriverStationSim.notifyNewData();
+      Scheduler.getDefault().cancelAll();
+      DriverStationSim.setEnabled(false);
+      DriverStationSim.notifyNewData();
     }
 
     if (teleopRequested.getAndSet(false)) {
-      org.wpilib.command3.Scheduler.getDefault().cancelAll();
+      Scheduler.getDefault().cancelAll();
       long teleopId = 0;
-      for (org.wpilib.hardware.hal.OpModeOption opt : org.wpilib.simulation.DriverStationSim.getOpModeOptions()) {
+      for (OpModeOption opt : DriverStationSim.getOpModeOptions()) {
         if ("Teleop".equals(opt.name)) {
           teleopId = opt.id;
           break;
         }
       }
-      org.wpilib.simulation.DriverStationSim.setDsAttached(true);
-      org.wpilib.simulation.DriverStationSim.setRobotMode(org.wpilib.hardware.hal.RobotMode.TELEOPERATED);
+      DriverStationSim.setDsAttached(true);
+      DriverStationSim.setRobotMode(RobotMode.TELEOPERATED);
       if (teleopId != 0) {
-        org.wpilib.simulation.DriverStationSim.setOpMode(teleopId);
+        DriverStationSim.setOpMode(teleopId);
       }
-      org.wpilib.simulation.DriverStationSim.setEnabled(true);
-      org.wpilib.simulation.DriverStationSim.notifyNewData();
+      DriverStationSim.setEnabled(true);
+      DriverStationSim.notifyNewData();
       if (teleopActivator != null) {
         teleopActivator.run();
       }
     }
 
     if (autoScoreRequested.getAndSet(false)) {
-      org.wpilib.command3.Scheduler.getDefault().cancelAll();
+      Scheduler.getDefault().cancelAll();
       long scoreBallId = 0;
-      for (org.wpilib.hardware.hal.OpModeOption opt : org.wpilib.simulation.DriverStationSim.getOpModeOptions()) {
+      for (OpModeOption opt : DriverStationSim.getOpModeOptions()) {
         if ("Score Ball".equals(opt.name)) {
           scoreBallId = opt.id;
           break;
         }
       }
-      org.wpilib.simulation.DriverStationSim.setDsAttached(true);
-      org.wpilib.simulation.DriverStationSim.setRobotMode(org.wpilib.hardware.hal.RobotMode.AUTONOMOUS);
+      DriverStationSim.setDsAttached(true);
+      DriverStationSim.setRobotMode(RobotMode.AUTONOMOUS);
       if (scoreBallId != 0) {
-        org.wpilib.simulation.DriverStationSim.setOpMode(scoreBallId);
+        DriverStationSim.setOpMode(scoreBallId);
       }
-      org.wpilib.simulation.DriverStationSim.setEnabled(true);
-      org.wpilib.simulation.DriverStationSim.notifyNewData();
-      if (drive != null) {
-        org.wpilib.command3.Scheduler.getDefault()
-            .schedule(first.robot.auto.ScoreBallAuto.driveAndScoreBall(drive, elevator, extender, claw));
-      } else {
-        org.wpilib.command3.Scheduler.getDefault()
-            .schedule(
-                org.wpilib.command3.Command.noRequirements(coroutine -> {
-                  coroutine.await(first.robot.orchestration.BallCommands.grabBallFromTable(elevator, extender, claw));
-                  coroutine.await(first.robot.orchestration.BallCommands.scoreBallOnGround(elevator, extender, claw));
-                }).named("Score Ball"));
-      }
+      DriverStationSim.setEnabled(true);
+      DriverStationSim.notifyNewData();
     }
 
     if (autoTwoBallRequested.getAndSet(false)) {
-      org.wpilib.command3.Scheduler.getDefault().cancelAll();
+      Scheduler.getDefault().cancelAll();
       long twoBallId = 0;
-      for (org.wpilib.hardware.hal.OpModeOption opt : org.wpilib.simulation.DriverStationSim.getOpModeOptions()) {
+      for (OpModeOption opt : DriverStationSim.getOpModeOptions()) {
         if ("Two Ball Routine".equals(opt.name)) {
           twoBallId = opt.id;
           break;
         }
       }
-      org.wpilib.simulation.DriverStationSim.setDsAttached(true);
-      org.wpilib.simulation.DriverStationSim.setRobotMode(org.wpilib.hardware.hal.RobotMode.AUTONOMOUS);
+      DriverStationSim.setDsAttached(true);
+      DriverStationSim.setRobotMode(RobotMode.AUTONOMOUS);
       if (twoBallId != 0) {
-        org.wpilib.simulation.DriverStationSim.setOpMode(twoBallId);
+        DriverStationSim.setOpMode(twoBallId);
       }
-      org.wpilib.simulation.DriverStationSim.setEnabled(true);
-      org.wpilib.simulation.DriverStationSim.notifyNewData();
-      if (drive != null) {
-        org.wpilib.command3.Scheduler.getDefault()
-            .schedule(first.robot.auto.TwoBallAuto.twoBallRoutine(drive, elevator, extender, claw));
-      }
+      DriverStationSim.setEnabled(true);
+      DriverStationSim.notifyNewData();
     }
 
     if (autoShootBallsRequested.getAndSet(false)) {
-      org.wpilib.command3.Scheduler.getDefault().cancelAll();
+      Scheduler.getDefault().cancelAll();
       long shootBallsId = 0;
-      for (org.wpilib.hardware.hal.OpModeOption opt : org.wpilib.simulation.DriverStationSim.getOpModeOptions()) {
+      for (OpModeOption opt : DriverStationSim.getOpModeOptions()) {
         if ("Shoot Both Balls".equals(opt.name)) {
           shootBallsId = opt.id;
           break;
         }
       }
-      org.wpilib.simulation.DriverStationSim.setDsAttached(true);
-      org.wpilib.simulation.DriverStationSim.setRobotMode(org.wpilib.hardware.hal.RobotMode.AUTONOMOUS);
+      DriverStationSim.setDsAttached(true);
+      DriverStationSim.setRobotMode(RobotMode.AUTONOMOUS);
       if (shootBallsId != 0) {
-        org.wpilib.simulation.DriverStationSim.setOpMode(shootBallsId);
+        DriverStationSim.setOpMode(shootBallsId);
       }
-      org.wpilib.simulation.DriverStationSim.setEnabled(true);
-      org.wpilib.simulation.DriverStationSim.notifyNewData();
-      if (drive != null && kicker != null) {
-        org.wpilib.command3.Scheduler.getDefault()
-            .schedule(
-                first.robot.auto.ShootBothBallsAuto.shootBothBallsRoutine(
-                    drive, elevator, extender, claw, kicker));
-      }
+      DriverStationSim.setEnabled(true);
+      DriverStationSim.notifyNewData();
     }
 
-    double robotFieldX =
-        (drive != null) ? drive.getPosition().in(Meters) : first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters);
-    double wristExtenderX = WRIST_BASE_X.in(Meters) + extender.getPosition().in(Meters);
+    double robotFieldX = getEncoderPosition(driveEncoder, DRIVE_START_POSITION_METERS);
+    double extenderPos = getEncoderPosition(extenderEncoder, EXTENDER_STARTING_EXTENSION_METERS);
+    double wristExtenderX = WRIST_BASE_X.in(Meters) + extenderPos;
     double wristFieldX = robotFieldX + wristExtenderX;
-    double wristY = elevator.getPosition().in(Meters);
+    double wristY = getEncoderPosition(elevatorEncoder, ELEVATOR_STARTING_HEIGHT_METERS);
     double clawAngle = SimMechanical.getClawMotor().getSimAngle();
     boolean ballHeld = ball1.isHeld() || ball2.isHeld();
 
     // The lowest point of the claw fingers / held ball relative to wristY
-    double clawDrop = 0.02 + first.robot.constants.RobotConstants.FINGER_LENGTH.in(Meters) * Math.cos(clawAngle);
+    double clawDrop = 0.02 + RobotConstants.FINGER_LENGTH.in(Meters) * Math.cos(clawAngle);
     if (ballHeld) {
-      clawDrop = Math.max(clawDrop, first.robot.constants.RobotConstants.GRIP_DEPTH.in(Meters) + first.robot.constants.FieldConstants.BALL_RADIUS.in(Meters));
+      clawDrop =
+          Math.max(
+              clawDrop,
+              RobotConstants.GRIP_DEPTH.in(Meters) + FieldConstants.BALL_RADIUS.in(Meters));
     }
     double clawLowestY = wristY - clawDrop;
 
@@ -344,17 +422,15 @@ public class SimWorld {
     double clawHighestY = wristY + clawTopRise;
 
     // How far in front of wristSideX the fingers / held ball reach
-    double clawFrontReach = 0.03 + first.robot.constants.RobotConstants.FINGER_LENGTH.in(Meters) * Math.sin(clawAngle);
+    double clawFrontReach = 0.03 + RobotConstants.FINGER_LENGTH.in(Meters) * Math.sin(clawAngle);
     if (ballHeld) {
-      clawFrontReach = Math.max(clawFrontReach, first.robot.constants.FieldConstants.BALL_RADIUS.in(Meters));
+      clawFrontReach = Math.max(clawFrontReach, FieldConstants.BALL_RADIUS.in(Meters));
     }
     double tableFieldLeft =
-        first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters)
-            + first.robot.constants.FieldConstants.TABLE_LEFT_X.in(Meters);
+        FieldConstants.ROBOT_TABLE_X.in(Meters) + FieldConstants.TABLE_LEFT_X.in(Meters);
     double tableFieldRight =
-        first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters)
-            + first.robot.constants.FieldConstants.TABLE_RIGHT_X.in(Meters);
-    double tableTopY = first.robot.constants.FieldConstants.TABLE_HEIGHT.in(Meters);
+        FieldConstants.ROBOT_TABLE_X.in(Meters) + FieldConstants.TABLE_RIGHT_X.in(Meters);
+    double tableTopY = FieldConstants.TABLE_HEIGHT.in(Meters);
     double tableBottomY = tableTopY - 0.045; // tabletop slab thickness (4.5 cm), legs do not collide
 
     boolean tableContact = false;
@@ -372,80 +448,67 @@ public class SimWorld {
         SimMechanical.getExtenderMotor().setMaxExtensionLimit(maxExt);
         tableContact = true;
       } else {
-        SimMechanical.getExtenderMotor()
-            .setMaxExtensionLimit(ExtenderConstants.MAX_EXTENSION.in(Meters));
+        SimMechanical.getExtenderMotor().setMaxExtensionLimit(EXTENDER_MAX_EXTENSION_METERS);
       }
-      SimMechanical.getElevatorMotor()
-          .setMinHeightLimit(ElevatorConstants.MIN_HEIGHT.in(Meters));
-      SimMechanical.getElevatorMotor()
-          .setMaxHeightLimit(ElevatorConstants.MAX_HEIGHT.in(Meters));
+      SimMechanical.getElevatorMotor().setMinHeightLimit(ELEVATOR_MIN_HEIGHT_METERS);
+      SimMechanical.getElevatorMotor().setMaxHeightLimit(ELEVATOR_MAX_HEIGHT_METERS);
     } else {
       // Arm is either above the tabletop, below the tabletop (under the table), or horizontally aligned with it
-      boolean horizontallyAtTable = (wristFieldX + clawFrontReach) >= tableFieldLeft
-          && (wristFieldX - 0.06) <= tableFieldRight;
+      boolean horizontallyAtTable =
+          (wristFieldX + clawFrontReach) >= tableFieldLeft && (wristFieldX - 0.06) <= tableFieldRight;
 
       if (horizontallyAtTable) {
         if (wristY >= tableBottomY) {
           // Above the tabletop: elevator cannot penetrate down through the top surface
           double minElevatorHeight = tableTopY + clawDrop;
           SimMechanical.getElevatorMotor().setMinHeightLimit(minElevatorHeight);
-          SimMechanical.getElevatorMotor()
-              .setMaxHeightLimit(ElevatorConstants.MAX_HEIGHT.in(Meters));
+          SimMechanical.getElevatorMotor().setMaxHeightLimit(ELEVATOR_MAX_HEIGHT_METERS);
           if (clawLowestY <= tableTopY + 0.015) {
             tableContact = true;
           }
         } else {
           // Under the tabletop: elevator cannot penetrate up through the underside of the tabletop
           double maxElevatorHeight = tableBottomY - clawTopRise;
-          SimMechanical.getElevatorMotor()
-              .setMinHeightLimit(ElevatorConstants.MIN_HEIGHT.in(Meters));
+          SimMechanical.getElevatorMotor().setMinHeightLimit(ELEVATOR_MIN_HEIGHT_METERS);
           SimMechanical.getElevatorMotor().setMaxHeightLimit(maxElevatorHeight);
           if (clawHighestY >= tableBottomY - 0.015) {
             tableContact = true;
           }
         }
       } else {
-        SimMechanical.getElevatorMotor()
-            .setMinHeightLimit(ElevatorConstants.MIN_HEIGHT.in(Meters));
-        SimMechanical.getElevatorMotor()
-            .setMaxHeightLimit(ElevatorConstants.MAX_HEIGHT.in(Meters));
+        SimMechanical.getElevatorMotor().setMinHeightLimit(ELEVATOR_MIN_HEIGHT_METERS);
+        SimMechanical.getElevatorMotor().setMaxHeightLimit(ELEVATOR_MAX_HEIGHT_METERS);
       }
-      SimMechanical.getExtenderMotor()
-          .setMaxExtensionLimit(ExtenderConstants.MAX_EXTENSION.in(Meters));
+      SimMechanical.getExtenderMotor().setMaxExtensionLimit(EXTENDER_MAX_EXTENSION_METERS);
     }
 
-    if (kicker != null) {
-      double kickStrength = SimMechanical.getKickerMotor().consumeKickStrength();
-      if (kickStrength > 0.0) {
-        double ext = extender.getPosition().in(Meters);
-        boolean armInStrikeZone =
-            ext >= SimConstants.KICKER_MIN_STRIKE_EXTENSION
-                && ext <= SimConstants.KICKER_MAX_STRIKE_EXTENSION
-                && wristY >= SimConstants.KICKER_MIN_STRIKE_WRIST_Y
-                && wristY <= SimConstants.KICKER_MAX_STRIKE_WRIST_Y;
-        if (armInStrikeZone) {
-          double launchVx = SimConstants.KICKER_LAUNCH_VX_MPS * kickStrength;
-          double launchVy = SimConstants.KICKER_LAUNCH_VY_MPS * kickStrength;
-          if (ball1.isHeld()) {
-            ball1.kick(launchVx, launchVy);
-          }
-          if (ball2.isHeld()) {
-            ball2.kick(launchVx, launchVy);
-          }
+    double kickStrength = SimMechanical.getKickerMotor().consumeKickStrength();
+    if (kickStrength > 0.0) {
+      boolean armInStrikeZone =
+          extenderPos >= SimConstants.KICKER_MIN_STRIKE_EXTENSION
+              && extenderPos <= SimConstants.KICKER_MAX_STRIKE_EXTENSION
+              && wristY >= SimConstants.KICKER_MIN_STRIKE_WRIST_Y
+              && wristY <= SimConstants.KICKER_MAX_STRIKE_WRIST_Y;
+      if (armInStrikeZone) {
+        double launchVx = SimConstants.KICKER_LAUNCH_VX_MPS * kickStrength;
+        double launchVy = SimConstants.KICKER_LAUNCH_VY_MPS * kickStrength;
+        if (ball1.isHeld()) {
+          ball1.kick(launchVx, launchVy);
+        }
+        if (ball2.isHeld()) {
+          ball2.kick(launchVx, launchVy);
         }
       }
     }
 
-    double robotVelX = (drive != null) ? drive.getVelocity() : 0.0;
+    double robotVelX = getEncoderVelocity(driveEncoder);
     ball1.checkBumperContact(robotFieldX, robotVelX);
     ball2.checkBumperContact(robotFieldX, robotVelX);
 
     double targetFieldLeft =
-        first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters)
-            + first.robot.constants.FieldConstants.TARGET_LEFT_X.in(Meters);
+        FieldConstants.ROBOT_TABLE_X.in(Meters) + FieldConstants.TARGET_LEFT_X.in(Meters);
     double targetFieldRight =
-        first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters)
-            + first.robot.constants.FieldConstants.TARGET_RIGHT_X.in(Meters);
+        FieldConstants.ROBOT_TABLE_X.in(Meters) + FieldConstants.TARGET_RIGHT_X.in(Meters);
     boolean ball1InFloorTarget =
         ball1.getState() == BallSim.State.ON_FLOOR
             && ball1.getX() >= targetFieldLeft
@@ -549,6 +612,8 @@ public class SimWorld {
   }
 
   private Snapshot buildSnapshot(boolean tableContact) {
+    NetworkTableInstance.getDefault().flushLocal();
+
     String mode;
     String opMode = RobotBase.getOpMode();
     if (opMode != null && !opMode.isEmpty()) {
@@ -561,19 +626,22 @@ public class SimWorld {
       mode = "Disabled";
     }
 
-    double robotFieldX =
-        (drive != null) ? drive.getPosition().in(Meters) : first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters);
-    double robotSideX = robotFieldX - first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters);
+    double robotFieldX = getEncoderPosition(driveEncoder, DRIVE_START_POSITION_METERS);
+    double robotSideX = robotFieldX - FieldConstants.ROBOT_TABLE_X.in(Meters);
 
-    double ball1SideX = ball1.getX() - first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters);
-    double ball2SideX = ball2.getX() - first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters);
+    double ball1SideX = ball1.getX() - FieldConstants.ROBOT_TABLE_X.in(Meters);
+    double ball2SideX = ball2.getX() - FieldConstants.ROBOT_TABLE_X.in(Meters);
 
     double minElevatorLimit = SimMechanical.getElevatorMotor().getMinHeightLimit();
     double maxElevatorLimit = SimMechanical.getElevatorMotor().getMaxHeightLimit();
     double maxExtenderLimit = SimMechanical.getExtenderMotor().getMaxExtensionLimit();
-    boolean anyBallHeld = (ball1 != null && ball1.isHeld()) || (ball2 != null && ball2.isHeld()) || claw.hasBall();
+    boolean anyBallHeld =
+        (ball1 != null && ball1.isHeld())
+            || (ball2 != null && ball2.isHeld())
+            || clawBallSensor.get();
 
-    MotorState elevatorState = computeElevatorMotorState(minElevatorLimit, maxElevatorLimit, tableContact);
+    MotorState elevatorState =
+        computeElevatorMotorState(minElevatorLimit, maxElevatorLimit, tableContact);
     MotorState extenderState = computeExtenderMotorState(maxExtenderLimit, tableContact);
     MotorState clawState = computeClawMotorState(anyBallHeld);
     MotorState driveState = computeDriveMotorState();
@@ -582,18 +650,18 @@ public class SimWorld {
     boolean basketScored = ball1.isScoredInBasket() || ball2.isScoredInBasket();
 
     return new Snapshot(
-        elevator.getPosition().in(Meters),
-        elevator.getSetpoint().in(Meters),
-        elevator.getAppliedVolts(),
-        elevator.getCurrentCommandName(),
-        extender.getPosition().in(Meters),
-        extender.getSetpoint().in(Meters),
-        extender.getAppliedVolts(),
-        extender.getCurrentCommandName(),
-        claw.getAngle().in(Radians),
-        claw.getSetpoint().in(Radians),
-        claw.getAppliedVolts(),
-        claw.getCurrentCommandName(),
+        getEncoderPosition(elevatorEncoder, ELEVATOR_STARTING_HEIGHT_METERS),
+        elevatorSetpointSub.get(),
+        getAppliedVolts(elevatorMotor),
+        elevatorCommandSub.get(),
+        getEncoderPosition(extenderEncoder, EXTENDER_STARTING_EXTENSION_METERS),
+        extenderSetpointSub.get(),
+        getAppliedVolts(extenderMotor),
+        extenderCommandSub.get(),
+        getEncoderPosition(clawEncoder, CLAW_STARTING_ANGLE_RAD),
+        clawSetpointSub.get(),
+        getAppliedVolts(clawMotor),
+        clawCommandSub.get(),
         ball1SideX,
         ball1.getY(),
         ball1.isHeld(),
@@ -602,9 +670,9 @@ public class SimWorld {
         RobotBase.isEnabled(),
         mode,
         robotFieldX,
-        drive != null ? drive.getSetpoint().in(Meters) : first.robot.constants.FieldConstants.ROBOT_TABLE_X.in(Meters),
-        drive != null ? drive.getAppliedVolts() : 0.0,
-        drive != null ? drive.getCurrentCommandName() : "(none)",
+        driveSetpointSub.get(),
+        getAppliedVolts(driveMotor),
+        driveCommandSub.get(),
         robotSideX,
         ball2SideX,
         ball2.getY(),
@@ -620,35 +688,38 @@ public class SimWorld {
         clawState,
         driveState,
         basketScored,
-        kicker != null ? kicker.getPosition().in(Meters) : 0.0,
-        kicker != null ? kicker.getSetpoint().in(Meters) : 0.0,
-        kicker != null ? kicker.getAppliedVolts() : 0.0,
-        kicker == null || kicker.isRatchetLocked(),
-        kicker != null && kicker.isSolenoidReleased(),
-        kicker != null && kicker.isLoaded(),
-        kicker != null ? kicker.getCurrentCommandName() : "(none)",
+        getEncoderPosition(kickerEncoder, KICKER_STARTING_PULLBACK_METERS),
+        kickerSetpointSub.get(),
+        getAppliedVolts(kickerMotor),
+        kickerRatchetLockedSub.get(),
+        kickerSolenoid.get(),
+        kickerLoadedSub.get(),
+        kickerCommandSub.get(),
         kickerState);
   }
 
-  private MotorState computeElevatorMotorState(double minLimit, double maxLimit, boolean tableContact) {
+  private MotorState computeElevatorMotorState(
+      double minLimit, double maxLimit, boolean tableContact) {
     if (!RobotBase.isEnabled()) {
       return MotorState.IDLE;
     }
-    double vel = elevator.getVelocity();
-    double volts = elevator.getAppliedVolts();
-    double pos = elevator.getPosition().in(Meters);
+    double vel = getEncoderVelocity(elevatorEncoder);
+    double volts = getAppliedVolts(elevatorMotor);
+    double pos = getEncoderPosition(elevatorEncoder, ELEVATOR_STARTING_HEIGHT_METERS);
 
     // Stalled: voltage applied, but cannot move because at limit/stop/obstacle
-    boolean atLowerLimit = pos <= (minLimit + 0.02) || (tableContact && volts < ElevatorConstants.KG - 0.4);
-    boolean pushingDown = (volts < ElevatorConstants.KG - 0.4);
-    boolean atUpperLimit = pos >= (maxLimit - 0.02) || (tableContact && volts > ElevatorConstants.KG + 0.8);
-    boolean pushingUp = (volts > ElevatorConstants.KG + 0.8);
+    boolean atLowerLimit =
+        pos <= (minLimit + 0.02) || (tableContact && volts < ELEVATOR_KG - 0.4);
+    boolean pushingDown = (volts < ELEVATOR_KG - 0.4);
+    boolean atUpperLimit =
+        pos >= (maxLimit - 0.02) || (tableContact && volts > ELEVATOR_KG + 0.8);
+    boolean pushingUp = (volts > ELEVATOR_KG + 0.8);
 
     if (Math.abs(vel) < 0.03 && ((atLowerLimit && pushingDown) || (atUpperLimit && pushingUp))) {
       return MotorState.STALLED;
     }
 
-    if (Math.abs(vel) > 0.015 && Math.abs(volts - ElevatorConstants.KG) > 0.2) {
+    if (Math.abs(vel) > 0.015 && Math.abs(volts - ELEVATOR_KG) > 0.2) {
       return MotorState.RUNNING;
     }
 
@@ -659,12 +730,12 @@ public class SimWorld {
     if (!RobotBase.isEnabled()) {
       return MotorState.IDLE;
     }
-    double vel = extender.getVelocity();
-    double volts = extender.getAppliedVolts();
-    double pos = extender.getPosition().in(Meters);
+    double vel = getEncoderVelocity(extenderEncoder);
+    double volts = getAppliedVolts(extenderMotor);
+    double pos = getEncoderPosition(extenderEncoder, EXTENDER_STARTING_EXTENSION_METERS);
 
     // Stalled: voltage applied, but cannot move because at retracted or extended limit
-    boolean atMinLimit = pos <= (ExtenderConstants.MIN_EXTENSION.in(Meters) + 0.02);
+    boolean atMinLimit = pos <= (EXTENDER_MIN_EXTENSION_METERS + 0.02);
     boolean pushingIn = (volts < -0.5);
     boolean atMaxLimit = pos >= (maxLimit - 0.02) || (tableContact && volts > 0.5);
     boolean pushingOut = (volts > 0.5);
@@ -684,14 +755,14 @@ public class SimWorld {
     if (!RobotBase.isEnabled()) {
       return MotorState.IDLE;
     }
-    double vel = claw.getVelocity();
-    double volts = claw.getAppliedVolts();
-    double angle = claw.getAngle().in(Radians);
+    double vel = getEncoderVelocity(clawEncoder);
+    double volts = getAppliedVolts(clawMotor);
+    double angle = getEncoderPosition(clawEncoder, CLAW_STARTING_ANGLE_RAD);
 
     // Stalled: squeezing a held ball, or driven into closed/open physical stops
     boolean grippingBall = ballHeld && (volts < -0.5);
-    boolean atClosedStop = angle <= (ClawConstants.CLOSED_ANGLE.in(Radians) + 0.025) && (volts < -0.5);
-    boolean atOpenStop = angle >= (ClawConstants.OPEN_ANGLE.in(Radians) - 0.025) && (volts > 0.5);
+    boolean atClosedStop = angle <= (CLAW_CLOSED_ANGLE_RAD + 0.025) && (volts < -0.5);
+    boolean atOpenStop = angle >= (CLAW_OPEN_ANGLE_RAD - 0.025) && (volts > 0.5);
 
     if (Math.abs(vel) < 0.05 && (grippingBall || atClosedStop || atOpenStop)) {
       return MotorState.STALLED;
@@ -705,11 +776,11 @@ public class SimWorld {
   }
 
   private MotorState computeDriveMotorState() {
-    if (!RobotBase.isEnabled() || drive == null) {
+    if (!RobotBase.isEnabled()) {
       return MotorState.IDLE;
     }
-    double vel = drive.getVelocity();
-    double volts = drive.getAppliedVolts();
+    double vel = getEncoderVelocity(driveEncoder);
+    double volts = getAppliedVolts(driveMotor);
 
     // Drivetrain stalled: commanding substantial drive voltage while stationary
     if (Math.abs(volts) > 1.5 && Math.abs(vel) < 0.02) {
@@ -724,15 +795,16 @@ public class SimWorld {
   }
 
   private MotorState computeKickerMotorState() {
-    if (!RobotBase.isEnabled() || kicker == null) {
+    if (!RobotBase.isEnabled()) {
       return MotorState.IDLE;
     }
-    double vel = kicker.getVelocity();
-    double volts = kicker.getAppliedVolts();
-    double pos = kicker.getPosition().in(Meters);
+    double vel = getEncoderVelocity(kickerEncoder);
+    double volts = getAppliedVolts(kickerMotor);
+    double pos = getEncoderPosition(kickerEncoder, KICKER_STARTING_PULLBACK_METERS);
 
-    boolean atMaxPullback = pos >= (KickerConstants.MAX_PULLBACK.in(Meters) - 0.015) && (volts > 0.5);
-    boolean againstRatchet = kicker.isRatchetLocked() && (volts < -0.5);
+    boolean atMaxPullback = pos >= (KICKER_MAX_PULLBACK_METERS - 0.015) && (volts > 0.5);
+    boolean ratchetLocked = !kickerSolenoid.get() && pos > KICKER_MIN_PULLBACK_METERS + 1e-3;
+    boolean againstRatchet = ratchetLocked && (volts < -0.5);
 
     if (Math.abs(vel) < 0.02 && (atMaxPullback || againstRatchet)) {
       return MotorState.STALLED;
@@ -743,5 +815,23 @@ public class SimWorld {
     }
 
     return MotorState.IDLE;
+  }
+
+  private static double getEncoderPosition(RelativeEncoder encoder, double defaultValue) {
+    Double pos = encoder.getPosition().get();
+    return pos != null ? pos : defaultValue;
+  }
+
+  private static double getEncoderVelocity(RelativeEncoder encoder) {
+    Double vel = encoder.getVelocity().get();
+    return vel != null ? vel : 0.0;
+  }
+
+  private static double getAppliedVolts(SparkMax motor) {
+    if (!RobotBase.isEnabled()) {
+      return 0.0;
+    }
+    Double val = motor.getAppliedOutput().get();
+    return val != null ? val * 12.0 : 0.0;
   }
 }

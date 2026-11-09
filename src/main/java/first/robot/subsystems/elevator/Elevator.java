@@ -12,16 +12,19 @@ import first.robot.mechanisms.ElevatorMechanism;
 import java.util.List;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Trigger;
+import org.wpilib.epilogue.Logged;
+import org.wpilib.epilogue.NotLogged;
 import org.wpilib.units.measure.Distance;
 
 /** The elevator moves the whole arm up and down (the y-axis). */
+@Logged
 public class Elevator {
   private final SparkMax motor;
   private final RelativeEncoder encoder;
   private final ElevatorMechanism elevatorMechanism;
 
   /** True while the elevator is within tolerance of its setpoint. */
-  public final Trigger atSetpoint;
+  @NotLogged public final Trigger atSetpoint;
 
   public Elevator() {
     this.motor = Mechanical.createSparkMax(Schematic.ELEVATOR_CAN_ID, MotorType.kBrushless);

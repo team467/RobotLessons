@@ -13,11 +13,14 @@ import first.robot.mechanisms.ClawMechanism;
 import java.util.List;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Trigger;
+import org.wpilib.epilogue.Logged;
+import org.wpilib.epilogue.NotLogged;
 import org.wpilib.framework.RobotBase;
 import org.wpilib.hardware.discrete.DigitalInput;
 import org.wpilib.units.measure.Angle;
 
 /** The claw opens and closes its fingers to pick up a ball. */
+@Logged
 public class Claw {
   /** The states of the claw state machine, which are also the goals commands can request. */
   private enum Mode {
@@ -34,7 +37,7 @@ public class Claw {
   private final TrackedStateMachine<Mode> stateMachine = new TrackedStateMachine<>("Claw");
 
   /** True while the claw is holding a ball. */
-  public final Trigger hasBall = new Trigger(this::hasBall);
+  @NotLogged public final Trigger hasBall = new Trigger(this::hasBall);
 
   public Claw() {
     this.motor = Mechanical.createSparkMax(Schematic.CLAW_CAN_ID, MotorType.kBrushless);

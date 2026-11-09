@@ -40,7 +40,7 @@ public class ResetStateTest {
     Claw claw = new Claw();
     Drive drive = new Drive();
     Kicker kicker = new Kicker();
-    SimWorld world = new SimWorld(elevator, extender, claw, drive, kicker);
+    SimWorld world = new SimWorld();
 
     // 1. Move elevator up, extender out, drive forward
     Scheduler.getDefault().schedule(elevator.moveTo(ElevatorConstants.ABOVE_TABLE_HEIGHT));

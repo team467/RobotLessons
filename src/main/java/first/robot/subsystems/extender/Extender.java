@@ -12,16 +12,19 @@ import first.robot.mechanisms.ExtenderMechanism;
 import java.util.List;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Trigger;
+import org.wpilib.epilogue.Logged;
+import org.wpilib.epilogue.NotLogged;
 import org.wpilib.units.measure.Distance;
 
 /** The extender slides the claw in and out on a pulley (the x-axis). */
+@Logged
 public class Extender {
   private final SparkMax motor;
   private final RelativeEncoder encoder;
   private final ExtenderMechanism extenderMechanism;
 
   /** True while the extender is within tolerance of its setpoint. */
-  public final Trigger atSetpoint;
+  @NotLogged public final Trigger atSetpoint;
 
   public Extender() {
     this.motor = Mechanical.createSparkMax(Schematic.EXTENDER_CAN_ID, MotorType.kBrushless);

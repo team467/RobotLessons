@@ -40,7 +40,7 @@ public class TwoBallAutoTest {
     Claw claw = new Claw();
     Drive drive = new Drive();
 
-    SimWorld world = new SimWorld(elevator, extender, claw, drive);
+    SimWorld world = new SimWorld();
 
     Command twoBall = TwoBallAuto.twoBallRoutine(drive, elevator, extender, claw);
     Scheduler.getDefault().schedule(twoBall);

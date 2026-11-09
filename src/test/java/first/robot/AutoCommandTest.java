@@ -37,7 +37,7 @@ public class AutoCommandTest {
     Extender extender = new Extender();
     Claw claw = new Claw();
 
-    SimWorld world = new SimWorld(elevator, extender, claw);
+    SimWorld world = new SimWorld();
 
     Command grabBall = BallCommands.grabBallFromTable(elevator, extender, claw);
     Scheduler.getDefault().schedule(grabBall);
@@ -65,7 +65,7 @@ public class AutoCommandTest {
     Claw claw = new Claw();
     Drive drive = new Drive();
 
-    SimWorld world = new SimWorld(elevator, extender, claw, drive);
+    SimWorld world = new SimWorld();
 
     Command scoreBall = ScoreBallAuto.driveAndScoreBall(drive, elevator, extender, claw);
     Scheduler.getDefault().schedule(scoreBall);

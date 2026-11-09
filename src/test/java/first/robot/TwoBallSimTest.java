@@ -41,7 +41,7 @@ public class TwoBallSimTest {
     Claw claw = new Claw();
     Drive drive = new Drive();
 
-    SimWorld world = new SimWorld(elevator, extender, claw, drive);
+    SimWorld world = new SimWorld();
     SimWorld.Snapshot s = world.snapshot();
 
     assertEquals(DriveConstants.START_POSITION.in(Meters), s.drivePosition(), 1e-3);
@@ -59,7 +59,7 @@ public class TwoBallSimTest {
     Claw claw = new Claw();
     Drive drive = new Drive();
 
-    SimWorld world = new SimWorld(elevator, extender, claw, drive);
+    SimWorld world = new SimWorld();
 
     // Grab Ball 2 off the ground while parked at start:
     // 1. Open claw and extend over ground ball

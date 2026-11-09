@@ -37,7 +37,7 @@ public class TableContactTest {
     Extender extender = new Extender();
     Claw claw = new Claw();
 
-    SimWorld world = new SimWorld(elevator, extender, claw);
+    SimWorld world = new SimWorld();
 
     // Raise elevator above table and extend over the table
     Scheduler.getDefault().schedule(elevator.moveTo(ElevatorConstants.ABOVE_TABLE_HEIGHT));
@@ -71,7 +71,7 @@ public class TableContactTest {
     Extender extender = new Extender();
     Claw claw = new Claw();
 
-    SimWorld world = new SimWorld(elevator, extender, claw);
+    SimWorld world = new SimWorld();
 
     // Keep elevator at default stow height (0.50m, below tabletop) and extend under the table
     Scheduler.getDefault().schedule(extender.moveTo(0.80));
@@ -106,7 +106,7 @@ public class TableContactTest {
     Extender extender = new Extender();
     Claw claw = new Claw();
 
-    SimWorld world = new SimWorld(elevator, extender, claw);
+    SimWorld world = new SimWorld();
 
     // Position elevator so the wrist/claw vertically overlaps the tabletop slab (0.705m..0.75m)
     Scheduler.getDefault().schedule(elevator.moveTo(0.73));
@@ -142,7 +142,7 @@ public class TableContactTest {
     Extender extender = new Extender();
     Claw claw = new Claw();
 
-    SimWorld world = new SimWorld(elevator, extender, claw);
+    SimWorld world = new SimWorld();
 
     // Position elevator at 0.80m (wrist is above table height 0.75m, but claw hangs down to 0.56m)
     Scheduler.getDefault().schedule(elevator.moveTo(0.80));

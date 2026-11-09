@@ -41,7 +41,7 @@ public class TeleopGrabDropTest {
     Extender extender = new Extender();
     Claw claw = new Claw();
 
-    SimWorld world = new SimWorld(elevator, extender, claw);
+    SimWorld world = new SimWorld();
 
     // 1. Open claw (Z key equivalent) and raise elevator to clear table
     Scheduler.getDefault().schedule(claw.open());
@@ -97,7 +97,7 @@ public class TeleopGrabDropTest {
     Extender extender = new Extender();
     Claw claw = new Claw();
 
-    SimWorld world = new SimWorld(elevator, extender, claw);
+    SimWorld world = new SimWorld();
 
     // Pick up ball
     Scheduler.getDefault().schedule(claw.open());
@@ -142,7 +142,7 @@ public class TeleopGrabDropTest {
     Extender extender = new Extender();
     Claw claw = new Claw();
 
-    SimWorld world = new SimWorld(elevator, extender, claw);
+    SimWorld world = new SimWorld();
 
     // Claw starts closed at 0.0 radians
     assertEquals(ClawConstants.CLOSED_ANGLE.in(Radians), claw.getAngle().in(Radians), 1e-3);
@@ -215,6 +215,9 @@ public class TeleopGrabDropTest {
         robot.simulationPeriodic();
         robot.robotPeriodic();
       }
+      robot.simulationPeriodic();
+      assertEquals("Elevator Up", world.snapshot().elevatorCommand());
+      assertEquals(robot.elevator.getSetpoint().in(Meters), world.snapshot().elevatorSetpoint(), 1e-4);
       robot.keyboard.setPressed(first.robot.constants.DriverConstants.KEY_ELEVATOR_UP, false);
       assertTrue(robot.elevator.getPosition().in(Meters) > initialHeight.in(Meters) + 0.10, "Elevator should raise while Up key is pressed");
 

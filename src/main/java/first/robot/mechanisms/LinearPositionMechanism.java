@@ -210,6 +210,11 @@ public class LinearPositionMechanism implements Mechanism {
    */
   public Command hold() {
     return run(coroutine -> {
+          if (!atSetpoint()) {
+            Distance pos = getPosition();
+            setpoint = pos.isNear(startingPosition, tolerance) ? startingPosition : pos;
+            pid.reset();
+          }
           while (true) {
             if (RobotBase.isDisabled()) {
               setpoint = getPosition();

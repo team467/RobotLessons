@@ -62,6 +62,9 @@ public class ShootBothBallsAutoTest {
     Scheduler.getDefault().schedule(kicker.kick());
     for (int i = 0; i < 30; i++) {
       Scheduler.getDefault().run();
+      if (kicker.getPosition().lte(KickerConstants.MIN_PULLBACK.plus(KickerConstants.TOLERANCE))) {
+        break;
+      }
     }
 
     assertEquals(
@@ -69,7 +72,7 @@ public class ShootBothBallsAutoTest {
         kicker.getPosition().in(Meters),
         KickerConstants.TOLERANCE.in(Meters),
         "Solenoid release should snap the plunger back to 0");
-    assertFalse(kicker.isLoaded(), "Kicker should no longer be loaded after kick");
+    assertFalse(kicker.isLoaded(), "Kicker should no longer be loaded immediately after kick");
   }
 
   @Test
@@ -80,7 +83,7 @@ public class ShootBothBallsAutoTest {
     Drive drive = new Drive();
     Kicker kicker = new Kicker();
 
-    SimWorld world = new SimWorld(elevator, extender, claw, drive, kicker);
+    SimWorld world = new SimWorld();
 
     Command auto =
         ShootBothBallsAuto.shootBothBallsRoutine(drive, elevator, extender, claw, kicker);
@@ -114,7 +117,7 @@ public class ShootBothBallsAutoTest {
     Drive drive = new Drive();
     Kicker kicker = new Kicker();
 
-    SimWorld world = new SimWorld(elevator, extender, claw, drive, kicker);
+    SimWorld world = new SimWorld();
 
     // Grab Ball 2 at start zone, then retract extender all the way to 0.0m (too close to the robot)
     Command grabAndRetractTooClose =
@@ -132,14 +135,18 @@ public class ShootBothBallsAutoTest {
             .named("Grab And Retract Too Close");
     Scheduler.getDefault().schedule(grabAndRetractTooClose);
 
+    boolean kicked = false;
     for (int i = 0; i < 350; i++) {
       Scheduler.getDefault().run();
       world.update();
+      if (kicker.isSolenoidReleased()) {
+        kicked = true;
+      }
     }
 
     assertEquals(0.0, extender.getPosition().in(Meters), 0.03, "Extender should be retracted to 0.0m");
     assertEquals(0.60, elevator.getPosition().in(Meters), 0.03, "Elevator should be at 0.60m");
-    assertFalse(kicker.isLoaded(), "Kicker should have released and kicked");
+    assertTrue(kicked, "Kicker should have released and kicked");
     assertTrue(
         world.snapshot().ball2Held(),
         "Kicking when extender=0.0m (too close to robot) should not launch the held ball");
