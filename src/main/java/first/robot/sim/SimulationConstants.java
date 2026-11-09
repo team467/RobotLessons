@@ -1,4 +1,4 @@
-package first.robot.constants;
+package first.robot.sim;
 
 /**
  * Constants governing simulation time stepping and physics updates.

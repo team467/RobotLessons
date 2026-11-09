@@ -1,7 +1,7 @@
 package first.robot.sim;
 
 import static first.robot.constants.RobotConstants.WRIST_BASE_X;
-import static first.robot.constants.SimulationConstants.LOOP_PERIOD_SECONDS;
+import static first.robot.sim.SimulationConstants.LOOP_PERIOD_SECONDS;
 import static org.wpilib.units.Units.Meters;
 
 import com.revrobotics.RelativeEncoder;
