@@ -6,70 +6,68 @@ import static org.wpilib.units.Units.Meters;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
+import first.lib.mechanism.LinearPositionMechanism;
 import first.robot.Schematic;
 import first.robot.mechanical.Mechanical;
-import first.robot.mechanisms.ElevatorMechanism;
-import java.util.List;
 import org.wpilib.command3.Command;
-import org.wpilib.command3.Trigger;
 import org.wpilib.epilogue.Logged;
-import org.wpilib.epilogue.NotLogged;
 import org.wpilib.units.measure.Distance;
 
 /** The elevator moves the whole arm up and down (the y-axis). */
 @Logged
-public class Elevator {
+public class Elevator extends LinearPositionMechanism {
   private final SparkMax motor;
   private final RelativeEncoder encoder;
-  private final ElevatorMechanism elevatorMechanism;
-
-  /** True while the elevator is within tolerance of its setpoint. */
-  @NotLogged public final Trigger atSetpoint;
 
   public Elevator() {
+    super(
+        "Elevator",
+        KP,
+        KD,
+        KG,
+        MAX_VOLTS,
+        TOLERANCE,
+        MIN_HEIGHT,
+        MAX_HEIGHT,
+        STARTING_HEIGHT);
+
     this.motor = Mechanical.createSparkMax(Schematic.ELEVATOR_CAN_ID, MotorType.kBrushless);
     this.encoder = motor.getEncoder();
 
-    this.elevatorMechanism = new ElevatorMechanism(motor::setVoltage, this::getPosition, this::getVelocity);
-
-    this.atSetpoint = elevatorMechanism.atSetpoint;
     // When no other command is using the elevator, hold it where it is.
-    elevatorMechanism.setDefaultCommand(hold());
+    setDefaultCommand(hold());
   }
 
   // ------------------------------------------------------------------------------------------
   // Commands
   // ------------------------------------------------------------------------------------------
 
-  public Command moveTo(Distance height) {
-    return elevatorMechanism.moveTo(height);
-  }
-
   public Command moveTo(double heightMeters) {
     return moveTo(Meters.of(heightMeters));
   }
 
   public Command up() {
-    return elevatorMechanism.jog("Elevator Up", MANUAL_SPEED_MPS * 0.02);
+    return jog("Elevator Up", MANUAL_SPEED_MPS * 0.02);
   }
 
   public Command down() {
-    return elevatorMechanism.jog("Elevator Down", -MANUAL_SPEED_MPS * 0.02);
-  }
-
-  public Command hold() {
-    return elevatorMechanism.hold();
+    return jog("Elevator Down", -MANUAL_SPEED_MPS * 0.02);
   }
 
   // ------------------------------------------------------------------------------------------
-  // Helpers and state
+  // Actuator and sensor overrides
   // ------------------------------------------------------------------------------------------
 
-  public boolean atSetpoint() {
-    return elevatorMechanism.atSetpoint();
+  @Override
+  protected void setVoltage(double volts) {
+    motor.setVoltage(volts);
   }
 
+  @Override
   public Distance getPosition() {
+    if (encoder == null) {
+      return STARTING_HEIGHT;
+    }
     Double pos = encoder.getPosition().get();
     if (pos == null) {
       return STARTING_HEIGHT;
@@ -77,8 +75,16 @@ public class Elevator {
     return Meters.of(pos);
   }
 
-  public Distance getSetpoint() {
-    return elevatorMechanism.getSetpoint();
+  @Override
+  public double getVelocity() {
+    if (encoder == null) {
+      return 0.0;
+    }
+    Double vel = encoder.getVelocity().get();
+    if (vel == null) {
+      return 0.0;
+    }
+    return vel;
   }
 
   public double getAppliedVolts() {
@@ -89,24 +95,11 @@ public class Elevator {
     return val * 12.0;
   }
 
-  public double getVelocity() {
-    Double vel = encoder.getVelocity().get();
-    if (vel == null) {
-      return 0.0;
-    }
-    return vel;
+  public Distance getSetpoint() {
+    return super.getSetpoint();
   }
 
-  /** The name of the most specific command currently using the elevator. */
   public String getCurrentCommandName() {
-    List<Command> running = elevatorMechanism.getRunningCommands();
-    if (running.isEmpty()) {
-      return "(none)";
-    }
-    return running.get(running.size() - 1).name();
-  }
-
-  public void resetSetpoint() {
-    elevatorMechanism.resetSetpoint();
+    return super.getCurrentCommandName();
   }
 }

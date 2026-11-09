@@ -6,69 +6,66 @@ import static org.wpilib.units.Units.Meters;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
+import first.lib.mechanism.LinearPositionMechanism;
 import first.robot.Schematic;
 import first.robot.mechanical.Mechanical;
-import first.robot.mechanisms.ExtenderMechanism;
-import java.util.List;
 import org.wpilib.command3.Command;
-import org.wpilib.command3.Trigger;
 import org.wpilib.epilogue.Logged;
-import org.wpilib.epilogue.NotLogged;
 import org.wpilib.units.measure.Distance;
 
 /** The extender slides the claw in and out on a pulley (the x-axis). */
 @Logged
-public class Extender {
+public class Extender extends LinearPositionMechanism {
   private final SparkMax motor;
   private final RelativeEncoder encoder;
-  private final ExtenderMechanism extenderMechanism;
-
-  /** True while the extender is within tolerance of its setpoint. */
-  @NotLogged public final Trigger atSetpoint;
 
   public Extender() {
+    super(
+        "Extender",
+        KP,
+        KD,
+        MAX_VOLTS,
+        TOLERANCE,
+        MIN_EXTENSION,
+        MAX_EXTENSION,
+        STARTING_EXTENSION);
+
     this.motor = Mechanical.createSparkMax(Schematic.EXTENDER_CAN_ID, MotorType.kBrushless);
     this.encoder = motor.getEncoder();
 
-    this.extenderMechanism = new ExtenderMechanism(motor::setVoltage, this::getPosition, this::getVelocity);
-
-    this.atSetpoint = extenderMechanism.atSetpoint;
-    extenderMechanism.setDefaultCommand(hold());
+    setDefaultCommand(hold());
   }
 
   // ------------------------------------------------------------------------------------------
   // Commands
   // ------------------------------------------------------------------------------------------
 
-  public Command moveTo(Distance extension) {
-    return extenderMechanism.moveTo(extension);
-  }
-
   public Command moveTo(double extensionMeters) {
     return moveTo(Meters.of(extensionMeters));
   }
 
   public Command out() {
-    return extenderMechanism.jog("Extender Out", MANUAL_SPEED_MPS * 0.02);
+    return jog("Extender Out", MANUAL_SPEED_MPS * 0.02);
   }
 
   public Command in() {
-    return extenderMechanism.jog("Extender In", -MANUAL_SPEED_MPS * 0.02);
-  }
-
-  public Command hold() {
-    return extenderMechanism.hold();
+    return jog("Extender In", -MANUAL_SPEED_MPS * 0.02);
   }
 
   // ------------------------------------------------------------------------------------------
-  // Helpers and state
+  // Actuator and sensor overrides
   // ------------------------------------------------------------------------------------------
 
-  public boolean atSetpoint() {
-    return extenderMechanism.atSetpoint();
+  @Override
+  protected void setVoltage(double volts) {
+    motor.setVoltage(volts);
   }
 
+  @Override
   public Distance getPosition() {
+    if (encoder == null) {
+      return STARTING_EXTENSION;
+    }
     Double pos = encoder.getPosition().get();
     if (pos == null) {
       return STARTING_EXTENSION;
@@ -76,8 +73,16 @@ public class Extender {
     return Meters.of(pos);
   }
 
-  public Distance getSetpoint() {
-    return extenderMechanism.getSetpoint();
+  @Override
+  public double getVelocity() {
+    if (encoder == null) {
+      return 0.0;
+    }
+    Double vel = encoder.getVelocity().get();
+    if (vel == null) {
+      return 0.0;
+    }
+    return vel;
   }
 
   public double getAppliedVolts() {
@@ -88,24 +93,11 @@ public class Extender {
     return val * 12.0;
   }
 
-  public double getVelocity() {
-    Double vel = encoder.getVelocity().get();
-    if (vel == null) {
-      return 0.0;
-    }
-    return vel;
+  public Distance getSetpoint() {
+    return super.getSetpoint();
   }
 
-  /** The name of the most specific command currently using the extender. */
   public String getCurrentCommandName() {
-    List<Command> running = extenderMechanism.getRunningCommands();
-    if (running.isEmpty()) {
-      return "(none)";
-    }
-    return running.get(running.size() - 1).name();
-  }
-
-  public void resetSetpoint() {
-    extenderMechanism.resetSetpoint();
+    return super.getCurrentCommandName();
   }
 }

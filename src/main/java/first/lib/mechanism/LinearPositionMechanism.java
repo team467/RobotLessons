@@ -1,13 +1,10 @@
-package first.robot.mechanisms;
+package first.lib.mechanism;
 
 import static org.wpilib.units.Units.Meters;
 
-import java.util.function.Consumer;
-import java.util.function.DoubleSupplier;
-import java.util.function.Supplier;
+import java.util.List;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
-import org.wpilib.command3.Trigger;
 import org.wpilib.framework.RobotBase;
 import org.wpilib.math.controller.PIDController;
 import org.wpilib.units.measure.Distance;
@@ -26,12 +23,8 @@ import org.wpilib.units.measure.Distance;
  *   <li>Point-to-point {@link #moveTo(Distance)} commands and continuous default {@link #hold()}.</li>
  * </ul>
  */
-public class LinearPositionMechanism implements Mechanism {
+public abstract class LinearPositionMechanism implements Mechanism {
   private final String name;
-  private final Consumer<Double> setVoltage;
-  private final Supplier<Distance> getPosition;
-  private final DoubleSupplier getVelocity;
-
   private final PIDController pid;
   private final double kG;
   private final Distance minPosition;
@@ -42,17 +35,11 @@ public class LinearPositionMechanism implements Mechanism {
 
   private Distance setpoint;
 
-  /** True while the mechanism is within tolerance of its target setpoint. */
-  public final Trigger atSetpoint = new Trigger(this::atSetpoint);
-
   /**
    * Constructs a new LinearPositionMechanism without gravity feedforward (kG = 0.0).
    */
   public LinearPositionMechanism(
       String name,
-      Consumer<Double> setVoltage,
-      Supplier<Distance> getPosition,
-      DoubleSupplier getVelocity,
       double kP,
       double kD,
       double maxVolts,
@@ -62,9 +49,6 @@ public class LinearPositionMechanism implements Mechanism {
       Distance startingPosition) {
     this(
         name,
-        setVoltage,
-        getPosition,
-        getVelocity,
         kP,
         kD,
         0.0,
@@ -80,9 +64,6 @@ public class LinearPositionMechanism implements Mechanism {
    */
   public LinearPositionMechanism(
       String name,
-      Consumer<Double> setVoltage,
-      Supplier<Distance> getPosition,
-      DoubleSupplier getVelocity,
       double kP,
       double kD,
       double kG,
@@ -92,9 +73,6 @@ public class LinearPositionMechanism implements Mechanism {
       Distance maxPosition,
       Distance startingPosition) {
     this.name = name;
-    this.setVoltage = setVoltage;
-    this.getPosition = getPosition;
-    this.getVelocity = getVelocity;
     this.kG = kG;
     this.maxVolts = maxVolts;
     this.tolerance = tolerance;
@@ -105,6 +83,15 @@ public class LinearPositionMechanism implements Mechanism {
 
     this.pid = new PIDController(kP, 0.0, kD);
   }
+
+  /** Gets the current physical position of the mechanism. */
+  public abstract Distance getPosition();
+
+  /** Gets the current physical linear velocity in meters per second. */
+  public abstract double getVelocity();
+
+  /** Applies output voltage to the mechanism's motor actuator. */
+  protected abstract void setVoltage(double volts);
 
   /**
    * Clamps a requested position within the physical travel limits of the mechanism.
@@ -128,13 +115,13 @@ public class LinearPositionMechanism implements Mechanism {
    */
   public void driveTowardSetpoint() {
     if (RobotBase.isDisabled()) {
-      setVoltage.accept(0.0);
+      setVoltage(0.0);
       return;
     }
     double currentMeters = getPosition().in(Meters);
     double targetMeters = setpoint.in(Meters);
     double volts = kG + pid.calculate(currentMeters, targetMeters);
-    setVoltage.accept(Math.clamp(volts, -maxVolts, maxVolts));
+    setVoltage(Math.clamp(volts, -maxVolts, maxVolts));
   }
 
   /**
@@ -148,7 +135,7 @@ public class LinearPositionMechanism implements Mechanism {
    * Returns true if current position is within {@link #tolerance} and linear speed is &le; 0.05 m/s.
    */
   public boolean isSettledAtSetpoint() {
-    return atSetpoint() && Math.abs(getVelocity.getAsDouble()) <= 0.05;
+    return atSetpoint() && Math.abs(getVelocity()) <= 0.05;
   }
 
   /**
@@ -227,16 +214,25 @@ public class LinearPositionMechanism implements Mechanism {
         .named(name + " Hold");
   }
 
-  public Distance getPosition() {
-    return getPosition.get();
-  }
-
   public Distance getSetpoint() {
     return setpoint;
+  }
+
+  public void setSetpoint(Distance setpoint) {
+    this.setpoint = clampPosition(setpoint);
   }
 
   public void resetSetpoint() {
     setpoint = startingPosition;
     pid.reset();
+  }
+
+  /** The name of the most specific command currently using this mechanism. */
+  public String getCurrentCommandName() {
+    List<Command> running = getRunningCommands();
+    if (running.isEmpty()) {
+      return "(none)";
+    }
+    return running.get(running.size() - 1).name();
   }
 }

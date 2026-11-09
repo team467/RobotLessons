@@ -12,9 +12,7 @@ import java.util.List;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
 import org.wpilib.command3.StateMachine;
-import org.wpilib.command3.Trigger;
 import org.wpilib.epilogue.Logged;
-import org.wpilib.epilogue.NotLogged;
 import org.wpilib.framework.RobotBase;
 import org.wpilib.math.controller.PIDController;
 import org.wpilib.units.measure.Distance;
@@ -26,10 +24,7 @@ public class Drive implements Mechanism {
   private final RelativeEncoder encoder;
   private final PIDController pid = new PIDController(KP, 0.0, KD);
 
-  @NotLogged private Distance setpoint = START_POSITION;
-
-  /** True while the robot is within tolerance of its target position. */
-  @NotLogged public final Trigger atSetpoint = new Trigger(this::atSetpoint);
+  private Distance setpoint = START_POSITION;
 
   public Drive() {
     this.motor = Mechanical.createSparkMax(Schematic.DRIVE_CAN_ID, MotorType.kBrushless);

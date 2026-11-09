@@ -9,19 +9,18 @@ import com.revrobotics.spark.SparkMax;
 import first.lib.state.TrackedStateMachine;
 import first.robot.Schematic;
 import first.robot.mechanical.Mechanical;
-import first.robot.mechanisms.ClawMechanism;
 import java.util.List;
 import org.wpilib.command3.Command;
-import org.wpilib.command3.Trigger;
+import org.wpilib.command3.Mechanism;
 import org.wpilib.epilogue.Logged;
-import org.wpilib.epilogue.NotLogged;
 import org.wpilib.framework.RobotBase;
 import org.wpilib.hardware.discrete.DigitalInput;
+import org.wpilib.math.controller.PIDController;
 import org.wpilib.units.measure.Angle;
 
 /** The claw opens and closes its fingers to pick up a ball. */
 @Logged
-public class Claw {
+public class Claw implements Mechanism {
   /** The states of the claw state machine, which are also the goals commands can request. */
   private enum Mode {
     HOLD,
@@ -33,21 +32,18 @@ public class Claw {
   private final SparkMax motor;
   private final RelativeEncoder encoder;
   private final DigitalInput ballSensor;
-  private final ClawMechanism clawMechanism;
+  private final PIDController pid = new PIDController(KP, 0.0, KD);
   private final TrackedStateMachine<Mode> stateMachine = new TrackedStateMachine<>("Claw");
 
-  /** True while the claw is holding a ball. */
-  @NotLogged public final Trigger hasBall = new Trigger(this::hasBall);
+  private Angle setpoint = STARTING_ANGLE;
 
   public Claw() {
     this.motor = Mechanical.createSparkMax(Schematic.CLAW_CAN_ID, MotorType.kBrushless);
     this.encoder = motor.getEncoder();
     this.ballSensor = Mechanical.createDigitalInput(Schematic.CLAW_BALL_SENSOR_DIO);
 
-    this.clawMechanism = new ClawMechanism(motor::setVoltage, this::getAngle, this::getVelocity);
-
     buildStateMachine();
-    clawMechanism.setDefaultCommand(stateMachine.runOn(clawMechanism));
+    setDefaultCommand(stateMachine.runOn(this));
   }
 
   // ------------------------------------------------------------------------------------------
@@ -59,13 +55,13 @@ public class Claw {
     // Closed-loop PID holding at the angle the claw was in when it entered this state
     stateMachine.addState(
         Mode.HOLD,
-        clawMechanism.run(coroutine -> {
-          clawMechanism.setSetpoint(getAngle());
+        run(coroutine -> {
+          setpoint = getAngle();
           while (true) {
             if (RobotBase.isDisabled()) {
-              clawMechanism.setSetpoint(getAngle());
+              setpoint = getAngle();
             }
-            clawMechanism.driveTowardSetpoint();
+            driveTowardSetpoint();
             coroutine.yield();
           }
         }).named("Claw Holding"));
@@ -73,10 +69,10 @@ public class Claw {
     // Drives pinchers outward to the open position
     stateMachine.addState(
         Mode.OPEN,
-        clawMechanism.run(coroutine -> {
-          clawMechanism.setSetpoint(OPEN_ANGLE);
+        run(coroutine -> {
+          setSetpoint(OPEN_ANGLE);
           while (!atSetpoint()) {
-            clawMechanism.driveTowardSetpoint();
+            driveTowardSetpoint();
             coroutine.yield();
           }
         }).named("Claw Opening"));
@@ -84,10 +80,10 @@ public class Claw {
     // Drives pinchers inward to capture a ball
     stateMachine.addState(
         Mode.CLOSE,
-        clawMechanism.run(coroutine -> {
-          clawMechanism.setSetpoint(CLOSED_ANGLE);
+        run(coroutine -> {
+          setSetpoint(CLOSED_ANGLE);
           while (!atSetpoint()) {
-            clawMechanism.driveTowardSetpoint();
+            driveTowardSetpoint();
             coroutine.yield();
           }
         }).named("Claw Closing"));
@@ -95,7 +91,7 @@ public class Claw {
     // Direct voltage squeeze once a ball is grasped
     stateMachine.addState(
         Mode.GRIP,
-        clawMechanism.run(coroutine -> {
+        run(coroutine -> {
           while (true) {
             if (RobotBase.isDisabled()) {
               motor.setVoltage(0.0);
@@ -144,8 +140,29 @@ public class Claw {
   // Helpers and state
   // ------------------------------------------------------------------------------------------
 
+  public void driveTowardSetpoint() {
+    if (RobotBase.isDisabled()) {
+      motor.setVoltage(0.0);
+      return;
+    }
+    double currentRad = getAngle().in(Radians);
+    double targetRad = setpoint.in(Radians);
+    double volts = pid.calculate(currentRad, targetRad);
+    motor.setVoltage(Math.clamp(volts, -MAX_VOLTS, MAX_VOLTS));
+  }
+
+  public Angle clampAngle(Angle angle) {
+    if (angle.lt(CLOSED_ANGLE)) {
+      return CLOSED_ANGLE;
+    } else if (angle.gt(OPEN_ANGLE)) {
+      return OPEN_ANGLE;
+    } else {
+      return angle;
+    }
+  }
+
   public boolean atSetpoint() {
-    return clawMechanism.atSetpoint();
+    return getAngle().isNear(setpoint, TOLERANCE);
   }
 
   public boolean hasBall() {
@@ -161,7 +178,11 @@ public class Claw {
   }
 
   public Angle getSetpoint() {
-    return clawMechanism.getSetpoint();
+    return setpoint;
+  }
+
+  public void setSetpoint(Angle setpoint) {
+    this.setpoint = clampAngle(setpoint);
   }
 
   public double getAppliedVolts() {
@@ -181,7 +202,7 @@ public class Claw {
   }
 
   public String getCurrentCommandName() {
-    List<Command> running = clawMechanism.getRunningCommands();
+    List<Command> running = getRunningCommands();
     if (running.isEmpty()) {
       return "(none)";
     }
@@ -189,6 +210,7 @@ public class Claw {
   }
 
   public void resetSetpoint() {
-    clawMechanism.resetSetpoint();
+    setpoint = STARTING_ANGLE;
+    pid.reset();
   }
 }

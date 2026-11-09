@@ -9,14 +9,13 @@ import com.revrobotics.spark.SparkMax;
 import first.lib.state.TrackedStateMachine;
 import first.robot.Schematic;
 import first.robot.mechanical.Mechanical;
-import first.robot.mechanisms.KickerMechanism;
 import java.util.List;
 import org.wpilib.command3.Command;
-import org.wpilib.command3.Trigger;
+import org.wpilib.command3.Mechanism;
 import org.wpilib.epilogue.Logged;
-import org.wpilib.epilogue.NotLogged;
 import org.wpilib.framework.RobotBase;
 import org.wpilib.hardware.discrete.DigitalOutput;
+import org.wpilib.math.controller.PIDController;
 import org.wpilib.units.measure.Distance;
 
 /**
@@ -27,7 +26,7 @@ import org.wpilib.units.measure.Distance;
  * in an upward arc toward the elevated basket.
  */
 @Logged
-public class Kicker {
+public class Kicker implements Mechanism {
   /** The states of the kicker state machine, which are also the goals commands can request. */
   private enum Mode {
     IDLE,
@@ -39,33 +38,18 @@ public class Kicker {
   private final SparkMax motor;
   private final RelativeEncoder encoder;
   private final DigitalOutput solenoid;
-  private final KickerMechanism kickerMechanism;
+  private final PIDController pid = new PIDController(KP, 0.0, KD);
   private final TrackedStateMachine<Mode> stateMachine = new TrackedStateMachine<>("Kicker");
 
-  /** True when the kicker spring is pulled back and locked by the ratchet, ready to fire. */
-  @NotLogged public final Trigger isLoaded;
-
-  /** True when the plunger is within tolerance of its target pullback position. */
-  @NotLogged public final Trigger atSetpoint;
+  private Distance setpoint = STARTING_PULLBACK;
 
   public Kicker() {
     this.motor = Mechanical.createSparkMax(Schematic.KICKER_CAN_ID, MotorType.kBrushless);
     this.encoder = motor.getEncoder();
     this.solenoid = Mechanical.createDigitalOutput(Schematic.KICKER_SOLENOID_CHANNEL);
 
-    this.kickerMechanism =
-        new KickerMechanism(
-            motor::setVoltage,
-            solenoid::set,
-            solenoid::get,
-            this::getPosition,
-            this::getVelocity);
-
-    this.isLoaded = kickerMechanism.isLoaded;
-    this.atSetpoint = kickerMechanism.atSetpoint;
-
     buildStateMachine();
-    kickerMechanism.setDefaultCommand(stateMachine.runOn(kickerMechanism));
+    setDefaultCommand(stateMachine.runOn(this));
   }
 
   // ------------------------------------------------------------------------------------------
@@ -79,10 +63,10 @@ public class Kicker {
     // Rest position, 0V applied, solenoid off (ratchet engaged)
     stateMachine.addState(
         Mode.IDLE,
-        kickerMechanism.run(coroutine -> {
+        run(coroutine -> {
           while (true) {
             if (RobotBase.isDisabled()) {
-              kickerMechanism.setSetpoint(getPosition());
+              setpoint = getPosition();
             }
             motor.setVoltage(0.0);
             solenoid.set(false);
@@ -94,11 +78,11 @@ public class Kicker {
     stateMachine
         .addState(
             Mode.LOAD,
-            kickerMechanism.run(coroutine -> {
-              kickerMechanism.setSetpoint(LOADED_PULLBACK);
+            run(coroutine -> {
+              setSetpoint(LOADED_PULLBACK);
               solenoid.set(false);
               while (!isLoaded()) {
-                kickerMechanism.driveTowardSetpoint();
+                driveTowardSetpoint();
                 coroutine.yield();
               }
             }).named("Kicker Pulling Back"))
@@ -107,7 +91,7 @@ public class Kicker {
     // Cocked and locked by the ratchet, 0V drawn
     stateMachine.addState(
         Mode.LOADED,
-        kickerMechanism.run(coroutine -> {
+        run(coroutine -> {
           while (true) {
             motor.setVoltage(0.0);
             solenoid.set(false);
@@ -119,8 +103,8 @@ public class Kicker {
     stateMachine
         .addState(
             Mode.KICK,
-            kickerMechanism.run(coroutine -> {
-              kickerMechanism.setSetpoint(MIN_PULLBACK);
+            run(coroutine -> {
+              setSetpoint(MIN_PULLBACK);
               motor.setVoltage(0.0);
               solenoid.set(true);
               while (!getPosition().lte(MIN_PULLBACK.plus(TOLERANCE))) {
@@ -175,20 +159,40 @@ public class Kicker {
   // Helpers and state
   // ------------------------------------------------------------------------------------------
 
+  public void driveTowardSetpoint() {
+    if (RobotBase.isDisabled()) {
+      motor.setVoltage(0.0);
+      return;
+    }
+    solenoid.set(false);
+    double volts = Math.max(PULLBACK_VOLTS, pid.calculate(getPosition().in(Meters), setpoint.in(Meters)));
+    motor.setVoltage(Math.clamp(volts, 0.0, MAX_VOLTS));
+  }
+
+  public Distance clampPullback(Distance pullback) {
+    if (pullback.lt(MIN_PULLBACK)) {
+      return MIN_PULLBACK;
+    } else if (pullback.gt(MAX_PULLBACK)) {
+      return MAX_PULLBACK;
+    } else {
+      return pullback;
+    }
+  }
+
   public boolean isLoaded() {
-    return kickerMechanism.isLoaded();
+    return getPosition().gte(LOADED_PULLBACK.minus(TOLERANCE));
   }
 
   public boolean isRatchetLocked() {
-    return kickerMechanism.isRatchetLocked();
+    return !solenoid.get();
   }
 
   public boolean isSolenoidReleased() {
-    return kickerMechanism.isSolenoidReleased();
+    return solenoid.get();
   }
 
   public boolean atSetpoint() {
-    return kickerMechanism.atSetpoint();
+    return getPosition().isNear(setpoint, TOLERANCE);
   }
 
   public Distance getPosition() {
@@ -208,7 +212,11 @@ public class Kicker {
   }
 
   public Distance getSetpoint() {
-    return kickerMechanism.getSetpoint();
+    return setpoint;
+  }
+
+  public void setSetpoint(Distance target) {
+    this.setpoint = clampPullback(target);
   }
 
   public double getAppliedVolts() {
@@ -220,7 +228,7 @@ public class Kicker {
   }
 
   public String getCurrentCommandName() {
-    List<Command> running = kickerMechanism.getRunningCommands();
+    List<Command> running = getRunningCommands();
     if (running.isEmpty()) {
       return "(none)";
     }
@@ -228,6 +236,7 @@ public class Kicker {
   }
 
   public void resetSetpoint() {
-    kickerMechanism.resetSetpoint();
+    setpoint = STARTING_PULLBACK;
+    pid.reset();
   }
 }
