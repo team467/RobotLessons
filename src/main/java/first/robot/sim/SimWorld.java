@@ -185,7 +185,7 @@ public class SimWorld {
     this.elevatorSetpointSub =
         robotTelemetry
             .getSubTable("elevator")
-            .getDoubleTopic("getSetpoint")
+            .getDoubleTopic("setpoint")
             .subscribe(ELEVATOR_STARTING_HEIGHT_METERS);
     this.elevatorCommandSub =
         robotTelemetry
@@ -195,7 +195,7 @@ public class SimWorld {
     this.extenderSetpointSub =
         robotTelemetry
             .getSubTable("extender")
-            .getDoubleTopic("getSetpoint")
+            .getDoubleTopic("setpoint")
             .subscribe(EXTENDER_STARTING_EXTENSION_METERS);
     this.extenderCommandSub =
         robotTelemetry
@@ -205,7 +205,7 @@ public class SimWorld {
     this.clawSetpointSub =
         robotTelemetry
             .getSubTable("claw")
-            .getDoubleTopic("getSetpoint")
+            .getDoubleTopic("setpoint")
             .subscribe(CLAW_STARTING_ANGLE_RAD);
     this.clawCommandSub =
         robotTelemetry
@@ -215,7 +215,7 @@ public class SimWorld {
     this.driveSetpointSub =
         robotTelemetry
             .getSubTable("drive")
-            .getDoubleTopic("getSetpoint")
+            .getDoubleTopic("setpoint")
             .subscribe(DRIVE_START_POSITION_METERS);
     this.driveCommandSub =
         robotTelemetry
@@ -225,7 +225,7 @@ public class SimWorld {
     this.kickerSetpointSub =
         robotTelemetry
             .getSubTable("kicker")
-            .getDoubleTopic("getSetpoint")
+            .getDoubleTopic("setpoint")
             .subscribe(KICKER_STARTING_PULLBACK_METERS);
     this.kickerCommandSub =
         robotTelemetry

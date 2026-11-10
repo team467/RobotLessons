@@ -29,7 +29,7 @@ public class LinearPositionMechanism implements Mechanism {
   private final Distance tolerance;
   private final double maxVolts;
 
-  private Distance targetPosition;
+  private Distance setpoint;
 
   public LinearPositionMechanism(
       String name,
@@ -74,7 +74,7 @@ public class LinearPositionMechanism implements Mechanism {
     this.minPosition = minPosition;
     this.maxPosition = maxPosition;
     this.startingPosition = startingPosition;
-    this.targetPosition = startingPosition;
+    this.setpoint = startingPosition;
 
     this.pid = new PIDController(kP, 0.0, kD);
     setDefaultCommand(hold());
@@ -133,13 +133,13 @@ public class LinearPositionMechanism implements Mechanism {
       return;
     }
     double currentMeters = getPosition().in(Meters);
-    double targetMeters = targetPosition.in(Meters);
+    double targetMeters = setpoint.in(Meters);
     double volts = kG + pid.calculate(currentMeters, targetMeters);
     setVoltage(Math.clamp(volts, -maxVolts, maxVolts));
   }
 
   public boolean atSetpoint() {
-    return getPosition().isNear(targetPosition, tolerance);
+    return getPosition().isNear(setpoint, tolerance);
   }
 
   public boolean isSettledAtSetpoint() {
@@ -158,9 +158,9 @@ public class LinearPositionMechanism implements Mechanism {
 
   public Command moveTo(Distance position, String cmdName) {
     Distance target = clampPosition(position);
-    targetPosition = target;
+    setpoint = target;
     return run(coroutine -> {
-      targetPosition = target;
+      setpoint = target;
       pid.reset();
       while (!isSettledAtSetpoint()) {
         driveTowardSetpoint();
@@ -172,15 +172,15 @@ public class LinearPositionMechanism implements Mechanism {
 
   public Command jog(String cmdName, double deltaMetersPerTick) {
     return run(coroutine -> {
-      targetPosition = getPosition();
+      setpoint = getPosition();
       while (true) {
-        double nextMeters = targetPosition.in(Meters) + deltaMetersPerTick;
-        targetPosition = clampPosition(Meters.of(nextMeters));
+        double nextMeters = setpoint.in(Meters) + deltaMetersPerTick;
+        setpoint = clampPosition(Meters.of(nextMeters));
         driveTowardSetpoint();
         coroutine.yield();
       }
     }).whenCanceled(() -> {
-      targetPosition = getPosition();
+      setpoint = getPosition();
       pid.reset();
     }).named(cmdName);
   }
@@ -189,12 +189,12 @@ public class LinearPositionMechanism implements Mechanism {
     return run(coroutine -> {
           if (!atSetpoint()) {
             Distance pos = getPosition();
-            targetPosition = pos.isNear(startingPosition, tolerance) ? startingPosition : pos;
+            setpoint = pos.isNear(startingPosition, tolerance) ? startingPosition : pos;
             pid.reset();
           }
           while (true) {
             if (RobotBase.isDisabled()) {
-              targetPosition = getPosition();
+              setpoint = getPosition();
             }
             driveTowardSetpoint();
             coroutine.yield();
@@ -205,15 +205,15 @@ public class LinearPositionMechanism implements Mechanism {
   }
 
   public Distance getSetpoint() {
-    return clampPosition(targetPosition);
+    return setpoint;
   }
 
   public void setSetpoint(Distance target) {
-    this.targetPosition = clampPosition(target);
+    this.setpoint = clampPosition(target);
   }
 
   public void resetSetpoint() {
-    targetPosition = startingPosition;
+    setpoint = startingPosition;
     pid.reset();
   }
 
