@@ -108,11 +108,11 @@ tasks.withType(JavaCompile) {
 
 tasks.named('compileJava') {
     doLast {
-        copy {
+        project.sync {
             from sourceSets.main.output.classesDirs
             into "$projectDir/bin/main"
         }
-        copy {
+        project.sync {
             from sourceSets.main.output.classesDirs
             into "$projectDir/bin/default"
         }
