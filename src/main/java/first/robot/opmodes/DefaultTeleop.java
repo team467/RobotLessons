@@ -27,34 +27,34 @@ import org.wpilib.opmode.Teleop;
 @Teleop(name = "Teleop")
 public class DefaultTeleop implements OpMode {
   public DefaultTeleop(Robot robot) {
-    var pad = robot.controller;
+    var driverController = robot.driverController;
     var keys = robot.keyboard;
 
     // Elevator jogging:
     // whileTrue runs the upward/downward jogging command while either gamepad D-pad or keyboard
     // arrow key is held. On release, the command cancels and the elevator's hold() command preserves position.
-    pad.dpadUp().or(keys.key(KEY_ELEVATOR_UP)).whileTrue(robot.elevator.up());
-    pad.dpadDown().or(keys.key(KEY_ELEVATOR_DOWN)).whileTrue(robot.elevator.down());
+    driverController.dpadUp().or(keys.key(KEY_ELEVATOR_UP)).whileTrue(robot.elevator.up());
+    driverController.dpadDown().or(keys.key(KEY_ELEVATOR_DOWN)).whileTrue(robot.elevator.down());
 
     // Extender jogging:
     // Extends/retracts the horizontal slide while the key/button is held.
-    pad.dpadRight().or(keys.key(KEY_EXTENDER_OUT)).whileTrue(robot.extender.out());
-    pad.dpadLeft().or(keys.key(KEY_EXTENDER_IN)).whileTrue(robot.extender.in());
+    driverController.dpadRight().or(keys.key(KEY_EXTENDER_OUT)).whileTrue(robot.extender.out());
+    driverController.dpadLeft().or(keys.key(KEY_EXTENDER_IN)).whileTrue(robot.extender.in());
 
     // Claw pinchers:
     // onTrue triggers a single-shot command that drives to full open (60 deg) or full grip.
-    pad.rightBumper().or(keys.key(KEY_CLAW_OPEN)).onTrue(robot.claw.open());
-    pad.leftBumper().or(keys.key(KEY_CLAW_CLOSE)).onTrue(robot.claw.close());
+    driverController.rightBumper().or(keys.key(KEY_CLAW_OPEN)).onTrue(robot.claw.open());
+    driverController.leftBumper().or(keys.key(KEY_CLAW_CLOSE)).onTrue(robot.claw.close());
 
     // Drivetrain translation:
     // Drives forward (towards table) or backward (towards starting position) at teleop speed (5.5 m/s).
-    pad.faceUp().or(keys.key(KEY_DRIVE_FORWARD)).whileTrue(robot.drive.forward());
-    pad.faceDown().or(keys.key(KEY_DRIVE_BACKWARD)).whileTrue(robot.drive.backward());
+    driverController.faceUp().or(keys.key(KEY_DRIVE_FORWARD)).whileTrue(robot.drive.forward());
+    driverController.faceDown().or(keys.key(KEY_DRIVE_BACKWARD)).whileTrue(robot.drive.backward());
 
     // Spring-loaded kicker:
     // C (or X face button) pulls back the kicker until locked by the ratchet; Space (or B face button) releases the solenoid to kick.
-    pad.faceLeft().or(keys.key(DriverConstants.KEY_KICKER_PULL)).onTrue(robot.kicker.pullBack());
-    pad.faceRight().or(keys.key(DriverConstants.KEY_KICKER_KICK)).onTrue(robot.kicker.kick());
+    driverController.faceLeft().or(keys.key(DriverConstants.KEY_KICKER_PULL)).onTrue(robot.kicker.pullBack());
+    driverController.faceRight().or(keys.key(DriverConstants.KEY_KICKER_KICK)).onTrue(robot.kicker.kick());
 
     // V key: move arm to shooting/kicking position (elevator = 0.60m, extender = 0.23m)
     keys.key(DriverConstants.KEY_KICK_POSITION)

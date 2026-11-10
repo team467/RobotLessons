@@ -2,9 +2,12 @@ package first.lib.mechanism;
 
 import static org.wpilib.units.Units.Meters;
 
+import com.revrobotics.RelativeEncoder;
+import com.revrobotics.spark.SparkMax;
 import java.util.List;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
+import org.wpilib.epilogue.Logged;
 import org.wpilib.framework.RobotBase;
 import org.wpilib.math.controller.PIDController;
 import org.wpilib.units.measure.Distance;
@@ -12,19 +15,12 @@ import org.wpilib.units.measure.Distance;
 /**
  * Reusable generic mechanism representing a single-degree-of-freedom linear position axis
  * controlled via closed-loop PID and optional feedforward (e.g. gravity compensation).
- *
- * <p>Encapsulates:
- * <ul>
- *   <li>Closed-loop PID calculation and voltage clamping.</li>
- *   <li>Optional feedforward voltage (such as {@code kG} for gravity compensation).</li>
- *   <li>Physical travel boundary clamping (min / max distance).</li>
- *   <li>Safe setpoint initialization and PID controller reset.</li>
- *   <li>Settled arrival detection combining position tolerance with velocity settling.</li>
- *   <li>Point-to-point {@link #moveTo(Distance)} commands and continuous default {@link #hold()}.</li>
- * </ul>
  */
-public abstract class LinearPositionMechanism implements Mechanism {
+@Logged
+public class LinearPositionMechanism implements Mechanism {
   private final String name;
+  private final SparkMax motor;
+  private final RelativeEncoder encoder;
   private final PIDController pid;
   private final double kG;
   private final Distance minPosition;
@@ -33,13 +29,11 @@ public abstract class LinearPositionMechanism implements Mechanism {
   private final Distance tolerance;
   private final double maxVolts;
 
-  private Distance setpoint;
+  private Distance targetPosition;
 
-  /**
-   * Constructs a new LinearPositionMechanism without gravity feedforward (kG = 0.0).
-   */
   public LinearPositionMechanism(
       String name,
+      SparkMax motor,
       double kP,
       double kD,
       double maxVolts,
@@ -49,6 +43,7 @@ public abstract class LinearPositionMechanism implements Mechanism {
       Distance startingPosition) {
     this(
         name,
+        motor,
         kP,
         kD,
         0.0,
@@ -59,11 +54,9 @@ public abstract class LinearPositionMechanism implements Mechanism {
         startingPosition);
   }
 
-  /**
-   * Constructs a new LinearPositionMechanism with gravity feedforward (kG).
-   */
   public LinearPositionMechanism(
       String name,
+      SparkMax motor,
       double kP,
       double kD,
       double kG,
@@ -73,32 +66,57 @@ public abstract class LinearPositionMechanism implements Mechanism {
       Distance maxPosition,
       Distance startingPosition) {
     this.name = name;
+    this.motor = motor;
+    this.encoder = motor.getEncoder();
     this.kG = kG;
     this.maxVolts = maxVolts;
     this.tolerance = tolerance;
     this.minPosition = minPosition;
     this.maxPosition = maxPosition;
     this.startingPosition = startingPosition;
-    this.setpoint = startingPosition;
+    this.targetPosition = startingPosition;
 
     this.pid = new PIDController(kP, 0.0, kD);
+    setDefaultCommand(hold());
   }
 
-  /** Gets the current physical position of the mechanism. */
-  public abstract Distance getPosition();
+  public Distance getPosition() {
+    if (encoder == null) {
+      return startingPosition;
+    }
+    Double pos = encoder.getPosition().get();
+    if (pos == null) {
+      return startingPosition;
+    }
+    return Meters.of(pos);
+  }
 
-  /** Gets the current physical linear velocity in meters per second. */
-  public abstract double getVelocity();
+  public double getVelocity() {
+    if (encoder == null) {
+      return 0.0;
+    }
+    Double vel = encoder.getVelocity().get();
+    if (vel == null) {
+      return 0.0;
+    }
+    return vel;
+  }
 
-  /** Applies output voltage to the mechanism's motor actuator. */
-  protected abstract void setVoltage(double volts);
+  public double getAppliedVolts() {
+    if (motor == null) {
+      return 0.0;
+    }
+    Double val = motor.getAppliedOutput().get();
+    if (val == null) {
+      return 0.0;
+    }
+    return val * 12.0;
+  }
 
-  /**
-   * Clamps a requested position within the physical travel limits of the mechanism.
-   *
-   * @param pos raw target distance
-   * @return clamped distance within [minPosition, maxPosition]
-   */
+  public void setVoltage(double volts) {
+    motor.setVoltage(volts);
+  }
+
   public Distance clampPosition(Distance pos) {
     if (pos.lt(minPosition)) {
       return minPosition;
@@ -109,55 +127,40 @@ public abstract class LinearPositionMechanism implements Mechanism {
     }
   }
 
-  /**
-   * Calculates closed-loop voltage: {@code volts = kG + PID(position, setpoint)},
-   * clamped between {@code [-maxVolts, +maxVolts]}.
-   */
   public void driveTowardSetpoint() {
     if (RobotBase.isDisabled()) {
       setVoltage(0.0);
       return;
     }
     double currentMeters = getPosition().in(Meters);
-    double targetMeters = setpoint.in(Meters);
+    double targetMeters = targetPosition.in(Meters);
     double volts = kG + pid.calculate(currentMeters, targetMeters);
     setVoltage(Math.clamp(volts, -maxVolts, maxVolts));
   }
 
-  /**
-   * Returns true if current position is within {@link #tolerance} of {@link #setpoint}.
-   */
   public boolean atSetpoint() {
-    return getPosition().isNear(setpoint, tolerance);
+    return getPosition().isNear(targetPosition, tolerance);
   }
 
-  /**
-   * Returns true if current position is within {@link #tolerance} and linear speed is &le; 0.05 m/s.
-   */
   public boolean isSettledAtSetpoint() {
     return atSetpoint() && Math.abs(getVelocity()) <= 0.05;
   }
 
-  /**
-   * Moves the mechanism to a target position and completes once arrived and settled.
-   *
-   * @param targetPosition raw target distance (will be clamped)
-   * @return command driving to the target
-   */
-  public Command moveTo(Distance targetPosition) {
-    Distance target = clampPosition(targetPosition);
+  public Command moveTo(Distance position) {
+    Distance target = clampPosition(position);
     String cmdName = String.format("%s To %.2fm", name, target.in(Meters));
     return moveTo(target, cmdName);
   }
 
-  /**
-   * Moves the mechanism to a target position with a custom command display name.
-   */
-  public Command moveTo(Distance targetPosition, String cmdName) {
-    Distance target = clampPosition(targetPosition);
-    setpoint = target;
+  public Command moveTo(double meters) {
+    return moveTo(Meters.of(meters));
+  }
+
+  public Command moveTo(Distance position, String cmdName) {
+    Distance target = clampPosition(position);
+    targetPosition = target;
     return run(coroutine -> {
-      setpoint = target;
+      targetPosition = target;
       pid.reset();
       while (!isSettledAtSetpoint()) {
         driveTowardSetpoint();
@@ -167,44 +170,31 @@ public abstract class LinearPositionMechanism implements Mechanism {
     }).named(cmdName);
   }
 
-  /**
-   * Incremental jogging command that steps setpoint by {@code deltaMetersPerTick} each 20ms cycle.
-   * On exit, latches setpoint to current actual position and resets the PID controller.
-   *
-   * @param cmdName command name
-   * @param deltaMetersPerTick change in setpoint per 20ms tick
-   * @return jogging command
-   */
   public Command jog(String cmdName, double deltaMetersPerTick) {
     return run(coroutine -> {
-      setpoint = getPosition();
+      targetPosition = getPosition();
       while (true) {
-        double nextMeters = setpoint.in(Meters) + deltaMetersPerTick;
-        setpoint = clampPosition(Meters.of(nextMeters));
+        double nextMeters = targetPosition.in(Meters) + deltaMetersPerTick;
+        targetPosition = clampPosition(Meters.of(nextMeters));
         driveTowardSetpoint();
         coroutine.yield();
       }
     }).whenCanceled(() -> {
-      setpoint = getPosition();
+      targetPosition = getPosition();
       pid.reset();
     }).named(cmdName);
   }
 
-  /**
-   * Continuous default holding command.
-   *
-   * @return default holding command running at LOWEST_PRIORITY
-   */
   public Command hold() {
     return run(coroutine -> {
           if (!atSetpoint()) {
             Distance pos = getPosition();
-            setpoint = pos.isNear(startingPosition, tolerance) ? startingPosition : pos;
+            targetPosition = pos.isNear(startingPosition, tolerance) ? startingPosition : pos;
             pid.reset();
           }
           while (true) {
             if (RobotBase.isDisabled()) {
-              setpoint = getPosition();
+              targetPosition = getPosition();
             }
             driveTowardSetpoint();
             coroutine.yield();
@@ -215,19 +205,18 @@ public abstract class LinearPositionMechanism implements Mechanism {
   }
 
   public Distance getSetpoint() {
-    return setpoint;
+    return clampPosition(targetPosition);
   }
 
-  public void setSetpoint(Distance setpoint) {
-    this.setpoint = clampPosition(setpoint);
+  public void setSetpoint(Distance target) {
+    this.targetPosition = clampPosition(target);
   }
 
   public void resetSetpoint() {
-    setpoint = startingPosition;
+    targetPosition = startingPosition;
     pid.reset();
   }
 
-  /** The name of the most specific command currently using this mechanism. */
   public String getCurrentCommandName() {
     List<Command> running = getRunningCommands();
     if (running.isEmpty()) {

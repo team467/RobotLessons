@@ -41,7 +41,7 @@ public class Robot extends OpModeRobot {
   public final Kicker kicker = new Kicker();
 
   /** Driver gamepad controller on USB port 1. */
-  public final CommandGamepad controller = new CommandGamepad(DriverConstants.DRIVER_CONTROLLER_PORT);
+  public final CommandGamepad driverController = new CommandGamepad(DriverConstants.DRIVER_CONTROLLER_PORT);
 
   /** Keyboard keys captured from the simulator window (active during simulation only). */
   public final SimKeyboard keyboard = new SimKeyboard();
