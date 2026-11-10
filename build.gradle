@@ -105,3 +105,16 @@ jar {
 tasks.withType(JavaCompile) {
     options.compilerArgs.add '-XDstringConcat=inline'
 }
+
+tasks.named('compileJava') {
+    doLast {
+        copy {
+            from sourceSets.main.output.classesDirs
+            into "$projectDir/bin/main"
+        }
+        copy {
+            from sourceSets.main.output.classesDirs
+            into "$projectDir/bin/default"
+        }
+    }
+}
