@@ -8,5 +8,5 @@ public final class Schematic {
   public static final int DRIVER_CONTROLLER_PORT = 1;
 
   // ---- Motor Controller CAN IDs ----
-  public static final int DRIVE_CAN_ID = 0;
+  public static final int DRIVE_CAN_ID = 1;
 }
