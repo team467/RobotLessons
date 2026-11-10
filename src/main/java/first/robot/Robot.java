@@ -13,24 +13,40 @@ import org.wpilib.epilogue.Logged;
 import org.wpilib.framework.OpModeRobot;
 
 /**
- * Main robot container: coordinates the drivetrain, elevator (up/down), extender (in/out),
- * claw (open/close), and spring-loaded kicker subsystems.
+ * Main robot container: coordinates the subsystems.
  *
- * <p>Extends {@link OpModeRobot}, which automatically manages opmode lifecycle and discovers
- * registered {@code @Teleop} and {@code @Autonomous} classes.
+ * <p>
+ * Extends {@link OpModeRobot}, which automatically manages opmode lifecycle and
+ * discovers registered {@code @Teleop} and {@code @Autonomous} classes.
  */
 @Logged
 public class Robot extends OpModeRobot {
-  /** Drivetrain subsystem for field translation between start and table. */
+  /** Drivetrain subsystem for driving the robot on the field. */
   public final Drive drive = new Drive();
 
   /** Telescoping extender subsystem controlling horizontal arm reach (x-axis). */
   public final Extender extender = new Extender();
 
+  // Add new subsystems here.
+
+
+
+
+
+
+  /**
+   * 
+   * DO NOT EDIT BELOW THIS LINE FOR 467 Sim Lessons.
+   * 
+   */
+
   /** Driver gamepad controller on USB port 1. */
   public final CommandGamepad driverController = new CommandGamepad(Schematic.DRIVER_CONTROLLER_PORT);
 
-  /** Keyboard keys captured from the simulator window (active during simulation only). */
+  /**
+   * Keyboard keys captured from the simulator window (active during simulation
+   * only).
+   */
   public final SimKeyboard keyboard = new SimKeyboard();
 
   /** Physics and collision simulation world backing the graphical simulator. */
@@ -39,7 +55,8 @@ public class Robot extends OpModeRobot {
   /** Active teleoperated control bindings. */
   private DefaultTeleop defaultTeleop;
 
-  public Robot() {}
+  public Robot() {
+  }
 
   /** Activates and binds the Teleop controls if not already initialized. */
   public void activateTeleop() {
@@ -50,7 +67,8 @@ public class Robot extends OpModeRobot {
 
   @Override
   public void robotPeriodic() {
-    // Step the Command3 scheduler (runs registered mechanism periodic callbacks, polls triggers,
+    // Step the Command3 scheduler (runs registered mechanism periodic callbacks,
+    // polls triggers,
     // and executes running commands).
     Scheduler.getDefault().run();
     Epilogue.update(this);
@@ -76,7 +94,10 @@ public class Robot extends OpModeRobot {
     simWorld.update();
   }
 
-  /** Returns the active simulation world instance (used by integration and unit tests). */
+  /**
+   * Returns the active simulation world instance (used by integration and unit
+   * tests).
+   */
   SimWorld getSimWorld() {
     return simWorld;
   }
