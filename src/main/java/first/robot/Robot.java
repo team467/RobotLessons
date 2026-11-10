@@ -1,15 +1,11 @@
 package first.robot;
 
-import first.robot.constants.DriverConstants;
 import first.robot.opmodes.DefaultTeleop;
 import first.robot.sim.SimKeyboard;
 import first.robot.sim.SimWindow;
 import first.robot.sim.SimWorld;
-import first.robot.subsystems.claw.Claw;
 import first.robot.subsystems.drive.Drive;
-import first.robot.subsystems.elevator.Elevator;
 import first.robot.subsystems.extender.Extender;
-import first.robot.subsystems.kicker.Kicker;
 import org.wpilib.command3.Scheduler;
 import org.wpilib.command3.button.CommandGamepad;
 import org.wpilib.epilogue.Epilogue;
@@ -28,20 +24,11 @@ public class Robot extends OpModeRobot {
   /** Drivetrain subsystem for field translation between start and table. */
   public final Drive drive = new Drive();
 
-  /** Elevator subsystem controlling vertical carriage/arm motion (y-axis). */
-  public final Elevator elevator = new Elevator();
-
   /** Telescoping extender subsystem controlling horizontal arm reach (x-axis). */
   public final Extender extender = new Extender();
 
-  /** Claw subsystem controlling pinchers/fingers to grasp and release game balls. */
-  public final Claw claw = new Claw();
-
-  /** Spring-loaded kicker subsystem with pullback motor, ratchet lock, and release solenoid. */
-  public final Kicker kicker = new Kicker();
-
   /** Driver gamepad controller on USB port 1. */
-  public final CommandGamepad driverController = new CommandGamepad(DriverConstants.DRIVER_CONTROLLER_PORT);
+  public final CommandGamepad driverController = new CommandGamepad(Schematic.DRIVER_CONTROLLER_PORT);
 
   /** Keyboard keys captured from the simulator window (active during simulation only). */
   public final SimKeyboard keyboard = new SimKeyboard();

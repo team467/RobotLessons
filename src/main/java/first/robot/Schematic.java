@@ -4,6 +4,9 @@ package first.robot;
 public final class Schematic {
   private Schematic() {}
 
+  // ---- USB Ports ----
+  public static final int DRIVER_CONTROLLER_PORT = 1;
+
   // ---- Motor Controller CAN IDs ----
   public static final int DRIVE_CAN_ID = 1;
   public static final int ELEVATOR_CAN_ID = 2;
