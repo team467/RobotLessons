@@ -1,0 +1,21 @@
+# Normalize text files to LF in the repo and on checkout across all platforms
+# so shell scripts (like gradlew) and source files work seamlessly on macOS and Linux.
+* text=auto eol=lf
+
+# Ensure shell scripts always use LF
+gradlew text eol=lf
+*.sh text eol=lf
+
+# Ensure Windows batch scripts use CRLF on checkout
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary files that should never have line-ending conversion applied
+*.jar binary
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.wpilog binary
