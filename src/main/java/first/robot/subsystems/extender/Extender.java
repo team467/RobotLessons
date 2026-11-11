@@ -1,9 +1,5 @@
 package first.robot.subsystems.extender;
 
-import com.revrobotics.spark.SparkLowLevel.MotorType;
-import com.revrobotics.spark.SparkMax;
-import first.robot.Schematic;
-import first.robot.mechanical.Mechanical;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
 import org.wpilib.epilogue.Logged;
@@ -18,19 +14,19 @@ public class Extender implements Mechanism {
   public Command out() {
     return run(coroutine -> {
       while (true) {
+        // Add code here to move the extender out.
         coroutine.yield();
       }
-    })
-        .named("Extender Out");
+    }).named("Extender Out");
   }
 
   public Command in() {
     return run(coroutine -> {
       while (true) {
+        // Add code here to move the extender in.
         coroutine.yield();
       }
-    })
-        .named("Extender In");
+    }).named("Extender In");
   }
 
 }
