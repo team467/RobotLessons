@@ -18,5 +18,7 @@ public class DefaultTeleop implements OpMode {
     // Drive the robot forward and backward with the D and A keys.
     keys.key(KeyEvent.VK_D).whileTrue(robot.drive.forward());
     keys.key(KeyEvent.VK_A).whileTrue(robot.drive.backward());
+    keys.key(KeyEvent.VK_LEFT).whileTrue(robot.extender.in());
+    keys.key(KeyEvent.VK_RIGHT).whileTrue(robot.extender.out());
   }
 }
