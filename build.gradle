@@ -86,7 +86,15 @@ test {
 }
 
 // Simulation configuration (e.g. environment variables).
-wpi.sim.addGui().defaultEnabled = true
+// On macOS, WPILib's VS Code extension and GradleRIO pass -XstartOnFirstThread
+// for the native GLFW Sim GUI, which prevents Java Swing/AWT (SimWindow) from
+// starting its Cocoa event loop on Thread 0. Setting HACK_IGNORE_START_ON_FIRST_THREAD
+// tells the macOS JDK launcher (libjli) to ignore -XstartOnFirstThread so Swing
+// can own the main AppKit thread.
+wpi.sim.environment.put("HACK_IGNORE_START_ON_FIRST_THREAD", "1")
+if (!org.gradle.internal.os.OperatingSystem.current().isMacOsX()) {
+    wpi.sim.addGui().defaultEnabled = true
+}
 wpi.sim.addDriverstation()
 
 application.mainClass = ROBOT_MAIN_CLASS
@@ -94,6 +102,10 @@ application.mainClass = ROBOT_MAIN_CLASS
 deployArtifact.configureApplication(application)
 wpi.java.configureApplication(application)
 wpi.java.configureTestTasks(test)
+
+tasks.named('run', JavaExec) {
+    jvmArgs = jvmArgs.findAll { it != '-XstartOnFirstThread' }
+}
 
 jar {
     from('src') { into 'backup/src' }
