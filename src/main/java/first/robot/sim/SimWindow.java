@@ -135,7 +135,13 @@ public class SimWindow extends JFrame {
     if (GraphicsEnvironment.isHeadless()) {
       return;
     }
-    SwingUtilities.invokeLater(() -> new SimWindow(world, keyboard).setVisible(true));
+    SwingUtilities.invokeLater(
+        () -> {
+          SimWindow window = new SimWindow(world, keyboard);
+          window.setVisible(true);
+          window.toFront();
+          window.requestFocus();
+        });
   }
 
   private SimWindow(SimWorld world, SimKeyboard keyboard) {
@@ -144,7 +150,7 @@ public class SimWindow extends JFrame {
     this.world = world;
     keyboard.install();
 
-    setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+    setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     setLayout(new BorderLayout());
     add(scene, BorderLayout.CENTER);
 
