@@ -9,4 +9,9 @@ public final class Schematic {
 
   // ---- Motor Controller CAN IDs ----
   public static final int DRIVE_CAN_ID = 1;
+  public static final int ELEVATOR_NEO = 2;
+  public static final int CLAW_SPARK_MAX = 4;
+  public static final int KICKER_SPARK_MAX = 5;
+  public static final int DRIVE_SPARK_MAX = 1;
+  public static final int EXTENDER_SPARK_MAX = 3;
 }
