@@ -22,17 +22,16 @@ public class Extender implements Mechanism {
   public Extender() {
     
     this.motor = Mechanical.createSparkMax(Schematic.EXTENDER_SPARK_MAX_CAN_ID, MotorType.kBrushless);
-    
+
     //this.encoder = motor.getEncoder();
-    //setDefaultCommand(hold()); 
+    setDefaultCommand(hold()); 
   }
 
 
   public Command out() {
     return run(coroutine -> {
       while (true) {
-
-        motor.setVoltage(12.0); // Add code here to move the extender out.
+        motor.setVoltage(4.0); // Add code here to move the extender out.
         coroutine.yield();
       }
     }).named("Extender Out");
@@ -41,10 +40,18 @@ public class Extender implements Mechanism {
   public Command in() {
     return run(coroutine -> {
       while (true) {
-        motor.setVoltage(-12.0); // Add code here to move the extender in.
+        motor.setVoltage(-4.0); // Add code here to move the extender in.
         coroutine.yield();
       }
     }).named("Extender In");
   }
 
+  public Command hold() {
+    return run(coroutine -> {
+      while (true) {
+        motor.setVoltage(0.0); // Add code here to stop the extender from moving.
+        coroutine.yield();
+      }
+    }).named("Extender Hold");
+  }
 }
