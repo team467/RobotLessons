@@ -7,10 +7,8 @@ import org.wpilib.epilogue.Logged;
 import org.wpilib.math.controller.PIDController;
 import org.wpilib.units.measure.Distance;
 import org.wpilib.units.measure.Voltage;
-
 import static first.robot.subsystems.drive.DriveConstants.*;
 import static org.wpilib.units.Units.Meters;
-
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
@@ -33,8 +31,9 @@ public class Extender implements Mechanism {
   public Extender() {
     this.motor = Mechanical.createSparkMax(Schematic.EXTENDER_CAN_ID, MotorType.kBrushless);
     this.encoder = motor.getEncoder();
-    //setDefaultCommand(hold());  
+    setDefaultCommand(hold());  
   }
+  
 
   
 
@@ -46,6 +45,16 @@ public class Extender implements Mechanism {
       }
     }).named("Extender Out");
   }
+
+  public Command hold() {
+    return run(coroutine -> {
+      while (true) {
+        motor.setVoltage(0);
+        coroutine.yield();
+      }
+    }).named("Hold");
+  }
+
 
   public Command in() {
     return run(coroutine -> {
