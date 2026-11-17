@@ -5,12 +5,31 @@ import first.robot.sim.SimKeyboard;
 import first.robot.sim.SimWindow;
 import first.robot.sim.SimWorld;
 import first.robot.subsystems.drive.Drive;
+import first.robot.subsystems.elevator.Elevator;
 import first.robot.subsystems.extender.Extender;
 import org.wpilib.command3.Scheduler;
 import org.wpilib.command3.button.CommandGamepad;
 import org.wpilib.epilogue.Epilogue;
 import org.wpilib.epilogue.Logged;
 import org.wpilib.framework.OpModeRobot;
+
+import static first.robot.subsystems.drive.DriveConstants.*;
+import static org.wpilib.units.Units.Meters;
+
+import com.revrobotics.RelativeEncoder;
+import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.revrobotics.spark.SparkMax;
+import first.robot.Schematic;
+import first.robot.mechanical.Mechanical;
+import java.util.List;
+import org.wpilib.command3.Command;
+import org.wpilib.command3.Mechanism;
+import org.wpilib.command3.StateMachine;
+import org.wpilib.epilogue.Logged;
+import org.wpilib.framework.RobotBase;
+import org.wpilib.math.controller.PIDController;
+import org.wpilib.units.measure.Distance;
+
 
 /**
  * Main robot container: coordinates the subsystems.
@@ -29,7 +48,7 @@ public class Robot extends OpModeRobot {
 
   // Add new subsystems here.
 
-
+  public final Elevator elevator = new Elevator();
 
 
 
