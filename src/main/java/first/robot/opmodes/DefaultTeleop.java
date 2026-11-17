@@ -22,5 +22,9 @@ public class DefaultTeleop implements OpMode {
     // Left and Right bindings for extender movements.
     keys.key(KeyEvent.VK_LEFT).whileTrue(robot.extender.in());
     keys.key(KeyEvent.VK_RIGHT).whileTrue(robot.extender.out());
+
+    // Up and down elevator
+    keys.key(KeyEvent.VK_UP).whileTrue(robot.elevator.up());
+    keys.key(KeyEvent.VK_DOWN).whileTrue(robot.elevator.down());
   }
 }

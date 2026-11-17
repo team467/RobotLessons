@@ -5,6 +5,7 @@ import first.robot.sim.SimKeyboard;
 import first.robot.sim.SimWindow;
 import first.robot.sim.SimWorld;
 import first.robot.subsystems.drive.Drive;
+import first.robot.subsystems.elevator.Elevator;
 import first.robot.subsystems.extender.Extender;
 import org.wpilib.command3.Scheduler;
 import org.wpilib.command3.button.CommandGamepad;
@@ -26,6 +27,8 @@ public class Robot extends OpModeRobot {
 
   /** Telescoping extender subsystem controlling horizontal arm reach (x-axis). */
   public final Extender extender = new Extender();
+
+  public final Elevator elevator = new Elevator();
 
   // Add new subsystems here.
 
