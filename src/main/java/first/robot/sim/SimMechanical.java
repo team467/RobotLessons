@@ -68,10 +68,7 @@ public final class SimMechanical {
     }
 
     public double getAppliedVolts() {
-      if (!RobotBase.isEnabled()) {
-        return 0.0;
-      }
-      return sparkSim != null ? sparkSim.getSetpoint() : 0.0;
+      return getClampedAppliedVolts(sparkSim);
     }
 
     public void setPosition(double position) {
@@ -158,10 +155,7 @@ public final class SimMechanical {
     }
 
     public double getAppliedVolts() {
-      if (!RobotBase.isEnabled()) {
-        return 0.0;
-      }
-      return sparkSim != null ? sparkSim.getSetpoint() : 0.0;
+      return getClampedAppliedVolts(sparkSim);
     }
 
     public void setPosition(double position) {
@@ -258,10 +252,7 @@ public final class SimMechanical {
     }
 
     public double getAppliedVolts() {
-      if (!RobotBase.isEnabled()) {
-        return 0.0;
-      }
-      return sparkSim != null ? sparkSim.getSetpoint() : 0.0;
+      return getClampedAppliedVolts(sparkSim);
     }
 
     public void setPosition(double position) {
@@ -343,10 +334,7 @@ public final class SimMechanical {
     }
 
     public double getAppliedVolts() {
-      if (!RobotBase.isEnabled()) {
-        return 0.0;
-      }
-      return sparkSim != null ? sparkSim.getSetpoint() : 0.0;
+      return getClampedAppliedVolts(sparkSim);
     }
 
     public void setPosition(double position) {
@@ -427,10 +415,7 @@ public final class SimMechanical {
     }
 
     public double getAppliedVolts() {
-      if (!RobotBase.isEnabled()) {
-        return 0.0;
-      }
-      return sparkSim != null ? sparkSim.getSetpoint() : 0.0;
+      return getClampedAppliedVolts(sparkSim);
     }
 
     public void setPosition(double position) {
@@ -537,6 +522,13 @@ public final class SimMechanical {
   }
 
   private SimMechanical() {}
+
+  private static double getClampedAppliedVolts(SparkMaxSim sparkSim) {
+    if (!RobotBase.isEnabled() || sparkSim == null) {
+      return 0.0;
+    }
+    return Math.clamp(sparkSim.getSetpoint(), -12.0, 12.0);
+  }
 
   /**
    * Returns true if {@link #createSparkMax(int, MotorType)} has been called for {@code canId} since
