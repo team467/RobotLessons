@@ -9,10 +9,13 @@ import org.wpilib.command3.Mechanism;
 import org.wpilib.epilogue.Logged;
 import first.robot.mechanical.Mechanical;
 
+import com.revrobotics.RelativeEncoder;
+
 @Logged
 public class Elevator implements Mechanism {
 
     private final SparkMax motor = Mechanical.createSparkMax(Schematic.ELEVATOR_CAN_ID, MotorType.kBrushless);
+    private final RelativeEncoder encoder = motor.getEncoder();
 
     public Elevator() {
         setDefaultCommand(hold());
@@ -20,20 +23,20 @@ public class Elevator implements Mechanism {
 
     public Command up() {
         return run(coroutine -> {
-            while (true) {
+            while (encoder.getPosition().get() < 1.15) {
                 motor.setVoltage(6.0);
                 coroutine.yield();
             }
-        }).named("Up");
+        }).named("Elevator Up");
     }
 
     public Command down() {
         return run(coroutine -> {
-            while (true) {
+            while (encoder.getPosition().get() > 0.30) {
                 motor.setVoltage(-6.0);
                 coroutine.yield();
             }
-        }).named("Down");
+        }).named("Elevator Down");
     }
 
     public Command hold() {
