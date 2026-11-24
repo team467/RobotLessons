@@ -714,8 +714,8 @@ public class SimWorld {
 
     // Stalled: voltage applied, but cannot move because at limit/stop/obstacle
     boolean atLowerLimit =
-        pos <= (minLimit + 0.02) || (tableContact && volts < ELEVATOR_KG - 0.4);
-    boolean pushingDown = (volts < ELEVATOR_KG - 0.4);
+        pos <= (minLimit + 0.02) || (tableContact && volts < -0.4);
+    boolean pushingDown = (volts < -0.4);
     boolean atUpperLimit =
         pos >= (maxLimit - 0.02) || (tableContact && volts > ELEVATOR_KG + 0.8);
     boolean pushingUp = (volts > ELEVATOR_KG + 0.8);
