@@ -17,32 +17,33 @@ import first.robot.mechanical.Mechanical;
 public class Extender implements Mechanism {
 
   private final SparkMax motor;
-  //private final RelativeEncoder encoder;
+  private final RelativeEncoder encoder;
 
   public Extender() {
     
     this.motor = Mechanical.createSparkMax(Schematic.EXTENDER_SPARK_MAX_CAN_ID, MotorType.kBrushless);
-
-    //this.encoder = motor.getEncoder();
+    this.encoder = motor.getEncoder();
     setDefaultCommand(hold()); 
   }
 
 
   public Command out() {
     return run(coroutine -> {
-      while (true) {
+      while (encoder.getPosition().get() < 1.10) {
         motor.setVoltage(4.0); // Add code here to move the extender out.
         coroutine.yield();
       }
+      motor.setVoltage(0);
     }).named("Extender Out");
   }
 
   public Command in() {
     return run(coroutine -> {
-      while (true) {
+      while (encoder.getPosition().get() > 0.01) {
         motor.setVoltage(-4.0); // Add code here to move the extender in.
         coroutine.yield();
       }
+      motor.setVoltage(0);
     }).named("Extender In");
   }
 
