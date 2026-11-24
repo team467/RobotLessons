@@ -14,6 +14,8 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 import first.robot.Schematic;
 import first.robot.mechanical.Mechanical;
+
+
 //import java.util.List;
 //import org.wpilib.framework.RobotBase;
 //import org.wpilib.command3.Command;
@@ -39,10 +41,11 @@ public class Extender implements Mechanism {
 
   public Command out() {
     return run(coroutine -> {
-      while (true) {
+      while (encoder.getPosition().get() < 1.10) {
         motor.setVoltage(12);
         coroutine.yield();
       }
+      motor.setVoltage(0); // stop once we've reached 1.10
     }).named("Extender Out");
   }
 
@@ -58,10 +61,11 @@ public class Extender implements Mechanism {
 
   public Command in() {
     return run(coroutine -> {
-      while (true) {
+      while (encoder.getPosition().get() > 0.01) {
         motor.setVoltage(-12);
         coroutine.yield();
       }
+      motor.setVoltage(0); // stop once we've reached 1.10
     }).named("Extender In");
   }
   
