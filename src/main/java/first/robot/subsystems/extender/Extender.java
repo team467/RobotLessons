@@ -3,6 +3,8 @@ package first.robot.subsystems.extender;
 import org.wpilib.command3.Command;
 import org.wpilib.command3.Mechanism;
 import org.wpilib.epilogue.Logged;
+import org.wpilib.math.controller.PIDController;
+import org.wpilib.units.measure.Distance;
 
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 
@@ -12,20 +14,50 @@ import com.revrobotics.spark.SparkMax;
 import first.robot.Schematic;
 import first.robot.mechanical.Mechanical;
 
+import static org.wpilib.units.Units.Meters;
+
+import java.awt.event.KeyEvent;
+
 /** The extender slides the claw in and out on a pulley (the x-axis). */
 @Logged
 public class Extender implements Mechanism {
 
   private final SparkMax motor;
   private final RelativeEncoder encoder;
+  private final PIDController pid = new PIDController(15, 0, 1);
 
-  public Extender() {
-    
+  public Extender() 
+  {
     this.motor = Mechanical.createSparkMax(Schematic.EXTENDER_SPARK_MAX_CAN_ID, MotorType.kBrushless);
     this.encoder = motor.getEncoder();
     setDefaultCommand(hold()); 
   }
 
+  public Command moveToSetpoint(double targetPosition) {
+    return run(coroutine -> {
+      pid.reset();
+      pid.setSetpoint(targetPosition);
+
+      // while (true) 
+      // {
+      //   double currentPosition = encoder.getPosition().get();
+      //   double newVoltage = pid.calculate(currentPosition);
+
+      //   motor.setVoltage(newVoltage);
+      //   coroutine.yield();
+      // }
+
+      double currentPosition;
+      while ((currentPosition = encoder.getPosition().get()) != targetPosition) 
+      {
+        // double currentPosition = encoder.getPosition().get();
+        double newVoltage = pid.calculate(currentPosition);
+
+        motor.setVoltage(newVoltage);
+        coroutine.yield();
+      }
+    }).named("Extender Move To Setpoint");
+  }
 
   public Command out() {
     return run(coroutine -> {
